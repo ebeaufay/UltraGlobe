@@ -64,7 +64,9 @@ class PlanetTile extends Mesh {
     constructor(bounds, elevationService, wmsService, planetCenter, radius, level, callback) {
         var material = MATERIAL.clone();
         super(TILE_GEOMETRY, material);
+
         var self = this;
+
         self.frustumCulled = false;
         self.level = level;
         self.planetCenter = planetCenter;
@@ -99,20 +101,20 @@ class PlanetTile extends Mesh {
      * Update the tree relative to the camera and available elevation data.
      * @param {*} camera 
      */
-    update(camera) {
+    update(camera, frustum) {
         var self = this;
         if(this.refining){
             return;
         }
         
-        const metric = this.calculateUpdateMetric(camera);
+        const metric = this.calculateUpdateMetric(camera, frustum);
         if (metric < this.level + 1){
             this.material.visible = true;
             this.disposeChildren(self);
         }
         else if (self.children.length > 0){
             this.children.forEach(child => {
-                child.update(camera);
+                child.update(camera, frustum);
             });
             return;
         }
@@ -168,7 +170,7 @@ class PlanetTile extends Mesh {
             self.clear();
         }
     }
-    calculateUpdateMetric(camera) {
+    calculateUpdateMetric(camera, frustum) {
         var p = camera.position.clone().sub(this.planetCenter);
         var pNormalized = p.clone().normalize();
         var lat = Math.asin(pNormalized.y);
@@ -196,14 +198,33 @@ class PlanetTile extends Mesh {
         lon = Math.round(Math.max(0, Math.min(31, lon)));
 
         var surfaceElevation = !!this.elevationArray ? this.elevationArray[(lat * 32) + lon] + this.radius : this.radius;
+        var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
+        var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32*32)-1] + this.radius : this.radius;
 
         lat = (((lat + 0.5) / 32) * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; //lat in geodetic coordinates
         lon = (((lon + 0.5) / 32) * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-        var nearest = new THREE.Vector3(-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon)).multiplyScalar(surfaceElevation);
+        var nearest = new THREE.Vector3(-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon));
+        var nearestMSE = nearest.clone().multiplyScalar(this.radius);
+        var nearestSurface = nearest.clone().multiplyScalar(surfaceElevation);
 
-        var distance = Math.sqrt(p.distanceTo(nearest));
-        console.log(4000 / Math.max(distance, 0.0001))
-        return 4000 / Math.max(distance, 0.0001);
+        var center = this.bounds.getCenter();
+        var c = new THREE.Vector3(-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)).multiplyScalar(surfaceElevationCenter);
+        var m = new THREE.Vector3(-(Math.cos(this.bounds.max.y) * Math.cos(this.bounds.max.x)), Math.sin(this.bounds.max.y), Math.cos(this.bounds.max.y) * Math.sin(this.bounds.max.x)).multiplyScalar(surfaceElevationMax);
+        
+        var boundingSphere = new THREE.Sphere(c.clone().add(this.planetCenter), c.distanceTo(m)*1.1)
+        if(!frustum.intersectsSphere ( boundingSphere )){
+            return 0;
+        }
+
+        var dot = nearestMSE.sub(this.planetCenter).normalize().dot(pNormalized);
+
+        if(dot<0){
+            return 0;
+        }
+
+        var distance = Math.sqrt(p.distanceTo(nearestSurface));
+        console.log((4000 / Math.max(distance, 0.0001)));
+        return (4000 / Math.max(distance, 0.0001));
     }
 }
 

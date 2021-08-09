@@ -18,7 +18,9 @@ class Planet extends Object3D {
         setInterval(function () {
             var count = 0;
             self.children.forEach(tile => {
-                tile.update(camera);
+                var frustum = new THREE.Frustum();
+                frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse ) );
+                tile.update(camera, frustum);
                 tile.traverse(function (element) {
                     if (element != self && element.material) {
                         if (element.material.visible) {
