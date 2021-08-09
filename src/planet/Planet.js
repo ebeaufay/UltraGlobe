@@ -1,0 +1,36 @@
+import * as THREE from 'three';
+import { PlanetTile } from './PlanetTile.js';
+import { BingElevationLayer } from './BingElevationLayer.js';
+import { WMSLayer } from './WMSLayer.js';
+import { Object3D } from 'three/src/core/Object3D';
+
+class Planet extends Object3D {
+    constructor(camera, center = new THREE.Vector3(0, 0, 0), radius = 6378000) {
+        super();
+        var self = this;
+        self.elevationLayer;
+        self.mapLayers = [];
+        var elevationLayer = new BingElevationLayer("AteBKVs9dTvvEMIEus-KRwyTybV76si7jcncQK5TG02wgMLRG82Fb6ZO2qSVNNvW");
+        var wmsLayer = new WMSLayer("https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv", "gebco_latest_2")
+        this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)), elevationLayer, wmsLayer, center, radius, 0));
+        this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)), elevationLayer, wmsLayer, center, radius, 0));
+
+        setInterval(function () {
+            var count = 0;
+            self.children.forEach(tile => {
+                tile.update(camera);
+                tile.traverse(function (element) {
+                    if (element != self && element.material) {
+                        if (element.material.visible) {
+                            count++;
+                        }
+                    }
+                });
+            });
+            console.log(count);
+        }, 200);
+    }
+}
+
+
+export { Planet };
