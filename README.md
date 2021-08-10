@@ -1,8 +1,11 @@
 # ULTRA Globe
 
-With this project, my goal is to bring Threejs users the capability to display OGC layers on a globe without needing to adopt specialized geospatial frameworks.
+Display OGC layers on a globe.
 
-Currently, the code is limitted to a simple Globe with multileveled WMS tiles.
+Currently, the code is limitted to multileveled OGC:WMS tiles.
 
 Limitations:
--No map reprojection (EPSG 4326 only). Mercator projections will probably work with some distortions
+-No map reprojection (EPSG 4326 only). Other projections may work with distortions
+
+Future work:
+-Elevation
