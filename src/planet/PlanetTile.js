@@ -223,7 +223,6 @@ class PlanetTile extends Mesh {
         }
 
         var distance = Math.sqrt(p.distanceTo(nearestSurface));
-        console.log((4000 / Math.max(distance, 0.0001)));
         return (4000 / Math.max(distance, 0.0001));
     }
 }

@@ -43,7 +43,7 @@ function Renderer(scene, container, camera) {
         self.container.appendChild(self.stats.dom);
 
         self.controls = new OrbitControls(self.camera, self.renderer.domElement);
-        self.camera.position.set(0, 0, 10000000);
+        self.camera.position.set(0, 0, 20000000);
         self.controls.target.x = 0;
         self.controls.target.y = 0;
         self.controls.target.z = 0;

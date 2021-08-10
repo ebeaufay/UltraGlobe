@@ -16,20 +16,20 @@ class Planet extends Object3D {
         this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)), elevationLayer, wmsLayer, center, radius, 0));
 
         setInterval(function () {
-            var count = 0;
+            // var count = 0;
             self.children.forEach(tile => {
                 var frustum = new THREE.Frustum();
                 frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse ) );
                 tile.update(camera, frustum);
-                tile.traverse(function (element) {
+                /* tile.traverse(function (element) {
                     if (element != self && element.material) {
                         if (element.material.visible) {
                             count++;
                         }
                     }
-                });
+                }); */
             });
-            console.log(count);
+            // console.log(count);
         }, 200);
     }
 }
