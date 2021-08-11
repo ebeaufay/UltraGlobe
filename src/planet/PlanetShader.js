@@ -4,7 +4,7 @@
 
 const PlanetShader = {
 
-    vertexShader: /* glsl */`
+	vertexShader: /* glsl */`
 	#define HalfPI 1.5707963267948966192313216916398
 	#define PI 3.1415926535897932384626433832795
 	#define LON_MULTIPLIER 0.15915494309189533576888376337251
@@ -15,6 +15,8 @@ const PlanetShader = {
 	uniform vec3 planetPosition;
 	uniform vec2 lowerLeft;
 	uniform vec2 upperRight;
+	uniform vec2 uvLowerLeft;
+	uniform vec2 uvUpperRight;
 	
 	varying vec2 texUV;
 
@@ -27,7 +29,7 @@ const PlanetShader = {
 		float width = upperRight.x - lowerLeft.x;
 		float height = upperRight.y - lowerLeft.y;
 
-		texUV = vec2((lon - lowerLeft.x) / width, (lat - lowerLeft.y) /height );
+		texUV = vec2(((lon - lowerLeft.x) / width)*(uvUpperRight.x-uvLowerLeft.x)+uvLowerLeft.x, ((lat - lowerLeft.y) /height)*(uvUpperRight.y-uvLowerLeft.y)+uvLowerLeft.y );
 		vPosition = vec3(-(cos(lat) * cos(lon)), sin(lat), cos(lat) * sin(lon));
 		
 		vPosition *= elevation+radius;
@@ -35,9 +37,11 @@ const PlanetShader = {
 	    gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
 	}`,
 
-    fragmentShader: /* glsl */`
+	fragmentShader: /* glsl */`
 
 	varying vec2 texUV;
+	uniform vec2 uvLowerLeft;
+	uniform vec2 uvUpperRight;
 	uniform sampler2D imagery;
 	
 	void main() {
