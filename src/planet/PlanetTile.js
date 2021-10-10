@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PlanetShader } from './PlanetShader.js';
+import { PlanetShader, PlanetShaderNk } from './PlanetShader.js';
 import { Mesh } from 'three/src/objects/Mesh';
 
 const TILE_GEOMETRY = generateBaseTile(32);
@@ -12,6 +12,9 @@ const MATERIAL = new THREE.ShaderMaterial({
     vertexShader: PlanetShader.vertexShader,
     fragmentShader: PlanetShader.fragmentShader
 });
+
+let TILE_INDEX_NK = 0 ;
+let TILE_GEOMETRY_NK = null ;
 
 function buildZeroTexture() {
     var data = new Uint8Array(3);
@@ -59,9 +62,136 @@ function generateBaseTile(resolution) {
     return geometry;
 }
 
+function generateBaseTileNk (nkEngine, resolution)
+{
+    // Safety checks
+    if (resolution < 2)
+    {
+        console.log("Unsupported base tile geometry resolution. Aborting.") ;
+        return ;
+    }
+
+    // Names
+    const nkGraphics = nkEngine.nkGraphics ;
+    const nkMemory = nkEngine.nkMemory ;
+
+    // Generate buffer data
+    var stepX = 1 / (resolution - 1) ;
+    var stepY = 1 / (resolution - 1) ;
+
+    const floatSize = 4 ;
+
+    // Vertices
+    const vectorSize = 3 ;
+    const pointCount = resolution * resolution ;
+    const arrayVertexBuffer = new nkMemory.Buffer (floatSize * vectorSize * pointCount) ;
+    const vertexBuffer = new Float32Array (arrayVertexBuffer.getData().buffer) ;
+
+    // Vertices
+    for (let y = 0 ; y < resolution ; y++)
+    {
+        const lineIndex = y * resolution * 3 ;
+
+        for (let x = 0 ; x < resolution ; x++)
+        {
+            const index = lineIndex + x * 3 ;
+            vertexBuffer[index + 0] = y * stepY ;
+            vertexBuffer[index + 1] = x * stepX ;
+            vertexBuffer[index + 2] = 0 ;
+        }
+    }
+
+    // Indices
+    const intSize = 4 ;
+    const triSize = 3 ;
+    const triCount = 2 * (resolution - 1) * (resolution - 1) ;
+    const arrayIndexBuffer = new ArrayBuffer (intSize * triSize * triCount) ;
+    const indexBuffer = new Int32Array (arrayIndexBuffer) ;
+    let currentIndex = 0 ;
+    let pointIndex = 0 ;
+
+    for (let y = 0 ; y < resolution - 1 ; y++)
+    {
+        for (let x = 0 ; x < resolution - 1 ; x++)
+        {
+            indexBuffer[currentIndex++] = pointIndex + 0 ;
+            indexBuffer[currentIndex++] = pointIndex + 1 + resolution ;
+            indexBuffer[currentIndex++] = pointIndex + resolution ;
+
+            indexBuffer[currentIndex++] = pointIndex + 0 ;
+            indexBuffer[currentIndex++] = pointIndex + 1 ;
+            indexBuffer[currentIndex++] = pointIndex + 1 + resolution ;
+
+            pointIndex++ ;
+        }
+
+        // Jump over last point of line
+        pointIndex++ ;
+    }
+
+    // Translate into mesh
+    const tileMesh = nkGraphics.MeshManager.getInstance().createOrRetrieve("Tile_" + TILE_INDEX_NK++) ;
+
+    const positionAttribute = new nkGraphics.MeshInputLayoutAttribute ("POSITION") ;
+    positionAttribute._format = nkGraphics.FORMAT.R32G32B32_FLOAT ;
+    const layout = new nkGraphics.MeshInputLayout () ;
+    layout.addAttribute(positionAttribute) ;
+
+    tileMesh.setInputLayout(layout) ;
+    tileMesh.addVertexBufferForward(arrayVertexBuffer) ;
+    tileMesh.setIndexBufferForward(arrayIndexBuffer) ;
+    tileMesh.setVertexCount(pointCount) ;
+    tileMesh.setIndexCount(triCount * triSize) ;
+    tileMesh.load() ;
+    
+    return tileMesh ;
+}
+
+function generateShaderNk (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
+{
+    // Const
+    const nkGraphics = nkEngine.nkGraphics ;
+    const nkMaths = nkEngine.nkMaths ;
+
+    // Prepare program
+    const program = nkGraphics.ProgramManager.getInstance().createOrRetrieve("TileProgram") ;
+
+    if (program.isUnloaded())
+    {
+        const programSources = new nkGraphics.ProgramSourcesHolder () ;
+        programSources.setVertexMemory(PlanetShaderNk.vertex) ;
+        programSources.setPixelMemory(PlanetShaderNk.pixel) ;
+
+        program.setFromMemory(programSources) ;
+        program.load() ;
+    }
+
+    // Prepare shader
+    const shader = nkGraphics.ShaderManager.getInstance().createOrRetrieve("TileShader_" + TILE_INDEX_NK++) ;
+    shader.setAttachedShaderProgram(program) ;
+
+    shader.addInstanceMemorySlot().setAsWorldMatrix() ;
+
+    const cBuffer = shader.addConstantBuffer(0) ;
+    cBuffer.addPassMemorySlot().setAsViewMatrix() ;
+    cBuffer.addPassMemorySlot().setAsProjectionMatrix() ;
+    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMin.x, boundsMin.y, boundsMax.x, boundsMax.y)) ;
+
+    if (uvLeft)
+        cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (uvLeft.x, uvLeft.y, uvRight.x, uvRight.y)) ;
+    else
+        cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (0, 0, 1, 1)) ;
+
+    shader.addTexture(nkGraphics.TextureManager.getInstance().get("NILKINS_DEFAULT_TEXTURE"), 0) ;
+
+    // Done
+    return shader ;
+}
+
+let TILE_NK_FIRST = true ;
 
 class PlanetTile extends Mesh {
-    constructor(bounds, elevationService, wmsService, planetCenter, radius, level, callback, texture, uvLowerLeft, uvUpperRight) {
+    constructor(nkEngine, bounds, elevationService, wmsService, planetCenter, radius, level, callback, texture, uvLowerLeft, uvUpperRight) {
         var material = MATERIAL.clone();
         super(TILE_GEOMETRY, material);
 
@@ -81,6 +211,22 @@ class PlanetTile extends Mesh {
         self.material.side = THREE.FrontSide;
         self.material.visible = false;
         self.material.wireframe = false;
+        self._nkEngine = nkEngine ;
+
+        // Setup nk
+        if (!TILE_GEOMETRY_NK)
+            TILE_GEOMETRY_NK = generateBaseTileNk(nkEngine, 32) ;
+
+        // Add to nk pipeline
+        const nkShader = generateShaderNk(nkEngine, bounds.min, bounds.max, uvLowerLeft, uvUpperRight) ;
+
+        const rq = nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
+        const ent = rq.addEntity() ;
+        ent.setShader(nkShader) ;
+        const subEnt = ent.addChild() ;
+        subEnt.setMesh(TILE_GEOMETRY_NK) ;
+
+        // Other
         if (!!texture) {
             self.material.uniforms.imagery = { type: "uniform", value: texture };
             self.material.uniforms.uvLowerLeft = { type: "v2", value: uvLowerLeft };
@@ -91,12 +237,32 @@ class PlanetTile extends Mesh {
                 self.refining = false;
                 self.material.visible = true;
             }
+            console.log("Not texture") ;
+            rq.eraseEntity(ent) ;
         }
         else {
             self.refining = true;
             self.loadLayers(() => {
                 self.refining = false;
                 self.material.visible = true;
+
+                const requestUrl = self.wmsService.getFullUrl(self.bounds, 1024, 1024) ;
+                nkEngine.nkResources.ResourceManager.getInstance().loadFileIntoMemory(requestUrl).then(
+                    function (imgData)
+                    {
+                        let imgAlignmentDesc = new nkEngine.nkImages.AlignmentDescriptor () ;
+                        imgAlignmentDesc._forceRgbFormat = true ;
+                        imgAlignmentDesc._alphaMode = nkEngine.nkImages.ALPHA_MODE.ALPHA ;
+                        let img = nkEngine.nkImages.CompositeEncoder.decode(imgData, imgAlignmentDesc) ;
+                        let tex = nkEngine.nkGraphics.TextureManager.getInstance().createOrRetrieve("TILE_" + TILE_INDEX_NK++) ;
+                        tex.setFromImage(img) ;
+                        //tex.setGammaCorrected(false) ;
+                        tex.load() ;
+
+                        nkShader.setTexture(tex, 0) ;
+                    }
+                )
+
                 if (!!callback) callback();
             });
         }
@@ -184,10 +350,10 @@ class PlanetTile extends Mesh {
                     var maxUVY = this.material.uniforms.uvUpperRight.value.y;
                     var halfUVWidth = (maxUVX - minUVX) * 0.5;
                     var halfUVHeight = (maxUVY - minUVY) * 0.5;
-                    this.add(new PlanetTile(new THREE.Box2(this.bounds.min, boundsCenter), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY), new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(boundsCenter.x, this.bounds.min.y), new THREE.Vector2(this.bounds.max.x, boundsCenter.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY), new THREE.Vector2(maxUVX, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(this.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, this.bounds.max.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY + halfUVHeight), new THREE.Vector2(minUVX + halfUVWidth, maxUVY)));
-                    this.add(new PlanetTile(new THREE.Box2(boundsCenter, this.bounds.max), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight), new THREE.Vector2(maxUVX, maxUVY)));
+                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(this.bounds.min, boundsCenter), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY), new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight)));
+                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(new THREE.Vector2(boundsCenter.x, this.bounds.min.y), new THREE.Vector2(this.bounds.max.x, boundsCenter.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY), new THREE.Vector2(maxUVX, minUVY + halfUVHeight)));
+                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(new THREE.Vector2(this.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, this.bounds.max.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY + halfUVHeight), new THREE.Vector2(minUVX + halfUVWidth, maxUVY)));
+                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(boundsCenter, this.bounds.max), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight), new THREE.Vector2(maxUVX, maxUVY)));
                     self.material.visible = false;
                 }
             }
