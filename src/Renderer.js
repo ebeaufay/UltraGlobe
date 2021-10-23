@@ -1,29 +1,19 @@
-import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import Stats from 'three/examples/jsm/libs/stats.module.js';
-import * as THREE from 'three';
+function Renderer(nkView, nkEngine)
+{
+    // Attributes
+    var self = this ;
 
-//const types = { UnsignedShortType: THREE.UnsignedShortType, UnsignedIntType: THREE.UnsignedIntType, UnsignedInt248Type: THREE.UnsignedInt248Type };
+    this.renderer ;
+    this.controls ;
+    this.planets = [] ;
 
-function Renderer(scene, containerL, containerR, camera, nkEngine) {
-    var self = this;
-    self.camera = camera;
-    this.scene = scene;
-    this.camera = camera;
-    this.renderer;
-    this.controls;
-    this.containerL = containerL;
-    this.supportsExtension = true;
-    this.clock = new THREE.Clock();
-    this.planets = [];
     this._nkEngine = nkEngine ;
-    this._containerR = containerR;
     this._nkContext = null ;
+    this._nkView = nkView ;
 
+    initNkEngine() ;
 
-    init();
-
-    function initNkEnginePart ()
+    function initNkEngine ()
     {
         // Prepare ref
         const nkAstraeus = self._nkEngine.nkAstraeus ;
@@ -31,7 +21,7 @@ function Renderer(scene, containerL, containerR, camera, nkEngine) {
         const nkImages = self._nkEngine.nkImages ;
         const nkLog = self._nkEngine.nkLog ;
         const nkMaths = self._nkEngine.nkMaths ;
-        const nkResources = nkEngine.nkResources ;
+        const nkResources = self._nkEngine.nkResources ;
         const nkWinUi = self._nkEngine.nkWinUi ;
 
         // Init engine
@@ -47,13 +37,12 @@ function Renderer(scene, containerL, containerR, camera, nkEngine) {
 
         // Prepare window
         const graphicsWindow = nkWinUi.ComponentManager.getInstance().createOrRetrieve("Win", nkWinUi.COMPONENT_TYPE.GRAPHICS_WINDOW).asGraphicsWindow() ;
-        //graphicsWindow.setFromExternalCanvas(self._containerR) ;
         graphicsWindow.load() ;
 
         // Prepare context
         const contextDesc = new nkGraphics.RenderContextDescriptor () ;
         const context = nkGraphics.RenderContextManager.getInstance().createRenderContext(contextDesc) ;
-        self._containerR.appendChild(context.getAttachedWin().getCanvas()) ;
+        self._nkView.appendChild(context.getAttachedWin().getCanvas()) ;
         context.getAttachedWin().getCanvas().style = "position: absolute; height: 100%; width: 100%; right: 0px; top : 0px;" ;
         self._nkContext = context ;
 
@@ -103,80 +92,25 @@ function Renderer(scene, containerL, containerR, camera, nkEngine) {
         ) ;        
     }
 
-    function init()
+    function addPlanet(planet)
     {
-        self.renderer = new THREE.WebGLRenderer();
-        self.renderer.antialias = true;
-        if (self.renderer.capabilities.isWebGL2 === false && self.renderer.extensions.has('WEBGL_depth_texture') === false)
-        {
-            self.supportsExtension = false;
-            document.querySelector('#error').style.display = 'block';
-            return;
-        }
-
-        self.renderer.setPixelRatio(window.devicePixelRatio);
-        self.renderer.outputEncoding = THREE.sRGBEncoding;
-        self.renderer.autoClear = false;
-
-        self.renderer.setSize(self.containerL.offsetWidth, self.containerL.offsetHeight);
-        self.containerL.appendChild(self.renderer.domElement);
-
-        self.stats = new Stats();
-        self.containerL.appendChild(self.stats.dom);
-
-        self.controls = new OrbitControls(self.camera, self.renderer.domElement);
-        self.camera.position.set(-20000000, 0, 0);
-        self.controls.target.x = 0;
-        self.controls.target.y = 0;
-        self.controls.target.z = 0;
-        self.controls.minDistance = 6378500;
-        self.controls.maxDistance = 1000000000;
-        self.controls.zoomSpeed = 0.1;
-        self.controls.update();
-
-        initNkEnginePart() ;
-
-
-        onWindowResize();
-        window.addEventListener('resize', onWindowResize);
-
-    }
-
-    function addPlanet(planet){
         self.planets.push(planet);
         self.controls.addEventListener('change', function(event){
             planet.update(event.target.object)
         });
-        
-    }
-
-    function onWindowResize() {
-        const aspect = self.containerL.offsetWidth / self.containerL.offsetHeight;
-        self.camera.aspect = aspect;
-        self.camera.updateProjectionMatrix();
-        const dpr = self.renderer.getPixelRatio();
-
-        self.renderer.setSize(self.containerL.offsetWidth, self.containerL.offsetHeight);
-
     }
 
     let start ;
 	const rotationTime = 10000 ;
     const cam = nkEngine.nkGraphics.CameraManager.getInstance().getDefaultCam() ;
 
-    function render(time)
+    function render (time)
     {
-        if (!self.supportsExtension)
-            return;
-
         //self.camera.near = 0.0 + Math.pow(self.camera.position.y / 10, 0.5);
         //self.camera.far = 1000 + self.camera.position.y * 1;
         //self.camera.updateProjectionMatrix();
 
         requestAnimationFrame(render);
-
-        self.camera.updateMatrixWorld();
-        self.renderer.render(scene, camera);
 
         // nk Logic
         if (start === undefined)
@@ -190,18 +124,14 @@ function Renderer(scene, containerL, containerR, camera, nkEngine) {
         cam.lookAt(new nkEngine.nkMaths.Vector (0, 0, 0), new nkEngine.nkMaths.Vector (0, 1, 0)) ;
         self._nkEngine.nkGraphics.MainSystem.getInstance().frame(self._nkContext) ;
         //
-
-        self.stats.update();
-        const delta = self.clock.getDelta();
-        self.controls.movementSpeed = 15;
-        self.controls.update(delta);
     }
 
 
     return {
         render: render,
-        camera: self.camera,
+        camera: cam,
         addPlanet: addPlanet,
     }
 }
-export { Renderer };
+
+export { Renderer } ;

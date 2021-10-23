@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import {CancellableTextureLoader} from '../loaders/CancellableTextureLoader.js'
 
 /**
@@ -26,10 +25,10 @@ class WMSLayer {
 
     getFullUrl (bounds, width = 128, height = 128)
     {
-        var minY = Math.min(90, Math.max(-90, bounds.min.y * toDegrees));
-        var maxY = Math.min(90, Math.max(-90, bounds.max.y * toDegrees));
-        var minX = Math.min(179.99999999, Math.max(-180, bounds.min.x * toDegrees));
-        var maxX = Math.min(179.99999999, Math.max(-180, bounds.max.x * toDegrees));
+        const minY = Math.min(90, Math.max(-90, bounds.getMin()._y * toDegrees));
+        const maxY = Math.min(90, Math.max(-90, bounds.getMax()._y * toDegrees));
+        const minX = Math.min(179.99999999, Math.max(-180, bounds.getMin()._x * toDegrees));
+        const maxX = Math.min(179.99999999, Math.max(-180, bounds.getMax()._x * toDegrees));
 
         return this.url + "?request=getmap&service=wms&format=image/jpeg&BBOX=" +
                minX + "," + minY + "," +

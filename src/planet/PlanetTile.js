@@ -1,68 +1,11 @@
-import * as THREE from 'three';
-import { PlanetShader, PlanetShaderNk } from './PlanetShader.js';
-import { Mesh } from 'three/src/objects/Mesh';
+import { PlanetShader } from './PlanetShader.js';
 
-const TILE_GEOMETRY = generateBaseTile(32);
-const MAX_LEVEL = 10;
-const MATERIAL = new THREE.ShaderMaterial({
-    uniforms: {
-        elevation: { type: "t", value: buildZeroTexture() },
-        imagery: { type: "t", value: buildZeroTexture() }
-    },
-    vertexShader: PlanetShader.vertexShader,
-    fragmentShader: PlanetShader.fragmentShader
-});
+const MAX_LEVEL = 1 ;
 
 let TILE_INDEX_NK = 0 ;
 let TILE_GEOMETRY_NK = null ;
 
-function buildZeroTexture() {
-    var data = new Uint8Array(3);
-    data[0] = 255;
-    data[1] = 255;
-    data[2] = 255;
-    return new THREE.DataTexture(data, 1, 1, THREE.RGBFormat);
-}
-
-function generateBaseTile(resolution) {
-    if (resolution < 2) {
-        console.log("unsupported resolution");
-        return;
-    }
-    var stepX = 1 / resolution;
-    var stepY = 1 / resolution;
-
-    var indices = [];
-    var vertices = [];
-
-    for (var y = 0; y <= 1; y += stepY) {
-        for (var x = 0; x <= 1; x += stepX) {
-            var vX = x;
-            var vY = y;
-            vertices.push(vX, vY, 0);
-        }
-    }
-
-    for (var i = 0; i < vertices.length / 3 - (resolution + 1); i++) {
-        if ((i + 1) % (resolution + 1) == 0) continue;
-        if ((x < 0 && y < 0) || (x >= 0 && y >= 0)) {
-            indices.push(i, i + 1, i + 2 + resolution);
-            indices.push(i, i + 2 + resolution, i + 1 + resolution);
-        } else {
-            indices.push(i, i + 1, i + 1 + resolution);
-            indices.push(i + 1 + resolution, i + 1, i + 2 + resolution);
-        }
-
-    }
-
-    var geometry = new THREE.BufferGeometry();
-    geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
-    return geometry;
-}
-
-function generateBaseTileNk (nkEngine, resolution)
+function generateBaseTile (nkEngine, resolution)
 {
     // Safety checks
     if (resolution < 2)
@@ -147,7 +90,7 @@ function generateBaseTileNk (nkEngine, resolution)
     return tileMesh ;
 }
 
-function generateShaderNk (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
+function generateShader (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
 {
     // Const
     const nkGraphics = nkEngine.nkGraphics ;
@@ -159,8 +102,8 @@ function generateShaderNk (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
     if (program.isUnloaded())
     {
         const programSources = new nkGraphics.ProgramSourcesHolder () ;
-        programSources.setVertexMemory(PlanetShaderNk.vertex) ;
-        programSources.setPixelMemory(PlanetShaderNk.pixel) ;
+        programSources.setVertexMemory(PlanetShader.vertex) ;
+        programSources.setPixelMemory(PlanetShader.pixel) ;
 
         program.setFromMemory(programSources) ;
         program.load() ;
@@ -175,12 +118,8 @@ function generateShaderNk (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
     const cBuffer = shader.addConstantBuffer(0) ;
     cBuffer.addPassMemorySlot().setAsViewMatrix() ;
     cBuffer.addPassMemorySlot().setAsProjectionMatrix() ;
-    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMin.x, boundsMin.y, boundsMax.x, boundsMax.y)) ;
-
-    if (uvLeft)
-        cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (uvLeft.x, uvLeft.y, uvRight.x, uvRight.y)) ;
-    else
-        cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (0, 0, 1, 1)) ;
+    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMin._x, boundsMin._y, boundsMax._x, boundsMax._y)) ;
+    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (uvLeft._x, uvLeft._y, uvRight._x, uvRight._y)) ;
 
     shader.addTexture(nkGraphics.TextureManager.getInstance().get("NILKINS_DEFAULT_TEXTURE"), 0) ;
 
@@ -188,258 +127,266 @@ function generateShaderNk (nkEngine, boundsMin, boundsMax, uvLeft, uvRight)
     return shader ;
 }
 
-let TILE_NK_FIRST = true ;
-
-class PlanetTile extends Mesh {
-    constructor(nkEngine, bounds, elevationService, wmsService, planetCenter, radius, level, callback, texture, uvLowerLeft, uvUpperRight) {
-        var material = MATERIAL.clone();
-        super(TILE_GEOMETRY, material);
-
+class PlanetTile
+{
+    constructor(nkEngine, unitBounds, bounds, elevationService, wmsService, planetCenter, radius, level, callback, texture, uvLowerLeft, uvUpperRight)
+    {
         var self = this;
 
         self.frustumCulled = false;
         self.level = level;
-        self.planetCenter = planetCenter;
-        self.bounds = bounds;
         self.radius = radius;
         self.elevationService = elevationService;
         self.wmsService = wmsService;
-        self.material.uniforms.radius = { type: "f", value: radius };
-        self.material.uniforms.planetPosition = { type: "v3", value: planetCenter };
-        self.material.uniforms.lowerLeft = { type: "v2", value: bounds.min };
-        self.material.uniforms.upperRight = { type: "v2", value: bounds.max };
-        self.material.side = THREE.FrontSide;
-        self.material.visible = false;
-        self.material.wireframe = false;
+
         self._nkEngine = nkEngine ;
+        self._planetCenter = planetCenter ;
+        self._bounds = bounds ;
+        self._unitBounds = unitBounds ;
+        self._planetCenter = new nkEngine.nkMaths.Vector (0, 0, 0, 0) ;
+        //self._uvLowerLeft = uvLowerLeft ;
+        //self._uvUpperRight = uvUpperRight ;
+        self._uvLowerLeft = new nkEngine.nkMaths.Vector (0, 0) ;
+        self._uvUpperRight = new nkEngine.nkMaths.Vector (1, 1) ;
+        self._entity = null ;
+        self._children = [] ;
+
+        // Compute bounds
+        //const center = new this._nkEngine.nkMaths.Vector (this._unitBounds.getCenter()) ;
+        //const c = new this._nkEngine.nkMaths.Vector (-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)) ;
+        //const m = new this._nkEngine.nkMaths.Vector (-(Math.cos(this._unitBounds.max.y) * Math.cos(this._unitBounds.max.x)), Math.sin(this._unitBounds.max.y), Math.cos(this._unitBounds.max.y) * Math.sin(this._unitBounds.max.x)) ;
+
+        //var boundingSphere = new THREE.Sphere(c.clone().add(this.planetCenter), c.distanceTo(m) * 1.1)
 
         // Setup nk
         if (!TILE_GEOMETRY_NK)
-            TILE_GEOMETRY_NK = generateBaseTileNk(nkEngine, 32) ;
+            TILE_GEOMETRY_NK = generateBaseTile(nkEngine, 32) ;
 
         // Add to nk pipeline
-        const nkShader = generateShaderNk(nkEngine, bounds.min, bounds.max, uvLowerLeft, uvUpperRight) ;
+        const nkShader = generateShader(nkEngine, bounds.getMin(), bounds.getMax(), self._uvLowerLeft, self._uvUpperRight) ;
 
         const rq = nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
-        const ent = rq.addEntity() ;
-        ent.setShader(nkShader) ;
-        const subEnt = ent.addChild() ;
+        self._entity = rq.addEntity() ;
+        self._entity.setShader(nkShader) ;
+        const subEnt = self._entity.addChild() ;
         subEnt.setMesh(TILE_GEOMETRY_NK) ;
 
         // Other
-        if (!!texture) {
-            self.material.uniforms.imagery = { type: "uniform", value: texture };
-            self.material.uniforms.uvLowerLeft = { type: "v2", value: uvLowerLeft };
-            self.material.uniforms.uvUpperRight = { type: "v2", value: uvUpperRight };
-            if (!!callback) {
+        if (!!texture)
+        {
+            if (!!callback)
                 callback();
-            } else {
+            else
                 self.refining = false;
-                self.material.visible = true;
-            }
-            console.log("Not texture") ;
-            rq.eraseEntity(ent) ;
+
+            //rq.eraseEntity(ent) ;
         }
-        else {
+        else
+        {
             self.refining = true;
-            self.loadLayers(() => {
-                self.refining = false;
-                self.material.visible = true;
 
-                const requestUrl = self.wmsService.getFullUrl(self.bounds, 1024, 1024) ;
-                nkEngine.nkResources.ResourceManager.getInstance().loadFileIntoMemory(requestUrl).then(
-                    function (imgData)
-                    {
-                        let imgAlignmentDesc = new nkEngine.nkImages.AlignmentDescriptor () ;
-                        imgAlignmentDesc._forceRgbFormat = true ;
-                        imgAlignmentDesc._alphaMode = nkEngine.nkImages.ALPHA_MODE.ALPHA ;
-                        let img = nkEngine.nkImages.CompositeEncoder.decode(imgData, imgAlignmentDesc) ;
-                        let tex = nkEngine.nkGraphics.TextureManager.getInstance().createOrRetrieve("TILE_" + TILE_INDEX_NK++) ;
-                        tex.setFromImage(img) ;
-                        //tex.setGammaCorrected(false) ;
-                        tex.load() ;
+            const requestUrl = self.wmsService.getFullUrl(self._bounds, 1024, 1024) ;
+            nkEngine.nkResources.ResourceManager.getInstance().loadFileIntoMemory(requestUrl).then(
+                function (imgData)
+                {
+                    let imgAlignmentDesc = new nkEngine.nkImages.AlignmentDescriptor () ;
+                    imgAlignmentDesc._forceRgbFormat = true ;
+                    imgAlignmentDesc._alphaMode = nkEngine.nkImages.ALPHA_MODE.ALPHA ;
+                    let img = nkEngine.nkImages.CompositeEncoder.decode(imgData, imgAlignmentDesc) ;
+                    let tex = nkEngine.nkGraphics.TextureManager.getInstance().createOrRetrieve("TILE_" + TILE_INDEX_NK++) ;
+                    tex.setFromImage(img) ;
+                    //tex.setGammaCorrected(false) ;
+                    tex.load() ;
 
-                        nkShader.setTexture(tex, 0) ;
-                    }
-                )
+                    nkShader.setTexture(tex, 0) ;
 
-                if (!!callback) callback();
-            });
+                    self.refining = false;
+                }
+            ) ;
         }
-    }
-
-    loadLayers(callback) {
-        var self = this;
-        self.mapRequest = self.wmsService.getMap(self.bounds, (texture) => {
-            texture.wrapS = THREE.ClampToEdgeWrapping;
-            texture.wrapT = THREE.ClampToEdgeWrapping;
-            self.material.uniforms.imagery = { type: "uniform", value: texture };
-            self.material.uniforms.uvLowerLeft = { type: "v2", value: new THREE.Vector2(0, 0) };
-            self.material.uniforms.uvUpperRight = { type: "v2", value: new THREE.Vector2(1, 1) };
-            if (!!callback) {
-                callback();
-            } else {
-                self.material.visible = true;
-            }
-        }, 1024, 1024);
-        /*elevationService.getElevation(bounds).then(function (elevationArray) {
-            self.material.uniforms.elevation = { type: "uniform", value: new THREE.DataTexture(Float32Array.from(elevationArray), 32, 32, THREE.RedFormat, THREE.FloatType) };
-            self.elevationArray = elevationArray;
-        });*/
     }
 
     /**
      * Update the tree relative to the camera and available elevation data.
      * @param {*} camera 
      */
-    update(camera, frustum) {
-        var self = this;
+    update (camera)
+    {
+        var self = this ;
+        const metric = this.calculateUpdateMetric(camera) ;
 
-
-        const metric = this.calculateUpdateMetric(camera, frustum);
-        if (metric == -1) {
-            this.material.visible = true;
-            this.disposeChildren(self);
-            return;
-        }
-        if (this.refining || !this.material.uniforms.uvLowerLeft) {
+        if (metric == -1)
+        {
+            this.disposeChildren() ;
             return;
         }
 
-        if (metric < this.level) {
-            //should never happen
-        }
-        else if (metric < this.level + 1 || this.level >= MAX_LEVEL) {
-            // if texture is texture from previous layer, load new texture, invalidate children
+        //if (this.refining)
+        //    return ;
 
-            if (self.material.uniforms.uvLowerLeft.value.x != 0 || self.material.uniforms.uvLowerLeft.value.y != 0 || self.material.uniforms.uvUpperRight.value.x != 1 || self.material.uniforms.uvUpperRight.value.y != 1) {
-                self.refining = true;
-                self.childrenReady = 0;
-                var disposeCallBack = () => {
-                    self.mapRequest.abort();
-                }
-                self.material.addEventListener('dispose', disposeCallBack);
-                var callback = function () {
-                    self.refining = false;
-                    self.material.uniforms.uvLowerLeft.value.set(0, 0);
-                    self.material.uniforms.uvUpperRight.value.set(1, 1);
-                    self.material.visible = true;
-                    self.disposeChildren(self);
-                }
-                self.loadLayers(callback);
-            } else {
-                self.material.visible = true;
-                self.disposeChildren(self);
-            }
+        if (metric < this.level)
+        {
+            // Should never happen
+            console.log("Metric < this.level, this should never happen, bad logic somewhere.") ;
         }
-        else {
+        else if (metric < this.level + 1 || this.level >= MAX_LEVEL)
+        {
+            // Right level
+            // If texture is texture from previous layer, load new texture, invalidate children
+            self.disposeChildren() ;
+        }
+        else
+        {
             // if has children, recurse
             // else generate Children
-            if (self.children.length > 0) {
-                this.children.forEach(child => {
-                    child.update(camera, frustum);
-                });
-            } else {
-                if (this.level < MAX_LEVEL) {
+            if (self._children.length > 0)
+            {
+                this._children.forEach(child => {
+                        child.update(camera) ;
+                    }
+                ) ;
+            }
+            else
+            {
+                if (this.level < MAX_LEVEL)
+                {
+                    const nkGraphics = this._nkEngine.nkGraphics ;
+                    const nkMaths = this._nkEngine.nkMaths ;
 
-                    var boundsCenter = new THREE.Vector2();
-                    this.bounds.getCenter(boundsCenter);
-                    var minUVX = this.material.uniforms.uvLowerLeft.value.x;
-                    var minUVY = this.material.uniforms.uvLowerLeft.value.y;
-                    var maxUVX = this.material.uniforms.uvUpperRight.value.x;
-                    var maxUVY = this.material.uniforms.uvUpperRight.value.y;
-                    var halfUVWidth = (maxUVX - minUVX) * 0.5;
-                    var halfUVHeight = (maxUVY - minUVY) * 0.5;
-                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(this.bounds.min, boundsCenter), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY), new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(new THREE.Vector2(boundsCenter.x, this.bounds.min.y), new THREE.Vector2(this.bounds.max.x, boundsCenter.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY), new THREE.Vector2(maxUVX, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(new THREE.Vector2(this.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, this.bounds.max.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY + halfUVHeight), new THREE.Vector2(minUVX + halfUVWidth, maxUVY)));
-                    this.add(new PlanetTile(self._nkEngine, new THREE.Box2(boundsCenter, this.bounds.max), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight), new THREE.Vector2(maxUVX, maxUVY)));
-                    self.material.visible = false;
+                    const unitBoundsCenter = new nkMaths.Vector(this._unitBounds.getCenter()) ;
+                    const boundsCenter = new nkMaths.Vector(this._bounds.getCenter()) ;
+                    const minUVX = this._uvLowerLeft._x ;
+                    const minUVY = this._uvLowerLeft._y ;
+                    const maxUVX = this._uvUpperRight._x ;
+                    const maxUVY = this._uvUpperRight._y ;
+
+                    const halfUVWidth = (maxUVX - minUVX) * 0.5 ;
+                    const halfUVHeight = (maxUVY - minUVY) * 0.5 ;
+
+                    let unitBoundsHalfSize = this._unitBounds.getMax().sub(this._unitBounds.getMin()).div(2) ;
+                    let unitBoundsQuarterSize = unitBoundsHalfSize.div(2) ;
+                    let unitBoundsOffset = new nkMaths.Vector (unitBoundsQuarterSize) ;
+
+                    const boundsSides = new nkMaths.Vector(this._bounds.getAxisAlignedSides()) ;
+                    const boundsQuarterSides = boundsSides.div(4) ;
+
+                    if (this.level < 2)
+                    {
+                        unitBoundsQuarterSize._z = 0.5 ;
+                        unitBoundsOffset._z = 0 ;
+                    }
+
+                    const unitBounds0 = new nkGraphics.BoundingBox(unitBoundsCenter.sub(unitBoundsOffset), unitBoundsHalfSize) ;
+                    const unitBounds1 = new nkGraphics.BoundingBox(new nkMaths.Vector(unitBoundsCenter._x + unitBoundsOffset._x, unitBoundsCenter._y + unitBoundsOffset._y, unitBoundsCenter._z + unitBoundsOffset._z), unitBoundsHalfSize) ;
+                    const unitBounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(unitBoundsCenter._x - unitBoundsOffset._x, unitBoundsCenter._y - unitBoundsOffset._y, unitBoundsCenter._z + unitBoundsOffset._z), unitBoundsHalfSize) ;
+                    const unitBounds3 = new nkGraphics.BoundingBox(unitBoundsCenter.add(unitBoundsOffset), unitBoundsHalfSize) ;
+
+                    const bounds1 = new nkGraphics.BoundingBox(boundsCenter.sub(boundsQuarterSides), boundsQuarterSides) ;
+                    const bounds0 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x + boundsQuarterSides._x, boundsCenter._y - boundsQuarterSides._y), boundsQuarterSides) ;
+                    const bounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x - boundsQuarterSides._x, boundsCenter._y + boundsQuarterSides._y), boundsQuarterSides) ;
+                    const bounds3 = new nkGraphics.BoundingBox(boundsCenter.add(boundsQuarterSides), boundsQuarterSides) ;
+
+                    this._children.push(new PlanetTile(self._nkEngine, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, null, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
+                    this._children.push(new PlanetTile(self._nkEngine, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, null, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
+                    this._children.push(new PlanetTile(self._nkEngine, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, null, new nkMaths.Vector(minUVX, minUVY + halfUVHeight), new nkMaths.Vector(minUVX + halfUVWidth, maxUVY)));
+                    this._children.push(new PlanetTile(self._nkEngine, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, null, new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight), new nkMaths.Vector(maxUVX, maxUVY)));
                 }
             }
         }
 
     }
 
+    disposeChildren ()
+    {
+        if (this._children.length != 0)
+        {
+            const self = this ;
 
+            this._children.forEach(
+                function (element)
+                {
+                    // Clear child just in case
+                    element.disposeChildren() ; 
+                    
+                    // Clear what is displayed
+                    const rq = self._nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
+                    rq.eraseEntity(element._entity) ;
+                }
+            ) ;
 
-    disposeChildren(self) {
-        if (self.children.length != 0) {
-            self.traverse(function (element) {
-                if (element != self && !!element.mapRequest) {
-                    element.mapRequest.abort();
-                }
-                if (element != self && element.material) {
-                    if (element.material.length) {
-                        for (let i = 0; i < element.material.length; ++i) {
-                            element.material[i].dispose()
-                        }
-                    }
-                    else {
-                        element.material.dispose()
-                    }
-                }
-            });
-            self.clear();
+            this._children = [] ;
         }
     }
-    calculateUpdateMetric(camera, frustum) {
-        var p = camera.position.clone().sub(this.planetCenter);
-        var pNormalized = p.clone().normalize();
-        var lat = Math.asin(pNormalized.y);
-        var lon = Math.atan2(pNormalized.z, -pNormalized.x);
 
-        if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
-            var max = this.bounds.max.x - lon;
+    calculateUpdateMetric (camera)
+    {
+        // Check bounds
+        const frustum = camera.getFrustum() ;
+
+        //if (!this._unitBounds.checkAgainst(frustum))
+        //{
+        //    console.log("Nope") ;
+        //    //console.log(this._unitBounds) ;
+        //    return -1 ;
+        //}
+
+        // Compute error metrics
+        const p = new this._nkEngine.nkMaths.Vector (camera.getPositionAbsolute()).sub(this._planetCenter) ;
+
+        const pNormalized = p.getNormalizedVec3() ;
+        let lat = Math.asin(pNormalized._y) ;
+        let lon = Math.atan2(pNormalized._z, -pNormalized._x) ;
+
+        if (lon > this._bounds.getMax()._x || lon < this._bounds.getMin()._x)
+        {
+            var max = this._bounds.getMax()._x - lon;
             max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
 
-            var min = this.bounds.min.x - lon;
+            var min = this._bounds.getMin()._x - lon;
             min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
 
-            if (Math.abs(max) < Math.abs(min)) {
-                lon = this.bounds.max.x;
-            } else {
-                lon = this.bounds.min.x;
-            }
-        }
-        lat = Math.min(this.bounds.max.y, Math.max(this.bounds.min.y, lat));
-
-        lat = (((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)) * 32) - 0.5; //lat in pixel coordinates
-        lon = (((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)) * 32) - 0.5; // lon in pixel coordinates
-
-        lat = Math.round(Math.max(0, Math.min(31, lat)));
-        lon = Math.round(Math.max(0, Math.min(31, lon)));
-
-        var surfaceElevation = !!this.elevationArray ? this.elevationArray[(lat * 32) + lon] + this.radius : this.radius;
-        var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
-        var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32 * 32) - 1] + this.radius : this.radius;
-
-        lat = (((lat + 0.5) / 32) * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; //lat in geodetic coordinates
-        lon = (((lon + 0.5) / 32) * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-        var nearest = new THREE.Vector3(-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon));
-        var nearestMSE = nearest.clone().multiplyScalar(this.radius);
-        var nearestSurface = nearest.clone().multiplyScalar(surfaceElevation);
-
-        var center = new THREE.Vector2();
-        this.bounds.getCenter(center);
-        var c = new THREE.Vector3(-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)).multiplyScalar(surfaceElevationCenter);
-        var m = new THREE.Vector3(-(Math.cos(this.bounds.max.y) * Math.cos(this.bounds.max.x)), Math.sin(this.bounds.max.y), Math.cos(this.bounds.max.y) * Math.sin(this.bounds.max.x)).multiplyScalar(surfaceElevationMax);
-
-        var boundingSphere = new THREE.Sphere(c.clone().add(this.planetCenter), c.distanceTo(m) * 1.1)
-        if (!frustum.intersectsSphere(boundingSphere)) {
-            return -1;
+            if (Math.abs(max) < Math.abs(min))
+                lon = this._bounds.getMax()._x;
+            else
+                lon = this._bounds.getMin()._x;
         }
 
-        var dot = nearestMSE.sub(this.planetCenter).normalize().dot(pNormalized);
+        lat = Math.min(this._bounds.getMax()._y, Math.max(this._bounds.getMin()._y, lat)) ;
 
-        if (dot < 0) {
-            return -1;
-        }
+        lat = (((lat - this._bounds.getMin()._y) / (this._bounds.getMax()._y - this._bounds.getMin()._y)) * 32) - 0.5 ; //lat in pixel coordinates
+        lon = (((lon - this._bounds.getMin()._x) / (this._bounds.getMax()._x - this._bounds.getMin()._x)) * 32) - 0.5 ; // lon in pixel coordinates
 
-        var distance = Math.sqrt(p.distanceTo(nearestSurface));
-        //console.log(this.level);
-        return Math.min(20.1, (4000 / Math.max(distance, 0.0001)));
+        lat = Math.round(Math.max(0, Math.min(31, lat))) ;
+        lon = Math.round(Math.max(0, Math.min(31, lon))) ;
+
+        var surfaceElevation = !!this.elevationArray ? this.elevationArray[(lat * 32) + lon] + this.radius : this.radius ;
+        //var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
+        //var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32 * 32) - 1] + this.radius : this.radius;
+
+        lat = (((lat + 0.5) / 32) * (this._bounds.getMax()._y - this._bounds.getMin()._y)) + this._bounds.getMin()._y ; //lat in geodetic coordinates
+        lon = (((lon + 0.5) / 32) * (this._bounds.getMax()._x - this._bounds.getMin()._x)) + this._bounds.getMin()._x ; // lon in geodetic coordinates
+        var nearest = new this._nkEngine.nkMaths.Vector (-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon)) ;
+        var nearestMSE = nearest.mult(this.radius) ;
+        var nearestSurface = nearest.mult(surfaceElevation) ;
+
+        const dot = nearestMSE.sub(this._planetCenter).normalizeVec3().dotProductVec3(pNormalized) ;
+
+        if (dot < 0)
+            return -1 ;
+
+        var distance = p.getDistanceVec3(nearestSurface) ;
+
+        if (distance < 1)
+            return MAX_LEVEL;
+
+        var log = Math.log(distance * 0.05) / Math.log(2) ;
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(MAX_LEVEL - log, 0.0001)) ;
+
+        if (isNaN(metric))
+            return this.level ;
+
+        return metric ;
     }
 }
 
-export { PlanetTile };
+export { PlanetTile } ;

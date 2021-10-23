@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 /**
  * A service to retrieve elevation from a single image in equidistant cylindrical projection
  */
