@@ -4,7 +4,7 @@ import { WMSLayer } from './WMSLayer.js';
 
 class Planet
 {
-    constructor(nkEngine, center = null, radius = 6378000)
+    constructor(nkEngine, workers, center = null, radius = 6378000)
     {
         if (!center)
             center = new nkEngine.nkMaths.Vector (0, 0, 0, 1) ;
@@ -28,8 +28,8 @@ class Planet
         const bounds0 = new nkEngine.nkGraphics.BoundingBox(new nkEngine.nkMaths.Vector(-Math.PI * 0.5, 0), new nkEngine.nkMaths.Vector(Math.PI * 0.5, Math.PI * 0.5)) ;
         const bounds1 = new nkEngine.nkGraphics.BoundingBox(new nkEngine.nkMaths.Vector(Math.PI * 0.5, 0), new nkEngine.nkMaths.Vector(Math.PI * 0.5, Math.PI * 0.5)) ;
 
-        this._tiles.push(new PlanetTile(nkEngine, unitBounds0, bounds0, elevationLayer, wmsLayer, center, radius, 0, null, null, new nkEngine.nkMaths.Vector(0, 0), new nkEngine.nkMaths.Vector(1, 1)));
-        this._tiles.push(new PlanetTile(nkEngine, unitBounds1, bounds1, elevationLayer, wmsLayer, center, radius, 0, null, null, new nkEngine.nkMaths.Vector(0, 0), new nkEngine.nkMaths.Vector(1, 1)));
+        this._tiles.push(new PlanetTile(nkEngine, workers, unitBounds0, bounds0, elevationLayer, wmsLayer, center, radius, 0, null, null, new nkEngine.nkMaths.Vector(0, 0), new nkEngine.nkMaths.Vector(1, 1)));
+        this._tiles.push(new PlanetTile(nkEngine, workers, unitBounds1, bounds1, elevationLayer, wmsLayer, center, radius, 0, null, null, new nkEngine.nkMaths.Vector(0, 0), new nkEngine.nkMaths.Vector(1, 1)));
 
         const camera = nkEngine.nkGraphics.CameraManager.getInstance().getDefaultCam() ;
 
