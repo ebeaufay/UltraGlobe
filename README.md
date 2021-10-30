@@ -1,26 +1,96 @@
 # ULTRA Globe
 
-Displays a globe with level of detail, imagery and elevation with connection to OGC services.
+Displays a globe in threeJS with level of detail, imagery and elevation with connection to OGC web services.
 
-![globe](https://github.com/ebeaufay/UltraGlobe/blob/master/globe.png?raw=true)
-ultraMap_0.2.mp4
-<video src="https://github.com/ebeaufay/UltraGlobe/ultraMap_0.2.mp4" width=180/>
-
+<p align="center">
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
+</p>
+<p align="center">
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
+</p>
 
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
 
 
-## Technical info
+## How to use
 
-### Tiling
+In your HTML, have a div with a specific id.
 
-The globe is seen as a uv-sphere. At the lowest LOD, it is made up of 2 tiles. Each tile is made up of a 32 x 32 grid mesh, displaced in the shader to reflect the curvature of the earth and elevation data. 
+````html
+<body>
+  <div id="screen" oncontextmenu="return false;" style="position: absolute; height:100%; width:100%; left: 0px; top:0px;"></div>
+</body>
+````
 
-![tiles](https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.png?raw=true)
+in your main javascript file, insert the following:
 
-Each tile can be subdivided into 4 sub-tiles recursively depending on its relation to the camera.
+````js
+import { Map } from './Map.js';
 
-### Elevation ( in progress )
+let map = new Map({ divID: 'screen' });
+````
 
-Elevation is loaded as a 32 x 32 Tiles, matching the 32 x 32 grid of vertices used to display a tile. 
-In order not to see holes in between tiles, each tile holds information about which neighbor is at a lower detail level. The sides of the higher detail tile are adjusted to reflect the level of detail of its neighbors
+At this point, you'll only see a white sphere as no data has yet been loaded.
+
+### Loading imagery
+
+We'll first add a WMSLayer that connects to an OGC WMS service in order to display maps at multiple levels of detail
+
+````js
+import { Map } from './Map.js';
+import { WMSLayer } from './layers/WMSLayer.js';
+
+let map = new Map({ divID: 'screen' });
+
+var wmsLayer = new WMSLayer({
+    id: 0,
+    name: "WMS",
+    bounds: [-180, -90, 180, 90],
+    url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
+    layer: "gebco_latest_2",
+    epsg: "EPSG:4326",
+    version: "1.1.1",
+    visible:true
+})
+
+//add a layer at index 0
+map.setLayer(imageryLayer, 0);
+````
+
+Right now, only WMS and a custom imagery service are supported. You may look at the WMSLayer class to create your own layer.
+
+### Loading elevation
+
+Currently, only a custom service for elevation is supported. You can implement your own ElevationLayer. 
+Here we'll use the SimpleElevationLayer class to add some sinusoidal terrain to the map:
+
+````js
+import { Map } from './Map.js';
+import { WMSLayer } from './layers/WMSLayer.js';
+
+let map = new Map({ divID: 'screen' });
+
+var wmsLayer = new WMSLayer({
+    id: 0,
+    name: "WMS",
+    bounds: [-180, -90, 180, 90],
+    url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
+    layer: "gebco_latest_2",
+    epsg: "EPSG:4326",
+    version: "1.1.1",
+    visible:true
+})
+
+map.setLayer(imageryLayer, 0);
+
+var simpleElevation = new SimpleElevationLayer({
+    id: 1,
+    name: "ultraElevation",
+    bounds: [-180, -90, 180, 90],
+    visible:false
+});
+
+map.setLayer(simpleElevation, 1);
+````
+
+checkout the demo for the expected result!
