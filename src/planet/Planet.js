@@ -1,40 +1,93 @@
 import * as THREE from 'three';
 import { PlanetTile } from './PlanetTile.js';
-import { BingElevationLayer } from './BingElevationLayer.js';
-import { WMSLayer } from './WMSLayer.js';
 import { Object3D } from 'three/src/core/Object3D';
+import {LAYERS_CHANGED} from '../layers/LayerManager.js'
 
 class Planet extends Object3D {
-    constructor(camera, center = new THREE.Vector3(0, 0, 0), radius = 6378000) {
+    /**
+     * 
+     * @param {
+     *          camera: camera,
+     *          center: Vector3,
+     *          radius: Number,
+     *          layerManager: LayerManager
+     *        } properties
+     */
+    constructor(properties) {
         super();
         var self = this;
-        self.radius = radius;
-        self.center = center;
-        self.elevationLayer;
-        self.mapLayers = [];
-        var elevationLayer = new BingElevationLayer("AteBKVs9dTvvEMIEus-KRwyTybV76si7jcncQK5TG02wgMLRG82Fb6ZO2qSVNNvW");
-        var wmsLayer = new WMSLayer("https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv", "gebco_latest_2")
-        //var wmsLayer = new WMSLayer("https://ows.terrestris.de/osm/service", "OSM-WMS")
-        this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)), elevationLayer, wmsLayer, center, radius, 0));
-        this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)), elevationLayer, wmsLayer, center, radius, 0));
+        if(!properties.camera){
+            throw ("A camera is required in order to refine the planet's levels of detail.")
+        }
+        self.camera = properties.camera;
+        if(!!properties.radius){
+            self.radius = properties.radius;
+        }else{
+            self.radius = 6378000;
+        }
+        if(!!properties.center){
+            self.center = properties.center;
+        }else{
+            self.center = new THREE.Vector3(0, 0, 0);
+        }
+        
+        self.layerManager = properties.layerManager;
+        self.layerManager.addListener((layer, event)=>{
+            /* if(LAYERS_CHANGED===event){
+                self.traverse(function (element) {
+                    if (element != self && element.reloadLayers) {
+                        element.reloadLayers();
+                    }
+                });
+            } */
+        });
+        
+        this.add(new PlanetTile({
+            bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
+            layerManager: self.layerManager, planet: this, level: 0
+        }));
+        this.add(new PlanetTile({
+            bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
+            layerManager: self.layerManager, planet: this, level: 0
+        }));
 
         setInterval(function () {
-            // var count = 0;
-            self.children.forEach(tile => {
+            self.children.forEach(child => {
                 var frustum = new THREE.Frustum();
-                frustum.setFromProjectionMatrix( new THREE.Matrix4().multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse ) );
-                tile.update(camera, frustum);
-                /* tile.traverse(function (element) {
-                    if (element != self && element.material) {
-                        if (element.material.visible) {
-                            count++;
-                        }
-                    }
-                }); */
+                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                child.update(self.camera, frustum);
             });
-            // console.log(count);
         }, 200);
+
+        /* setTimeout(function () {
+            self.children.forEach(child => {
+                var frustum = new THREE.Frustum();
+                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                child.update(self.camera, frustum);
+            });
+        }, 5);
+        setTimeout(function () {
+            self.children.forEach(child => {
+                var frustum = new THREE.Frustum();
+                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                child.update(self.camera, frustum);
+            });
+        }, 10000); */
     }
+
+    /**
+     * this method returns all the leaf tiles that interact with the given lon/lat bounds
+     */
+    interactsWith(bounds) {
+        var interactingTiles = [];
+        this.children.forEach(child => {
+            interactingTiles = interactingTiles.concat(child.interactsWith(bounds));
+        });
+        return interactingTiles;
+    }
+
+
+    
 }
 
 

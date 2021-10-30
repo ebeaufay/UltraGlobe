@@ -8,18 +8,15 @@ class CancellableTextureLoader extends Loader {
     constructor(manager) {
 
         super(manager);
-
+        this.loader = new ImageLoader(this.manager);
+        this.loader.setCrossOrigin(this.crossOrigin);
     }
 
     load(url, onLoad, onProgress, onError) {
 
         const texture = new Texture();
 
-        const loader = new ImageLoader(this.manager);
-        loader.setCrossOrigin(this.crossOrigin);
-        loader.setPath(this.path);
-
-        var image = loader.load(url, function (image) {
+        var image = this.loader.load(url, function (image) {
 
             texture.image = image;
 

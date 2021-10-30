@@ -1,17 +1,29 @@
 import * as THREE from 'three';
 import { PlanetShader } from './PlanetShader.js';
 import { Mesh } from 'three/src/objects/Mesh';
+import { Vector4 } from 'three';
+import { RasterLayer } from '../layers/RasterLayer.js';
+import { ImageryLayer } from '../layers/ImageryLayer.js';
+import { ElevationLayer } from '../layers/ElevationLayer.js';
+import { LAYERS_CHANGED } from '../layers/LayerManager.js'
+import { VISIBILITY_CHANGE } from '../layers/Layer.js'
 
-const TILE_GEOMETRY = generateBaseTile(32);
-const MAX_LEVEL = 10;
-const MATERIAL = new THREE.ShaderMaterial({
-    uniforms: {
-        elevation: { type: "t", value: buildZeroTexture() },
-        imagery: { type: "t", value: buildZeroTexture() }
-    },
-    vertexShader: PlanetShader.vertexShader,
-    fragmentShader: PlanetShader.fragmentShader
-});
+
+const TILE_SIZE = 32;
+const TILE_IMAGERY_SIZE = 256;
+const TILE_GEOMETRY = generateBaseTile(TILE_SIZE);
+const MAX_LEVEL = 12;
+const defaultTexture = buildZeroTexture();
+
+const emptyVec4 = new THREE.Vector4(0, 0, 0, 0);
+
+const defaultMaterial = new THREE.MeshBasicMaterial();
+
+const defaultElevation = [];
+for (let index = 0; index < TILE_SIZE * TILE_SIZE; index++) {
+    defaultElevation.push(0);
+
+}
 
 function buildZeroTexture() {
     var data = new Uint8Array(3);
@@ -26,199 +38,417 @@ function generateBaseTile(resolution) {
         console.log("unsupported resolution");
         return;
     }
-    var stepX = 1 / resolution;
-    var stepY = 1 / resolution;
 
     var indices = [];
     var vertices = [];
+    var skirts = [];
 
-    for (var y = 0; y <= 1; y += stepY) {
-        for (var x = 0; x <= 1; x += stepX) {
-            var vX = x;
-            var vY = y;
-            vertices.push(vX, vY, 0);
+    //// vertices
+    for (var y = 0; y <= resolution - 1; y += 1) {
+        for (var x = 0; x <= resolution - 1; x += 1) {
+            var vX = x / (resolution - 1);
+            var vY = y / (resolution - 1);
+            vertices.push(vX, vY, 1.0);
+            if (y == 0 || y == resolution - 1 || x == 0 || x == resolution - 1) {
+                skirts.push(vX, vY, 0.95);
+            }
         }
     }
 
-    for (var i = 0; i < vertices.length / 3 - (resolution + 1); i++) {
-        if ((i + 1) % (resolution + 1) == 0) continue;
-        if ((x < 0 && y < 0) || (x >= 0 && y >= 0)) {
-            indices.push(i, i + 1, i + 2 + resolution);
-            indices.push(i, i + 2 + resolution, i + 1 + resolution);
-        } else {
-            indices.push(i, i + 1, i + 1 + resolution);
-            indices.push(i + 1 + resolution, i + 1, i + 2 + resolution);
-        }
+    const skirtFirstIndex = (vertices.length / 3);
+    //// faces
 
+    // tile
+    for (var i = 0; i < (vertices.length / 3) - resolution - 1; i++) {
+        if ((i + 1) % resolution != 0) {
+            indices.push(i, i + 1, i + resolution);
+            indices.push(i + resolution, i + 1, i + 1 + resolution);
+        }
     }
+
+    //first skirt
+    for (let i = 0; i < resolution - 1; i++) {
+        indices.push(skirtFirstIndex + i, skirtFirstIndex + i + 1, i);
+        indices.push(i, skirtFirstIndex + i + 1, i + 1);
+    }
+
+    //second skirt
+    let a = resolution - 1;
+    let b = resolution - 1;
+    while (a < (resolution - 1) + (2 * (resolution - 2))) {
+        indices.push(skirtFirstIndex + a, skirtFirstIndex + a + 2, b);
+        indices.push(b, skirtFirstIndex + a + 2, b + resolution);
+        a += 2;
+        b += resolution;
+    }
+    indices.push(skirtFirstIndex + a, skirtFirstIndex + a + resolution, b);
+    indices.push(b, skirtFirstIndex + a + resolution, b + resolution);
+
+    //third skirt
+    let skirtVertexIndex = skirtFirstIndex + resolution * 4 - 5;
+    let skirtEnd = skirtVertexIndex - resolution + 1;
+    let tileIndex = skirtFirstIndex - 1;
+    while (skirtVertexIndex > skirtEnd) {
+        indices.push(skirtVertexIndex, skirtVertexIndex - 1, tileIndex);
+        indices.push(tileIndex, skirtVertexIndex - 1, tileIndex - 1);
+        skirtVertexIndex--;
+        tileIndex--;
+    }
+
+    //fourth skirt
+    skirtEnd = skirtVertexIndex - (2 * (resolution - 2));
+    while (skirtVertexIndex > skirtEnd) {
+        indices.push(skirtVertexIndex, skirtVertexIndex - 2, tileIndex);
+        indices.push(tileIndex, skirtVertexIndex - 2, tileIndex - resolution);
+        skirtVertexIndex -= 2;
+        tileIndex -= resolution;
+    }
+    indices.push(skirtVertexIndex, skirtVertexIndex - resolution, tileIndex);
+    indices.push(tileIndex, skirtVertexIndex - resolution, tileIndex - resolution);
 
     var geometry = new THREE.BufferGeometry();
     geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices.concat(skirts), 3));
 
     return geometry;
 }
 
+const tilesToLoad = [];
+function scheduleLoadLayers(tile) {
+    /* for (let index = 0; index < tilesToLoad.length; index++) {
+        if(tilesToLoad.level < tile.level){
+            tilesToLoad.splice(index, 0, tile);
+            return;
+        }
+    } */
+    tilesToLoad.push(tile);
+}
+
+setInterval(() => {
+    const tile = tilesToLoad.shift();
+    if (!!tile) tile._loadLayers(tile);
+}, 0)
+
 
 class PlanetTile extends Mesh {
-    constructor(bounds, elevationService, wmsService, planetCenter, radius, level, callback, texture, uvLowerLeft, uvUpperRight) {
-        var material = MATERIAL.clone();
-        super(TILE_GEOMETRY, material);
 
-        var self = this;
-
-        self.frustumCulled = false;
-        self.level = level;
-        self.planetCenter = planetCenter;
-        self.bounds = bounds;
-        self.radius = radius;
-        self.elevationService = elevationService;
-        self.wmsService = wmsService;
-        self.material.uniforms.radius = { type: "f", value: radius };
-        self.material.uniforms.planetPosition = { type: "v3", value: planetCenter };
-        self.material.uniforms.lowerLeft = { type: "v2", value: bounds.min };
-        self.material.uniforms.upperRight = { type: "v2", value: bounds.max };
-        self.material.side = THREE.FrontSide;
+    /**
+     * @param properties 
+     * {
+     *  bounds: Box2
+     *  layerManager: LayerManager,
+     *  planet: Planet, 
+     *  level: Integer, 
+     *  parentLayerDataMap: intenal,
+     *  childType: 0 BottomLeft, 1 BottomRight, 2 TopLeft, 3 TopRight
+     * }
+     */
+    constructor(properties) {
+        console.log(properties.level);
+        super(TILE_GEOMETRY, defaultMaterial);
+        const self = this;
+        self.frustumCulled = false; // frustum culling is handled separately (mesh is displaced in shader)
+        self.bounds = properties.bounds; // Lon Lat bounds
+        self.planet = properties.planet; // The parent planet (circular dependency... gives access to global planet properties and methods like tree traversal)
+        self.layerManager = properties.layerManager;
+        self.level = properties.level; // mesh recursion level
+        self.elevationArray = defaultElevation;
+        self.layerDataMap = {};
+        ///// Important, a tile cannot be made visible while "loaded" is false.
+        self.loaded = false;
+        self.loading = 0;
         self.material.visible = false;
-        self.material.wireframe = false;
-        if (!!texture) {
-            self.material.uniforms.imagery = { type: "uniform", value: texture };
-            self.material.uniforms.uvLowerLeft = { type: "v2", value: uvLowerLeft };
-            self.material.uniforms.uvUpperRight = { type: "v2", value: uvUpperRight };
-            if (!!callback) {
-                callback();
-            } else {
-                self.refining = false;
-                self.material.visible = true;
+
+        self.mapRequests = []; // collects texture requests in order to abort them when needed
+        /////// prevent loading too many levels at the poles
+        if (self.bounds.max.y == Math.PI / 2 || self.bounds.min.y == -Math.PI / 2) {
+            self.maxLevel = 4;
+        } else {
+            self.maxLevel = MAX_LEVEL;
+        }
+
+        //Listen to changes in the list of layers, rebuild material if raster layer
+        self.layerManager.addListener((eventName, layer) => {
+            if (LAYERS_CHANGED === eventName && layer instanceof RasterLayer) {
+                scheduleLoadLayers(self);
             }
-        }
-        else {
-            self.refining = true;
-            self.loadLayers(() => {
-                self.refining = false;
-                self.material.visible = true;
-                if (!!callback) callback();
-            });
-        }
+        });
+
+        scheduleLoadLayers(self);
+
     }
 
-    loadLayers(callback) {
-        var self = this;
-        self.mapRequest = self.wmsService.getMap(self.bounds, (texture) => {
-            texture.wrapS = THREE.ClampToEdgeWrapping;
-            texture.wrapT = THREE.ClampToEdgeWrapping;
-            self.material.uniforms.imagery = { type: "uniform", value: texture };
-            self.material.uniforms.uvLowerLeft = { type: "v2", value: new THREE.Vector2(0, 0) };
-            self.material.uniforms.uvUpperRight = { type: "v2", value: new THREE.Vector2(1, 1) };
-            if (!!callback) {
-                callback();
-            } else {
-                self.material.visible = true;
+    _loadLayers(self) {
+        self.layerManager.getLayers().forEach(layer => {
+            if (!self.layerDataMap[layer.id]) {
+                if (layer instanceof ImageryLayer) {
+                    self._startLoading(self);
+                    self.layerDataMap[layer.id] = {};
+                    self._loadImagery(self, layer, (texture) => {
+                        self.layerDataMap[layer.id].texture = texture;
+                        self.layerDataMap[layer.id].layer = layer;
+                        delete self.layerDataMap[layer.id].loading;
+                        self._endLoading(self);
+                    })
+                } else if (layer instanceof ElevationLayer) {
+                    self._startLoading(self);
+                    self.layerDataMap[layer.id] = {};
+                    layer.getElevation(self.bounds, TILE_SIZE, TILE_SIZE).then(elevationArray => {
+                        var elevationTexture = new THREE.DataTexture(Float32Array.from(elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
+                        elevationTexture.magFilter = THREE.LinearFilter;
+                        elevationTexture.minFilter = THREE.LinearFilter;
+                        elevationTexture.wrapS = THREE.ClampToEdgeWrapping;
+                        elevationTexture.wrapT = THREE.ClampToEdgeWrapping;
+                        self.layerDataMap[layer.id].texture = elevationTexture;
+                        self.layerDataMap[layer.id].layer = layer;
+                        self.layerDataMap[layer.id].elevationArray = elevationArray;
+
+                        self._endLoading(self);
+                    });
+                }
+                layer.addListener((layer, event) => {
+                    if (VISIBILITY_CHANGE === event) {
+                        self.fillShaderUniforms(self);
+                    }
+                })
             }
-        }, 1024, 1024);
-        /*elevationService.getElevation(bounds).then(function (elevationArray) {
-            self.material.uniforms.elevation = { type: "uniform", value: new THREE.DataTexture(Float32Array.from(elevationArray), 32, 32, THREE.RedFormat, THREE.FloatType) };
-            self.elevationArray = elevationArray;
-        });*/
+        });
+        self._setLoadingListener(self, () => {
+            for (const id in self.layerDataMap) {
+                if (self.layerDataMap.hasOwnProperty(id)) {
+                    if (self.layerDataMap[id].layer instanceof ElevationLayer) {
+                        self.elevationArray = self.layerDataMap[id].elevationArray;
+                    }
+                }
+            }
+            self.buildMaterial(self);
+            self.loaded = true;
+        });
     }
 
     /**
-     * Update the tree relative to the camera and available elevation data.
-     * @param {*} camera 
+     * to call when a layer starts loading
      */
-    update(camera, frustum) {
-        var self = this;
-
-
-        const metric = this.calculateUpdateMetric(camera, frustum);
-        if (metric == -1) {
-            this.material.visible = true;
-            this.disposeChildren(self);
-            return;
-        }
-        if (this.refining || !this.material.uniforms.uvLowerLeft) {
-            return;
-        }
-
-        if (metric < this.level) {
-            //should never happen
-        }
-        else if (metric < this.level + 1 || this.level >= MAX_LEVEL) {
-            // if texture is texture from previous layer, load new texture, invalidate children
-
-            if (self.material.uniforms.uvLowerLeft.value.x != 0 || self.material.uniforms.uvLowerLeft.value.y != 0 || self.material.uniforms.uvUpperRight.value.x != 1 || self.material.uniforms.uvUpperRight.value.y != 1) {
-                self.refining = true;
-                self.childrenReady = 0;
-                var disposeCallBack = () => {
-                    self.mapRequest.abort();
-                }
-                self.material.addEventListener('dispose', disposeCallBack);
-                var callback = function () {
-                    self.refining = false;
-                    self.material.uniforms.uvLowerLeft.value.set(0, 0);
-                    self.material.uniforms.uvUpperRight.value.set(1, 1);
-                    self.material.visible = true;
-                    self.disposeChildren(self);
-                }
-                self.loadLayers(callback);
-            } else {
-                self.material.visible = true;
-                self.disposeChildren(self);
-            }
-        }
-        else {
-            // if has children, recurse
-            // else generate Children
-            if (self.children.length > 0) {
-                this.children.forEach(child => {
-                    child.update(camera, frustum);
-                });
-            } else {
-                if (this.level < MAX_LEVEL) {
-
-                    var boundsCenter = new THREE.Vector2();
-                    this.bounds.getCenter(boundsCenter);
-                    var minUVX = this.material.uniforms.uvLowerLeft.value.x;
-                    var minUVY = this.material.uniforms.uvLowerLeft.value.y;
-                    var maxUVX = this.material.uniforms.uvUpperRight.value.x;
-                    var maxUVY = this.material.uniforms.uvUpperRight.value.y;
-                    var halfUVWidth = (maxUVX - minUVX) * 0.5;
-                    var halfUVHeight = (maxUVY - minUVY) * 0.5;
-                    this.add(new PlanetTile(new THREE.Box2(this.bounds.min, boundsCenter), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY), new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(boundsCenter.x, this.bounds.min.y), new THREE.Vector2(this.bounds.max.x, boundsCenter.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY), new THREE.Vector2(maxUVX, minUVY + halfUVHeight)));
-                    this.add(new PlanetTile(new THREE.Box2(new THREE.Vector2(this.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, this.bounds.max.y)), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX, minUVY + halfUVHeight), new THREE.Vector2(minUVX + halfUVWidth, maxUVY)));
-                    this.add(new PlanetTile(new THREE.Box2(boundsCenter, this.bounds.max), this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, null, this.material.uniforms.imagery.value, new THREE.Vector2(minUVX + halfUVWidth, minUVY + halfUVHeight), new THREE.Vector2(maxUVX, maxUVY)));
-                    self.material.visible = false;
-                }
-            }
-        }
-
+    _startLoading(self) {
+        self.loading++;
     }
 
+    /**
+     * to call when a layer ends loading
+     */
+    _endLoading(self) {
+        self.loading--;
+        if (self.loading == 0 && !!self.loadingListener) {
+            self.loadingListener();
+            delete self.loadingListener;
+        }
+    }
+    /**
+     * Set a listener that will be called when all layers finished loading
+     */
+    _setLoadingListener(self, listener) {
+        if (self.loading == 0) {
+            listener();
+        } else {
+            self.loadingListener = listener;
+        }
+    }
+
+    /**
+         * Loads a texture native to this tile
+         * @param {*} layerData 
+         */
+    _loadImagery(self, layer, callback) {
+        self.mapRequests.push(
+            layer.getMap(self.bounds, (texture) => {
+                texture.wrapS = THREE.ClampToEdgeWrapping;
+                texture.wrapT = THREE.ClampToEdgeWrapping;
+                texture.magFilter = THREE.LinearFilter;
+                texture.minFilter = THREE.LinearFilter;
+
+                if (!!callback) callback(texture);
+
+            }, TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE)
+        );
+    }
+
+
+    update(camera, frustum) {
+        const self = this;
+        const metric = self.calculateUpdateMetric(camera, frustum);
+        if (isNaN(metric)) {
+            throw ("calculation of metric for planet LOD calculation failed");
+        }
+
+
+        /////// handle visibility and lo
+        if (metric == -1) { // outside frustum or facing away from camera
+            self.material.visible = true;
+            self.disposeChildren(self);
+            return true;
+        }
+        if (metric < self.level + 1 || self.level >= self.maxLevel) { // if self is ideal LOD
+            if (self.loaded) { // if layers are loaded
+                self.material.visible = true;
+                self.disposeChildren(self);
+                return true;
+            } else { // layers not yet loaded
+                return false;
+            }
+        }
+        else { // if ideal LOD is past self tile
+            if (self.children.length > 0) { // if self tile already has children
+                let childrenReadyCounter = 0;
+                self.children.every(child => {
+                    let childReady = child.update(camera, frustum);
+                    if (childReady) {
+                        childrenReadyCounter++;
+                    } else {
+                        return false; // break out of loop
+                    }
+                    return true; // continue
+                });
+                if (childrenReadyCounter == self.children.length) {
+                    self.material.visible = false;
+                    return true;
+                }
+            } else { // if self tile doesn't have children yet
+                var boundsCenter = new THREE.Vector2();
+                self.bounds.getCenter(boundsCenter);
+                self.add(new PlanetTile(
+                    {
+                        bounds: new THREE.Box2(self.bounds.min, boundsCenter),
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                    }
+                ));
+                self.add(new PlanetTile(
+                    {
+                        bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                    }
+                ));
+                self.add(new PlanetTile(
+                    {
+                        bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                    }
+                ));
+                self.add(new PlanetTile(
+                    {
+                        bounds: new THREE.Box2(boundsCenter, self.bounds.max),
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                    }
+                ));
+
+                self.children.forEach(child => {
+                    child.update(camera, frustum);
+                })
+            }
+
+            // If the tile has loaded children, the method already returned
+            if (self.loaded) { // if this tile is itself loaded
+                self.material.visible = true;
+                return true;
+            } else { // if this tile isn't loaded
+                self.material.visible = false;
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Rebuilds the material completely. This method should be called when the number of imagery layers changes.
+     */
+    buildMaterial(self) {
+        let numLayers = 0;
+        for (const id in self.layerDataMap) {
+            if (self.layerDataMap.hasOwnProperty(id)) {
+                if (self.layerDataMap[id].layer instanceof ImageryLayer) {
+                    numLayers++;
+                }
+            }
+        }
+
+        self.material = new THREE.ShaderMaterial({
+            uniforms: {},
+            vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
+            fragmentShader: PlanetShader.fragmentShader(numLayers)
+        });
+
+        self.fillShaderUniforms(self);
+        self.material.side = THREE.DoubleSide;
+        self.material.visible = false;
+        self.material.wireframe = false;
+    }
+
+    fillShaderUniforms(self) {
+
+        let imagery = [];
+        let imageryBounds = [];
+        let imageryTransparency = [];
+        let elevation = defaultTexture;
+        let elevationEncountered = false;
+        self.layerManager.getLayers().forEach(layer => {
+            let layerData = self.layerDataMap[layer.id];
+            if (!!layerData && layer instanceof ImageryLayer && !!layer.visible) {
+                imagery.push(layerData.texture);
+                imageryBounds.push(new Vector4(layer.bounds.min.x, layer.bounds.min.y, layer.bounds.max.x, layer.bounds.max.y));
+                imageryTransparency.push(layer.visible ? 1 : 0);
+            } else if (!elevationEncountered && !!layerData.layer && layer instanceof ElevationLayer && layer.visible) {
+                elevation = layerData.texture;
+                elevationEncountered = true;
+            }
+        });
+        if (imagery.length == 0) {
+            imagery.push(defaultTexture);
+            imageryBounds.push(emptyVec4);
+            imageryTransparency.push(0);
+        }
+
+        
+        self.material.uniforms.imagery= { type: "tv", value: imagery };
+        self.material.uniforms.imageryBounds= { type: "v4v", value: imageryBounds };
+        self.material.uniforms.imageryTransparency= { type: "fv", value: imageryTransparency };
+        self.material.uniforms.elevation= { type: "t", value: elevation };
+        self.material.uniforms.radius= { type: "f", value: self.planet.radius };
+        self.material.uniforms.planetPosition= { type: "v3", value: self.planet.center };
+        self.material.uniforms.bounds= { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
+        self.material.uniforms.c= { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
+        
+        console.log(self.material.version);
+    }
 
 
     disposeChildren(self) {
         if (self.children.length != 0) {
             self.traverse(function (element) {
-                if (element != self && !!element.mapRequest) {
-                    element.mapRequest.abort();
-                }
                 if (element != self && element.material) {
+                    // dispose textures
+                    for (const id in element.layerDataMap) {
+                        if (element.layerDataMap.hasOwnProperty(id)) {
+                            if (!!element.layerDataMap[id].texture) {
+                                element.layerDataMap[id].texture.dispose();
+                            }
+                        }
+                    }
+                    // dispose materials
                     if (element.material.length) {
                         for (let i = 0; i < element.material.length; ++i) {
-                            element.material[i].dispose()
+                            element.material[i].dispose();
                         }
                     }
                     else {
                         element.material.dispose()
                     }
+
                 }
             });
             self.clear();
         }
     }
+
     calculateUpdateMetric(camera, frustum) {
-        var p = camera.position.clone().sub(this.planetCenter);
+        var p = camera.position.clone().sub(this.planet.center);
         var pNormalized = p.clone().normalize();
         var lat = Math.asin(pNormalized.y);
         var lon = Math.atan2(pNormalized.z, -pNormalized.x);
@@ -238,20 +468,21 @@ class PlanetTile extends Mesh {
         }
         lat = Math.min(this.bounds.max.y, Math.max(this.bounds.min.y, lat));
 
-        lat = (((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)) * 32) - 0.5; //lat in pixel coordinates
-        lon = (((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)) * 32) - 0.5; // lon in pixel coordinates
+        lat = ((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)); // lat in uv coordinates
+        lon = ((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)); // lon in uv coordinates
 
-        lat = Math.round(Math.max(0, Math.min(31, lat)));
-        lon = Math.round(Math.max(0, Math.min(31, lon)));
+        lat = Math.max(0, Math.min(1, lat));
+        lon = Math.max(0, Math.min(1, lon));
 
-        var surfaceElevation = !!this.elevationArray ? this.elevationArray[(lat * 32) + lon] + this.radius : this.radius;
-        var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
-        var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32 * 32) - 1] + this.radius : this.radius;
+        var surfaceElevation = !!this.elevationArray ? this.billinearInterpolationOnElevationArray(lon, lat) + this.planet.radius : this.planet.radius;
+        var surfaceElevationCenter = !!this.elevationArray ? this.billinearInterpolationOnElevationArray(0.5, 0.5) + this.planet.radius : this.planet.radius;
+        var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1] + this.planet.radius : this.planet.radius;
 
-        lat = (((lat + 0.5) / 32) * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; //lat in geodetic coordinates
-        lon = (((lon + 0.5) / 32) * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-        var nearest = new THREE.Vector3(-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon));
-        var nearestMSE = nearest.clone().multiplyScalar(this.radius);
+        var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
+        var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
+        var nearest = new THREE.Vector3(-(Math.cos(lati) * Math.cos(long)), Math.sin(lati), Math.cos(lati) * Math.sin(long));
+
+        var nearestMSE = nearest.clone().multiplyScalar(this.planet.radius);
         var nearestSurface = nearest.clone().multiplyScalar(surfaceElevation);
 
         var center = new THREE.Vector2();
@@ -259,20 +490,75 @@ class PlanetTile extends Mesh {
         var c = new THREE.Vector3(-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)).multiplyScalar(surfaceElevationCenter);
         var m = new THREE.Vector3(-(Math.cos(this.bounds.max.y) * Math.cos(this.bounds.max.x)), Math.sin(this.bounds.max.y), Math.cos(this.bounds.max.y) * Math.sin(this.bounds.max.x)).multiplyScalar(surfaceElevationMax);
 
-        var boundingSphere = new THREE.Sphere(c.clone().add(this.planetCenter), c.distanceTo(m) * 1.1)
+        var boundingSphere = new THREE.Sphere(c.clone().add(this.planet.center), c.distanceTo(m) * 1.1)
         if (!frustum.intersectsSphere(boundingSphere)) {
             return -1;
         }
 
-        var dot = nearestMSE.sub(this.planetCenter).normalize().dot(pNormalized);
+        var dot = nearestMSE.sub(this.planet.center).normalize().dot(pNormalized);
 
         if (dot < 0) {
             return -1;
         }
 
-        var distance = Math.sqrt(p.distanceTo(nearestSurface));
-        //console.log(this.level);
-        return Math.min(20.1, (4000 / Math.max(distance, 0.0001)));
+        var distance = p.distanceTo(nearestSurface);
+
+        if (distance < 1) return MAX_LEVEL;
+
+        var log = Math.log(distance * 0.0075) / Math.log(2);
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(20 - log, 0.0001));
+        if (isNaN(metric)) {
+            return this.level;
+        }
+
+        return metric;
+    }
+
+    billinearInterpolationOnElevationArray(lon, lat) {
+
+        var x = lon * (TILE_SIZE - 1);
+        var y = lat * (TILE_SIZE - 1);
+
+
+        var floorX = Math.floor(x);
+        if (floorX == x) floorX -= 1;
+        var floorY = Math.floor(y);
+        if (floorY == y) floorY -= 1;
+        var ceilX = Math.ceil(x);
+        if (ceilX == 0) ceilX += 1;
+        var ceilY = Math.ceil(y);
+        if (ceilY == 0) ceilY += 1;
+        floorX = Math.max(0, floorX);
+        floorY = Math.max(0, floorY);
+
+        ceilX = Math.min((TILE_SIZE - 1), ceilX);
+        ceilY = Math.min((TILE_SIZE - 1), ceilY);
+
+
+        return ((1 - (x - floorX)) * (1 - (y - floorY)) * this.elevationArray[(floorY * TILE_SIZE) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (y - floorY)) * this.elevationArray[(floorY * TILE_SIZE) + ceilX]) +
+            ((1 - (x - floorX)) * (1 - (ceilY - y)) * this.elevationArray[(ceilY * TILE_SIZE) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * this.elevationArray[(ceilY * TILE_SIZE) + ceilX]);
+    }
+
+
+    interactsWith(bounds) {
+        var interactingTiles = [];
+
+        if (this.bounds.min.y <= bounds.max.y && this.bounds.max.y >= bounds.min.y) {
+            if ((this.bounds.min.x <= bounds.max.x && this.bounds.max.x >= bounds.min.x) ||
+                (this.bounds.min.x + (Math.PI * 2) <= bounds.max.x && this.bounds.max.x + (Math.PI * 2) >= bounds.min.x) ||
+                (this.bounds.min.x <= bounds.max.x + (Math.PI * 2) && this.bounds.max.x >= bounds.min.x + (Math.PI * 2))) {
+                if (this.children.length == 0) {
+                    interactingTiles.push(this);
+                } else {
+                    this.children.forEach(child => {
+                        interactingTiles = interactingTiles.concat(child.interactsWith(bounds));
+                    });
+                }
+            }
+        }
+        return interactingTiles;
     }
 }
 
