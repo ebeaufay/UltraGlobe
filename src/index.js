@@ -24,8 +24,7 @@ var elevationLayer = new UltraElevationLayer({
     visible: true
 }); 
 
-
-/* var wmsLayer = new WMSLayer({
+ var wmsLayer = new WMSLayer({
     id: 2,
     name: "WMS",
     bounds: [-180, -90, 180, 90],
@@ -42,17 +41,17 @@ var simpleElevation = new SimpleElevationLayer({
     name: "ultraElevation",
     bounds: [-180, -90, 180, 90],
     visible:false
-}); */
+});
 
 
-//map.setLayer(wmsLayer, 0)
-//map.setLayer(simpleElevation, 2)
-map.setLayer(imageryLayer, 1)
+map.setLayer(wmsLayer, 0)
+map.setLayer(simpleElevation, 2)
+//map.setLayer(imageryLayer, 1)
 
-map.setLayer(elevationLayer, 3)
+//map.setLayer(elevationLayer, 3)
 
-map.camera.position.set(-12000000, 5000000, 0);
-map.camera.lookAt(0, 3500000, 0);
+/* map.camera.position.set(-12000000, 5000000, 0);
+map.camera.lookAt(0, 3500000, 0); */
 
 document.getElementById("elevation").addEventListener('click', function () {
     simpleElevation.setVisible(!simpleElevation.visible)

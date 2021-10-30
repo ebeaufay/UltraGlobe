@@ -144,7 +144,6 @@ class PlanetTile extends Mesh {
      * }
      */
     constructor(properties) {
-        console.log(properties.level);
         super(TILE_GEOMETRY, defaultMaterial);
         const self = this;
         self.frustumCulled = false; // frustum culling is handled separately (mesh is displaced in shader)
@@ -369,6 +368,8 @@ class PlanetTile extends Mesh {
             }
         }
 
+        numLayers = Math.max(numLayers, 1);
+
         self.material = new THREE.ShaderMaterial({
             uniforms: {},
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
@@ -415,7 +416,6 @@ class PlanetTile extends Mesh {
         self.material.uniforms.bounds= { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         self.material.uniforms.c= { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
         
-        console.log(self.material.version);
     }
 
 
