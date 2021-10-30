@@ -3,8 +3,8 @@
 Displays a globe with level of detail, imagery and elevation with connection to OGC services.
 
 ![globe](https://github.com/ebeaufay/UltraGlobe/blob/master/globe.png?raw=true)
-
-<video src='your URL here' width=180/>
+ultraMap_0.2.mp4
+<video src="https://github.com/ebeaufay/UltraGlobe/ultraMap_0.2.mp4" width=180/>
 
 
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
