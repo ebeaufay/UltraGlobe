@@ -4,6 +4,9 @@ Displays a globe with level of detail, imagery and elevation with connection to 
 
 ![globe](https://github.com/ebeaufay/UltraGlobe/blob/master/globe.png?raw=true)
 
+<video src='your URL here' width=180/>
+
+
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
 
 
