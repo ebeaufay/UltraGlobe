@@ -125,9 +125,9 @@ function generateShader (nkEngine, boundsMin, boundsMax, uvLeft, uvRight, index,
     cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMin._x, boundsMin._y, boundsMax._x, boundsMax._y)) ;
     cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (uvLeft._x, uvLeft._y, uvRight._x, uvRight._y)) ;
 
-    //if (texture)
-    //    shader.addTexture(texture, 0) ;
-    //else
+    if (texture)
+        shader.addTexture(texture, 0) ;
+    else
         shader.addTexture(nkGraphics.TextureManager.getInstance().get("NILKINS_DEFAULT_TEXTURE"), 0) ;
 
     // Done
@@ -182,7 +182,7 @@ class PlanetTile
         self._entity = null ;
         self._children = [] ;
         self._index = TILE_INDEX_NK++ ;
-        //self._nkTexture = texture ;
+        self._nkTexture = texture ;
 
         // Compute bounds
         //const center = new this._nkEngine.nkMaths.Vector (this._unitBounds.getCenter()) ;
@@ -204,16 +204,9 @@ class PlanetTile
         const subEnt = self._entity.addChild() ;
         subEnt.setMesh(TILE_GEOMETRY_NK) ;
 
-        // Other
-        if (texture)
-        {
-            
-        }
-        else
-        {
-            const requestUrl = self.wmsService.getFullUrl(self._bounds, 1024, 1024) ;
-            workers.requestWork({_type : WORK_TYPE.PARSE_IMAGE, _path : requestUrl, _index : self._index}, function (result) {onImageLoaded(result.data, nkEngine, self) ;}) ;
-        }
+        // Request dedicated texture for this tile
+        const requestUrl = self.wmsService.getFullUrl(self._bounds, 1024, 1024) ;
+        workers.requestWork({_type : WORK_TYPE.PARSE_IMAGE, _path : requestUrl, _index : self._index}, function (result) {onImageLoaded(result.data, nkEngine, self) ;}) ;
     }
 
     /**
@@ -293,8 +286,11 @@ class PlanetTile
                     const bounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x - boundsQuarterSides._x, boundsCenter._y + boundsQuarterSides._y), boundsQuarterSides) ;
                     const bounds3 = new nkGraphics.BoundingBox(boundsCenter.add(boundsQuarterSides), boundsQuarterSides) ;
 
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
+                    //this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
+                    //this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
+
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
                     this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY + halfUVHeight), new nkMaths.Vector(minUVX + halfUVWidth, maxUVY)));
                     this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight), new nkMaths.Vector(maxUVX, maxUVY)));
                 }

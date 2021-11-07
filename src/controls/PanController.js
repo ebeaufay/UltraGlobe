@@ -73,7 +73,7 @@ class PanController
 			return ;
 
 		// Constants
-		const factor = 0.002 ;
+		const factor = 0.0015 ;
 		const nkMaths = this._nkEngine.nkMaths ;
 		const absUp = new nkMaths.Vector (0, 1, 0) ;
 		const camPos = new nkMaths.Vector (this._camera.getPositionAbsolute()) ;
