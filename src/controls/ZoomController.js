@@ -19,7 +19,7 @@ class ZoomController
 		switch (eventName) 
 		{
 			case "mousewheel" :
-				this.zoom(e.deltaY, e.x, e.y) ;
+				this.zoom(e.deltaY) ;
 			break ;
 
 			default :
@@ -29,12 +29,14 @@ class ZoomController
 		}
 	}
 
-	zoom (z, x, y)
+	zoom (z)
 	{
 		// Constants
 		const nkMaths = this._nkEngine.nkMaths ;
 
 		// Get direction and intersection with globe
+		const x = this._dom.clientWidth * 0.5 ;
+		const y = this._dom.clientHeight * 0.5 ;
 		const pixelDir = new nkMaths.Vector (this._camera.getDirectionAtPixelWorld(x, y, null)) ;
 		const onGlobe = calculateMouseLocationOnPlanet(nkMaths, this._camera, this._planet, x, y) ;
 
