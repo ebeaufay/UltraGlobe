@@ -48,7 +48,7 @@ function Renderer(nkView, nkEngine)
 
         // Prepare camera
         const camera = nkGraphics.CameraManager.getInstance().getDefaultCam() ;
-        camera.setPositionAbsolute(new nkMaths.Vector (5, 0, 0)) ;
+        camera.setPositionAbsolute(new nkMaths.Vector (0, 0, 5)) ;
         camera.lookAt(new nkMaths.Vector (0, 0, 0), new nkMaths.Vector (0, 1, 0)) ;
         camera.setNear(0.1) ;
         camera.setFar(100) ;
@@ -117,11 +117,11 @@ function Renderer(nkView, nkEngine)
             start = time ;
 
         // Updating rotation
-        const timeDiff = time - start ;
-        const radianRot = (timeDiff / rotationTime) * (3.14159 * 2) ;
-        const newPos = new nkEngine.nkMaths.Vector (Math.cos(radianRot) * 3, 0, (Math.sin(radianRot) * 3)) ;
-        cam.setPositionRelative(newPos) ;
-        cam.lookAt(new nkEngine.nkMaths.Vector (0, 0, 0), new nkEngine.nkMaths.Vector (0, 1, 0)) ;
+        //const timeDiff = time - start ;
+        //const radianRot = (timeDiff / rotationTime) * (3.14159 * 2) ;
+        //const newPos = new nkEngine.nkMaths.Vector (Math.cos(radianRot) * 3, 0, (Math.sin(radianRot) * 3)) ;
+        //cam.setPositionRelative(newPos) ;
+        //cam.lookAt(new nkEngine.nkMaths.Vector (0, 0, 0), new nkEngine.nkMaths.Vector (0, 1, 0)) ;
         self._nkEngine.nkGraphics.MainSystem.getInstance().frame(self._nkContext) ;
         //
     }

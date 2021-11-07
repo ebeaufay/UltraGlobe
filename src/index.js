@@ -1,12 +1,25 @@
-import "regenerator-runtime/runtime.js";
-import {Renderer} from './Renderer';
-import {Planet} from './planet/Planet.js';
-import {Workers} from "./worker/Workers.js" ;
+/// Imports ----------------------------------
+
+import "regenerator-runtime/runtime.js" ;
+
+import {PanController} from "./controls/PanController.js" ;
+import {ZoomController} from "./controls/ZoomController.js" ;
+
 import nkEngine from "./nkEngine/NilkinsEngine.js" ;
+
+import {Planet} from './planet/Planet.js' ;
+
+import {Workers} from "./worker/Workers.js" ;
+
+import {Renderer} from './Renderer' ;
+
+/// Logic ------------------------------------
+
+let renderer = null ;
 
 init() ;
 
-let renderer = null ;
+/// Functions --------------------------------
 
 function init()
 {
@@ -26,7 +39,23 @@ function init()
             renderer = new Renderer (nkView, nkEngine) ;
 
             // Create planet
-            new Planet (nkEngine, workers, new nkEngine.nkMaths.Vector (0, 0, 0)) ;
+            const planet = new Planet (nkEngine, workers, new nkEngine.nkMaths.Vector (0, 0, 0)) ;
+
+            // Prepare controllers
+            const nkCamera = nkEngine.nkGraphics.CameraManager.getInstance().getDefaultCam() ;
+            const panController = new PanController (nkEngine, nkCamera, nkView, planet) ;
+            const zoomController = new ZoomController (nkEngine, nkCamera, nkView, planet) ;
+
+            panController.append(zoomController) ;
+
+            nkView.addEventListener('mousedown', (e) => {panController.event('mousedown', e) ;}, false) ;
+            nkView.addEventListener('mouseup', (e) => {panController.event('mouseup', e) ;}, false) ;
+            nkView.addEventListener('mousemove', (e) => {panController.event('mousemove', e) ;}, false) ;
+            nkView.addEventListener('mousewheel', (e) => {panController.event('mousewheel', e) ;}, false) ;
+            nkView.addEventListener('touchstart', (e) => {panController.event('touchstart', e) ;}, false) ;
+            nkView.addEventListener('touchmove', (e) => {panController.event('touchmove', e) ;}, false) ;
+            nkView.addEventListener('touchcancel', (e) => {panController.event('touchcancel', e) ;}, false) ;
+            nkView.addEventListener('touchend', (e) => {panController.event('touchend', e) ;}, false) ;
         }
     ).then(
         function ()

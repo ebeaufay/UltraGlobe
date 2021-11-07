@@ -1,5 +1,3 @@
-import {CancellableTextureLoader} from '../loaders/CancellableTextureLoader.js'
-
 /**
  * A service to retrieve maps from a WMS Service
  */
@@ -13,15 +11,6 @@ class WMSLayer {
         this.epsg = epsg;
         this.version = version;
     }
-
-    getMap(bounds, callback, width = 128, height = 128) {
-
-            const textureLoader = new CancellableTextureLoader();
-            
-            return textureLoader.load(this.getFullUrl(bounds, width, height), (texture) => {
-                callback(texture);
-            });
-    };
 
     getFullUrl (bounds, width = 128, height = 128)
     {

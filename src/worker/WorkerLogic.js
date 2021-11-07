@@ -67,8 +67,8 @@ parseImage = function (data)
             let img = nkImages.CompositeEncoder.decode(imgData, imgAlignmentDesc) ;
 
             // Post it back
-            //console.log(img.getDataBuffer().getData().slice(0)) ;
             const imgDataBuffer = img.getDataBuffer().getData().slice(0) ;
+
             postMessage({_index : data._index, _success : true, _width : img.getWidth(), _height : img.getHeight(), _data : imgDataBuffer}) ;
 
             // Delete the Cpp object for now
