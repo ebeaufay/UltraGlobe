@@ -94,3 +94,7 @@ map.setLayer(simpleElevation, 1);
 ````
 
 checkout the demo for the expected result!
+
+# NILKINS
+
+This project is being ported to the nilkins engine (https://www.nilkinsengine.com/), a c++ engine with javascript transpilation and superior performance.
