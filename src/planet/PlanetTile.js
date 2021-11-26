@@ -60,12 +60,12 @@ function generateBaseTile (nkEngine, resolution)
         for (let x = 0 ; x < resolution - 1 ; x++)
         {
             indexBuffer[currentIndex++] = pointIndex + 0 ;
-            indexBuffer[currentIndex++] = pointIndex + 1 + resolution ;
             indexBuffer[currentIndex++] = pointIndex + resolution ;
+            indexBuffer[currentIndex++] = pointIndex + 1 + resolution ;
 
             indexBuffer[currentIndex++] = pointIndex + 0 ;
-            indexBuffer[currentIndex++] = pointIndex + 1 ;
             indexBuffer[currentIndex++] = pointIndex + 1 + resolution ;
+            indexBuffer[currentIndex++] = pointIndex + 1 ;
 
             pointIndex++ ;
         }
@@ -123,7 +123,7 @@ function generateShader (nkEngine, boundsMin, boundsMax, uvLeft, uvRight, index,
     const cBuffer = shader.addConstantBuffer(0) ;
     cBuffer.addPassMemorySlot().setAsViewMatrix() ;
     cBuffer.addPassMemorySlot().setAsProjectionMatrix() ;
-    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMin._x, boundsMin._y, boundsMax._x, boundsMax._y)) ;
+    cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (boundsMax._x, boundsMin._y, boundsMin._x, boundsMax._y)) ;
     cBuffer.addPassMemorySlot().setFromVector(new nkMaths.Vector (uvLeft._x, uvLeft._y, uvRight._x, uvRight._y)) ;
 
     if (texture)
@@ -264,12 +264,12 @@ class PlanetTile
                     const halfUVWidth = (maxUVX - minUVX) * 0.5 ;
                     const halfUVHeight = (maxUVY - minUVY) * 0.5 ;
 
-                    let unitBoundsHalfSize = this._unitBounds.getMax().sub(this._unitBounds.getMin()).div(2) ;
-                    let unitBoundsQuarterSize = unitBoundsHalfSize.div(2) ;
+                    let unitBoundsHalfSize = this._unitBounds.getMax().sub(this._unitBounds.getMin()).divScalar(2) ;
+                    let unitBoundsQuarterSize = unitBoundsHalfSize.divScalar(2) ;
                     let unitBoundsOffset = new nkMaths.Vector (unitBoundsQuarterSize) ;
 
                     const boundsSides = this._bounds.getAxisAlignedSides() ;
-                    const boundsQuarterSides = boundsSides.div(4) ;
+                    const boundsQuarterSides = boundsSides.divScalar(4) ;
 
                     if (this.level < 2)
                     {
@@ -282,18 +282,27 @@ class PlanetTile
                     const unitBounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(unitBoundsCenter._x - unitBoundsOffset._x, unitBoundsCenter._y - unitBoundsOffset._y, unitBoundsCenter._z + unitBoundsOffset._z), unitBoundsHalfSize) ;
                     const unitBounds3 = new nkGraphics.BoundingBox(unitBoundsCenter.add(unitBoundsOffset), unitBoundsHalfSize) ;
 
-                    const bounds1 = new nkGraphics.BoundingBox(boundsCenter.sub(boundsQuarterSides), boundsQuarterSides) ;
-                    const bounds0 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x + boundsQuarterSides._x, boundsCenter._y - boundsQuarterSides._y), boundsQuarterSides) ;
+                    const bounds0 = new nkGraphics.BoundingBox(boundsCenter.sub(boundsQuarterSides), boundsQuarterSides) ;
+                    const bounds1 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x + boundsQuarterSides._x, boundsCenter._y - boundsQuarterSides._y), boundsQuarterSides) ;
                     const bounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x - boundsQuarterSides._x, boundsCenter._y + boundsQuarterSides._y), boundsQuarterSides) ;
                     const bounds3 = new nkGraphics.BoundingBox(boundsCenter.add(boundsQuarterSides), boundsQuarterSides) ;
 
-                    //this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    //this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
+                    const uvMin0 = new nkMaths.Vector (minUVX + halfUVWidth, minUVY) ;
+                    const uvMax0 = new nkMaths.Vector(maxUVX, minUVY + halfUVHeight) ;
+                    
+                    const uvMin1 = new nkMaths.Vector(minUVX, minUVY) ;
+                    const uvMax1 = new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight) ;
 
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY), new nkMaths.Vector(maxUVX, minUVY + halfUVHeight)));
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY), new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight)));
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX, minUVY + halfUVHeight), new nkMaths.Vector(minUVX + halfUVWidth, maxUVY)));
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight), new nkMaths.Vector(maxUVX, maxUVY)));
+                    const uvMin2 = new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight) ;
+                    const uvMax2 = new nkMaths.Vector(maxUVX, maxUVY) ;
+
+                    const uvMin3 = new nkMaths.Vector(minUVX, minUVY + halfUVHeight) ;
+                    const uvMax3 = new nkMaths.Vector(minUVX + halfUVWidth, maxUVY) ;
+
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin0, uvMax0)) ;
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin1, uvMax1)) ;
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin2, uvMax2)) ;
+                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin3, uvMax3)) ;
                 }
             }
         }
@@ -332,12 +341,12 @@ class PlanetTile
         // Check bounds
         const frustum = camera.getFrustum() ;
 
-        //if (!this._unitBounds.checkAgainst(frustum))
-        //{
-        //    console.log("Nope") ;
-        //    //console.log(this._unitBounds) ;
-        //    return -1 ;
-        //}
+        /*if (!this._unitBounds.checkAgainst(frustum))
+        {
+            console.log("Nope") ;
+            //console.log(this._unitBounds) ;
+            return -1 ;
+        }*/
 
         // Compute error metrics
         const p = camera.getPositionAbsolute().sub(this._planetCenter) ;
@@ -346,24 +355,27 @@ class PlanetTile
         let lat = Math.asin(pNormalized._y) ;
         let lon = Math.atan2(pNormalized._z, -pNormalized._x) ;
 
-        if (lon > this._bounds.getMax()._x || lon < this._bounds.getMin()._x)
+        const boundsMin = this._bounds.getMin() ;
+        const boundsMax = this._bounds.getMax() ;
+
+        if (lon > boundsMax._x || lon < boundsMin._x)
         {
-            var max = this._bounds.getMax()._x - lon;
+            var max = boundsMax._x - lon;
             max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
 
-            var min = this._bounds.getMin()._x - lon;
+            var min = boundsMin._x - lon;
             min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
 
             if (Math.abs(max) < Math.abs(min))
-                lon = this._bounds.getMax()._x;
+                lon = boundsMax._x;
             else
-                lon = this._bounds.getMin()._x;
+                lon = boundsMin._x;
         }
 
-        lat = Math.min(this._bounds.getMax()._y, Math.max(this._bounds.getMin()._y, lat)) ;
+        lat = Math.min(boundsMax._y, Math.max(boundsMin._y, lat)) ;
 
-        lat = (((lat - this._bounds.getMin()._y) / (this._bounds.getMax()._y - this._bounds.getMin()._y)) * 32) - 0.5 ; //lat in pixel coordinates
-        lon = (((lon - this._bounds.getMin()._x) / (this._bounds.getMax()._x - this._bounds.getMin()._x)) * 32) - 0.5 ; // lon in pixel coordinates
+        lat = (((lat - boundsMin._y) / (boundsMax._y - boundsMin._y)) * 32) - 0.5 ; //lat in pixel coordinates
+        lon = (((lon - boundsMin._x) / (boundsMax._x - boundsMin._x)) * 32) - 0.5 ; // lon in pixel coordinates
 
         lat = Math.round(Math.max(0, Math.min(31, lat))) ;
         lon = Math.round(Math.max(0, Math.min(31, lon))) ;
@@ -372,11 +384,11 @@ class PlanetTile
         //var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
         //var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32 * 32) - 1] + this.radius : this.radius;
 
-        lat = (((lat + 0.5) / 32) * (this._bounds.getMax()._y - this._bounds.getMin()._y)) + this._bounds.getMin()._y ; //lat in geodetic coordinates
-        lon = (((lon + 0.5) / 32) * (this._bounds.getMax()._x - this._bounds.getMin()._x)) + this._bounds.getMin()._x ; // lon in geodetic coordinates
+        lat = (((lat + 0.5) / 32) * (boundsMax._y - boundsMin._y)) + boundsMin._y ; //lat in geodetic coordinates
+        lon = (((lon + 0.5) / 32) * (boundsMax._x - boundsMin._x)) + boundsMin._x ; // lon in geodetic coordinates
         var nearest = new this._nkEngine.nkMaths.Vector (-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon)) ;
-        var nearestMSE = nearest.mul(this.radius) ;
-        var nearestSurface = nearest.mul(surfaceElevation) ;
+        var nearestMSE = nearest.mulScalar(this.radius) ;
+        var nearestSurface = nearest.mulScalar(surfaceElevation) ;
 
         const dot = nearestMSE.sub(this._planetCenter).normalizeVec3().dotProductVec3(pNormalized) ;
 
