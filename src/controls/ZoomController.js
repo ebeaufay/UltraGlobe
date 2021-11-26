@@ -37,7 +37,7 @@ class ZoomController
 		// Get direction and intersection with globe
 		const x = this._dom.clientWidth * 0.5 ;
 		const y = this._dom.clientHeight * 0.5 ;
-		const pixelDir = new nkMaths.Vector (this._camera.getDirectionAtPixelWorld(x, y, null)) ;
+		const pixelDir = this._camera.getDirectionAtPixelWorld(x, y) ;
 		const onGlobe = calculateMouseLocationOnPlanet(nkMaths, this._camera, this._planet, x, y) ;
 
 		if (onGlobe === 0)
@@ -48,7 +48,7 @@ class ZoomController
 		camToGlobeDistance *= -Math.sign(z) * 0.1 ;
 
 		// Move camera in given direction by given distance
-		const newCamPos = new nkMaths.Vector (this._camera.getPositionAbsolute()).add(pixelDir.mul(camToGlobeDistance)) ;
+		const newCamPos = this._camera.getPositionAbsolute().add(pixelDir.mulScalar(camToGlobeDistance)) ;
 		this._camera.setPositionAbsolute(newCamPos) ;
 
 		// Update camera's properties for optimal viewing conditions

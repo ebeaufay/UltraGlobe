@@ -46,9 +46,9 @@ class RotateController
 		this._isMouseDown = true ;
 		this._mouseDownLocation = [e.x, e.y] ;
 		this._mouseDownLocationOnPlanetSurface = calculateMouseLocationOnPlanet(this._nkEngine.nkMaths, this._camera, this._planet, e.x, e.y) ;
-		this._cameraBasePosition = new this._nkEngine.nkMaths.Vector (this._camera.getPositionAbsolute()) ;
-		this._cameraBaseOrientation = new this._nkEngine.nkMaths.Quaternion (this._camera.getOrientationAbsolute()) ;
-		this._cameraBaseRight = new this._nkEngine.nkMaths.Vector (this._camera.getAbsoluteRight()) ;
+		this._cameraBasePosition = this._camera.getPositionAbsolute() ;
+		this._cameraBaseOrientation = this._camera.getOrientationAbsolute() ;
+		this._cameraBaseRight = this._camera.getAbsoluteRight() ;
 	}
 
 	mouseUp (e)
@@ -77,7 +77,7 @@ class RotateController
 		const nkMaths = this._nkEngine.nkMaths ;
 
 		// Recenter rotation
-		const camPos = new nkMaths.Vector (this._camera.getPositionAbsolute()) ;
+		const camPos = this._camera.getPositionAbsolute() ;
 		const rotationCenter = this._mouseDownLocationOnPlanetSurface ;
 		const rotationCamPos = camPos.sub(rotationCenter) ;
 
@@ -90,7 +90,7 @@ class RotateController
 
 		// Rotation around cam's X axis for pixel y diff
 		//const xAxis = new nkMaths.Vector (this._camera.getAbsoluteRight()).getNormalizedVec3() ;
-		const xAxis = new nkMaths.Vector (this._camera.getAbsoluteRight()) ;
+		const xAxis = this._camera.getAbsoluteRight() ;
 		//const yRotation = Math.min(0.99, Math.max(-0.99, (rotateEnd[1] - rotateStart[1]) * rotationFactor)) ;
 		const yRotation = (rotateEnd[1] - rotateStart[1]) * rotationFactor ;
 		const yQuat = new nkMaths.Quaternion (xAxis, yRotation) ;

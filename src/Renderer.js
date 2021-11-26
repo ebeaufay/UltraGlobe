@@ -10,6 +10,7 @@ function Renderer(nkView, nkEngine)
     this._nkEngine = nkEngine ;
     this._nkContext = null ;
     this._nkView = nkView ;
+    this._nkLogger = null ;
 
     initNkEngine() ;
 
@@ -25,11 +26,11 @@ function Renderer(nkView, nkEngine)
         const nkWinUi = self._nkEngine.nkWinUi ;
 
         // Init engine
-        const logger = new nkLog.ConsoleLogger () ;
+        self._nkLogger = new nkLog.ConsoleLogger () ;
 
-        nkAstraeus.LogManager.getInstance().setReceiver(logger) ;
-		nkGraphics.LogManager.getInstance().setReceiver(logger) ;
-		nkWinUi.LogManager.getInstance().setReceiver(logger) ;
+        nkAstraeus.LogManager.getInstance().setReceiver(self._nkLogger) ;
+		nkGraphics.LogManager.getInstance().setReceiver(self._nkLogger) ;
+		nkWinUi.LogManager.getInstance().setReceiver(self._nkLogger) ;
 
         nkWinUi.MainSystem.getInstance().initialize() ;
 		nkGraphics.MainSystem.getInstance().initialize() ;

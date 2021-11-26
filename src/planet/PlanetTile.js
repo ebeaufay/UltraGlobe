@@ -50,8 +50,8 @@ function generateBaseTile (nkEngine, resolution)
     const intSize = 4 ;
     const triSize = 3 ;
     const triCount = 2 * (resolution - 1) * (resolution - 1) ;
-    const arrayIndexBuffer = new ArrayBuffer (intSize * triSize * triCount) ;
-    const indexBuffer = new Int32Array (arrayIndexBuffer) ;
+    const arrayIndexBuffer = new nkMemory.Buffer (intSize * triSize * triCount) ;
+    const indexBuffer = new Int32Array (arrayIndexBuffer.getData().buffer) ;
     let currentIndex = 0 ;
     let pointIndex = 0 ;
 
@@ -115,6 +115,7 @@ function generateShader (nkEngine, boundsMin, boundsMax, uvLeft, uvRight, index,
 
     // Prepare shader
     const shader = nkGraphics.ShaderManager.getInstance().createOrRetrieve("TileShader_" + index) ;
+
     shader.setAttachedShaderProgram(program) ;
 
     shader.addInstanceMemorySlot().setAsWorldMatrix() ;
@@ -147,7 +148,7 @@ function onImageLoaded (data, nkEngine, self)
     tex.setDepthOrArraySize(1) ;
     tex.setMipLevels(1) ;
     tex.setTextureFormat(nkEngine.nkGraphics.FORMAT.R8G8B8A8_UNORM) ;
-    tex.setFromBuffer(data._data, 0, 0) ;
+    tex.setFromBuffer(new nkEngine.nkMemory.Buffer (data._data)) ;
     tex.load() ;
 
     self._nkShader.setTexture(tex, 0) ;
@@ -176,7 +177,7 @@ class PlanetTile
         self._planetCenter = planetCenter ;
         self._bounds = bounds ;
         self._unitBounds = unitBounds ;
-        self._planetCenter = new nkEngine.nkMaths.Vector (0, 0, 0, 0) ;
+        self._planetCenter = new nkEngine.nkMaths.Vector (0, 0, 0) ;
         self._uvLowerLeft = uvLowerLeft ;
         self._uvUpperRight = uvUpperRight ;
         self._entity = null ;
@@ -253,8 +254,8 @@ class PlanetTile
                     const nkGraphics = this._nkEngine.nkGraphics ;
                     const nkMaths = this._nkEngine.nkMaths ;
 
-                    const unitBoundsCenter = new nkMaths.Vector(this._unitBounds.getCenter()) ;
-                    const boundsCenter = new nkMaths.Vector(this._bounds.getCenter()) ;
+                    const unitBoundsCenter = this._unitBounds.getCenter() ;
+                    const boundsCenter = this._bounds.getCenter() ;
                     const minUVX = this._uvLowerLeft._x ;
                     const minUVY = this._uvLowerLeft._y ;
                     const maxUVX = this._uvUpperRight._x ;
@@ -267,7 +268,7 @@ class PlanetTile
                     let unitBoundsQuarterSize = unitBoundsHalfSize.div(2) ;
                     let unitBoundsOffset = new nkMaths.Vector (unitBoundsQuarterSize) ;
 
-                    const boundsSides = new nkMaths.Vector(this._bounds.getAxisAlignedSides()) ;
+                    const boundsSides = this._bounds.getAxisAlignedSides() ;
                     const boundsQuarterSides = boundsSides.div(4) ;
 
                     if (this.level < 2)
@@ -339,7 +340,7 @@ class PlanetTile
         //}
 
         // Compute error metrics
-        const p = new this._nkEngine.nkMaths.Vector (camera.getPositionAbsolute()).sub(this._planetCenter) ;
+        const p = camera.getPositionAbsolute().sub(this._planetCenter) ;
 
         const pNormalized = p.getNormalizedVec3() ;
         let lat = Math.asin(pNormalized._y) ;

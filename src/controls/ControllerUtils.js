@@ -1,12 +1,12 @@
 function calculateMouseLocationOnPlanet (nkMaths, camera, planet, x, y)
 {
 	// Get back direction for pixel
-	const pixelDir = new nkMaths.Vector (camera.getDirectionAtPixelWorld(x, y, null)) ;
-	const camPos = new nkMaths.Vector (camera.getPositionAbsolute()) ;
+	const pixelDir = camera.getDirectionAtPixelWorld(x, y) ;
+	const camPos = camera.getPositionAbsolute() ;
 	const sphereDistance = distSphere(planet.center, planet.radius, camPos, pixelDir) ;
 
 	if (sphereDistance > 0)
-		return new nkMaths.Vector (camPos.add(pixelDir.mul(sphereDistance))) ;
+		return camPos.add(pixelDir.mulScalar(sphereDistance)) ;
 
 	return 0 ;
 }

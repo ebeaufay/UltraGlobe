@@ -76,10 +76,10 @@ class PanController
 		const factor = 0.0015 ;
 		const nkMaths = this._nkEngine.nkMaths ;
 		const absUp = new nkMaths.Vector (0, 1, 0) ;
-		const camPos = new nkMaths.Vector (this._camera.getPositionAbsolute()) ;
+		const camPos = this._camera.getPositionAbsolute() ;
 		const toCenter = new nkMaths.Vector ().sub(camPos).getNormalizedVec3() ;
-		const camRot = new nkMaths.Quaternion (this._camera.getOrientationAbsolute()) ;
-		const rotationRight = new nkMaths.Vector (this._camera.getAbsoluteRight()) ;
+		const camRot = this._camera.getOrientationAbsolute() ;
+		const rotationRight = this._camera.getAbsoluteRight() ;
 		const rotationUp = absUp ;
 
 		// Rotate camera around up for x move
