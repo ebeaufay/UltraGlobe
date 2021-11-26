@@ -148,7 +148,7 @@ function onImageLoaded (data, nkEngine, self)
     tex.setDepthOrArraySize(1) ;
     tex.setMipLevels(1) ;
     tex.setTextureFormat(nkEngine.nkGraphics.FORMAT.R8G8B8A8_UNORM) ;
-    tex.setFromBuffer(new nkEngine.nkMemory.Buffer (data._data)) ;
+    tex.setFromBuffer(new nkEngine.nkMemory.BufferView (data._data)) ;
     tex.load() ;
 
     self._nkShader.setTexture(tex, 0) ;

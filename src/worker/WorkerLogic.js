@@ -69,7 +69,7 @@ parseImage = function (data)
             // Post it back
             const imgDataBuffer = img.getDataBuffer().getData().slice(0) ;
 
-            postMessage({_index : data._index, _success : true, _width : img.getWidth(), _height : img.getHeight(), _data : imgDataBuffer}) ;
+            postMessage({_index : data._index, _success : true, _width : img.getWidth(), _height : img.getHeight(), _data : imgDataBuffer}, [imgDataBuffer.buffer]) ;
 
             // Delete the Cpp object for now
             img.delete() ;
