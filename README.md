@@ -9,7 +9,7 @@ Displays a globe in threeJS with level of detail, imagery and elevation with con
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
 </p>
 <p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.png" width="600" style="display: block; margin: 0 auto"/>
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
 </p>
 
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
