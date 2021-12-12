@@ -9,7 +9,7 @@ Displays a globe in threeJS with level of detail, imagery and elevation with con
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
 </p>
 <p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.png" width="600" style="display: block; margin: 0 auto"/>
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
 </p>
 
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
@@ -96,8 +96,34 @@ var simpleElevation = new SimpleElevationLayer({
 map.setLayer(simpleElevation, 1);
 ````
 
-checkout the demo for the expected result!
+### Loading OGC 3DTiles
+
+An OGC3DTiles tileset can be added as a layer.
+
+````js
+import { Map } from './Map.js';
+import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
+
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tileset.json",
+    zUp: false,
+    longitude: 100.5877 * 0.01745329251994329576923690768489,
+    latitude: 14.3692 * 0.01745329251994329576923690768489,
+    height: 16,
+    rotationY: 0.5,
+    scale: 1,
+    geometricErrorMultiplier: 1.5,
+    loadOutsideView:true
+});
+map.setLayer(ogc3dTiles, 2);
+````
+Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming eventually, you can follow the progress of the 3DTiles implementation here: https://github.com/ebeaufay/3DTilesViewer
+Furthermore, only Box and Sphere bounding volumes are supported (unrefferenced tileset).
 
 # NILKINS
 
-This project is being ported to the nilkins engine (https://www.nilkinsengine.com/), a c++ engine with javascript transpilation and superior performance.
+This project is being ported to the nilkins engine, a c++ engine with javascript transpilation and superior performance.
+Write once and compile for web and desktop with this next generation Rendering engine : https://www.nilkinsengine.com/
