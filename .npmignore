@@ -15,7 +15,7 @@
 *.obj
 *.glb
 *.mtl
-*.jpg
+
 
 # external modules
 node_modules
@@ -28,3 +28,7 @@ dist
 
 dist/index.js
 dist/index.js.map
+
+#other
+floreal
+CityBuilding
