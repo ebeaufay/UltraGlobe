@@ -11,14 +11,15 @@ var pointer3;
 var pointer4;
 
 class RotateController /*extends EventDispatcher*/ {
-	constructor(camera, domElement, planet) {
+	constructor(camera, domElement, map) {
 		this.dom = domElement;
-		this.planet = planet;
+		this.planet = map.planet;
+		this.map = map;
 		this.camera = camera;
 		this.isMouseDown = false;
 		this.mouseDownLocation = [];
 		this.next = null;
-		this.mouseDownLocationOnPlanetSurface = new THREE.Vector3();
+		this.mouseRayCast = new THREE.Vector3();
 
 
 	}
@@ -39,60 +40,89 @@ class RotateController /*extends EventDispatcher*/ {
 	mouseDown(e) {
 		this.isMouseDown = true;
 		this.mouseDownLocation = [e.x, e.y];
-		this.calculateMouseLocationOnPlanet(e.x, e.y, this.mouseDownLocationOnPlanetSurface);
+		this.map.screenPixelRayCast(e.x, e.y, this.mouseRayCast);
+		//console.log(this.mouseRayCast.x, this.mouseRayCast.y, this.mouseRayCast.z);
+		//this.calculateMouseLocationOnPlanet(e.x, e.y, this.mouseRayCast);
+		//console.log(this.mouseRayCast.x, this.mouseRayCast.y, this.mouseRayCast.z);
 	}
 	mouseUp(e) {
 		this.isMouseDown = false;
 		this.mouseDownLocation = [e.x, e.y];
 	}
 	mouseMove(e) {
-		if (!!this.isMouseDown && !!this.mouseDownLocationOnPlanetSurface) {
+		if (!!this.isMouseDown && !!this.mouseRayCast) {
 			this.rotate(this.mouseDownLocation, [e.x, e.y]);
 		}
 	}
 
 	rotate(rotateStart, rotateEnd) {
 
-		pointer1 = (rotateEnd[0] - rotateStart[0]);
-		this.rotateX(pointer1);
-		pointer1 = (rotateEnd[1] - rotateStart[1]);
-		this.rotateY(pointer1);
+		this.rotateX(rotateEnd[0] - rotateStart[0]);
+		this.rotateY(rotateEnd[1] - rotateStart[1]);
 
 		rotateStart[0] = rotateEnd[0];
 		rotateStart[1] = rotateEnd[1];
 
-		this.resetCameraNearFar();
+		this.map.resetCameraNearFar(this.mouseRayCast);
 	}
 
 	rotateX(rotateX) {
 
 
-		tempPointA.copy(this.mouseDownLocationOnPlanetSurface).sub(this.planet.center).normalize();
+		tempPointA.copy(this.mouseRayCast).sub(this.planet.center).normalize(); //tempPointA is vector to surface mouse down
 		rotateX *= 0.004;
-		this.camera.position.sub(this.mouseDownLocationOnPlanetSurface).applyAxisAngle(tempPointA, rotateX).add(this.mouseDownLocationOnPlanetSurface);
+
+		// rotate camera around the provided axis
+		this.camera.position.sub(this.mouseRayCast).applyAxisAngle(tempPointA, rotateX).add(this.mouseRayCast);
+
+		//rotate camera and make it's up axis align with planet normal
 
 		this.camera.getWorldDirection(tempPointB).normalize();
-		tempPointC.crossVectors(this.camera.up, tempPointB);
+		this.camera.up.applyAxisAngle(tempPointB, rotateX * tempPointB.dot(tempPointA));
 
+		this.camera.getWorldDirection(tempPointB).normalize();		
 		tempPointB.applyAxisAngle(tempPointA, rotateX).add(this.camera.position);
-		this.camera.lookAt(tempPointB);
+		this.camera.lookAt(tempPointB); 
 
-		this.camera.getWorldDirection(tempPointB).normalize();
-		tempPointC.crossVectors(tempPointB, tempPointA.copy(this.camera.position).sub(this.planet.center).normalize());
-		this.camera.up.crossVectors(tempPointC, tempPointB);
 		
-		tempPointC.crossVectors(tempPointB, this.camera.up);
-		this.camera.lookAt(tempPointB.add(this.camera.position));
-		this.camera.up.crossVectors(tempPointB.normalize(), tempPointC);
+		
 	}
 
 	rotateY(rotateY) {
-		this.camera.getWorldDirection(tempPointA).normalize();
-		tempPointB.crossVectors(this.camera.up, tempPointA).normalize();
-		
+		this.camera.getWorldDirection(tempPointA).normalize(); // tempPointA is lookAt direction vector
+		tempPointB.crossVectors(this.camera.up, tempPointA).normalize(); // temp point B is rotation axis
 		rotateY = - rotateY * 0.004;
-		
+
 		tempPointC.crossVectors(tempPointA, this.camera.up).normalize();
+		tempPointD.copy(this.planet.center).sub(this.camera.position);
+		let pitch = Math.atan2(tempPointE.crossVectors(tempPointD, tempPointA).dot(tempPointC), tempPointA.dot(tempPointD));
+		
+		if(pitch + rotateY < 0.01){
+			rotateY =  0.01 - pitch;
+		} 
+		if(pitch + rotateY > 3.13){
+			rotateY =  3.13 - pitch;
+		} 
+
+		this.camera.position.sub(this.mouseRayCast).applyAxisAngle(tempPointB, -rotateY).add(this.mouseRayCast);
+		tempPointA.applyAxisAngle(tempPointB, -rotateY);
+
+
+		this.camera.lookAt(tempPointC.copy(tempPointA).add(this.camera.position));
+		this.camera.up.crossVectors(tempPointA, tempPointB);
+
+		
+		this.camera.getWorldDirection(tempPointA).normalize();
+		tempPointB.copy(this.planet.center).sub(this.camera.position);
+
+		tempPointC.crossVectors(tempPointA, tempPointB);
+		this.camera.up.crossVectors(tempPointA, tempPointC);
+
+		this.map.moveCameraAboveSurface();
+		
+		//this.map.g
+		
+		/*tempPointC.crossVectors(tempPointA, this.camera.up).normalize();
 		tempPointD.copy(this.planet.center).sub(this.camera.position);
 		let pitch = Math.atan2(tempPointE.crossVectors(tempPointD, tempPointA).dot(tempPointC), tempPointA.dot(tempPointD));
 		
@@ -108,7 +138,7 @@ class RotateController /*extends EventDispatcher*/ {
 		tempPointA.applyAxisAngle(tempPointB, -rotateY);
 		tempPointC.crossVectors(tempPointA, this.camera.up);
 		this.camera.lookAt(tempPointA.add(this.camera.position));
-		this.camera.up.crossVectors(tempPointA.normalize(), tempPointC);
+		this.camera.up.crossVectors(tempPointA.normalize(), tempPointC);*/
 
 
 	}
@@ -150,13 +180,7 @@ class RotateController /*extends EventDispatcher*/ {
 		}
 	}
 
-	resetCameraNearFar() {
-		pointer1 = this.planet.center.distanceTo(this.camera.position) - this.planet.radius;
-		this.camera.near = pointer1 * 0.1;
-		this.camera.far = Math.sqrt(2 * this.planet.radius * pointer1 + pointer1 * pointer1) * 2;
-		this.camera.updateProjectionMatrix();
-	}
-
+	
 	append(aController) {
 		if (!!this.next) {
 			this.next.append(aController);

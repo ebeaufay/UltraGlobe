@@ -3,19 +3,6 @@
  */
 
 
-/*
-uniforms: {
-	imagery: { type: "tv", value: imagery },
-	imageryUV: { type: "v4v", value: imageryUVBounds },
-	imageryBounds: { type: "v4v", value: imageryBounds },
-	imageryTransparency: { type: "fv", value: imageryTransparency },
-	elevationUV: { type: "v4", value: elevationUVBounds },
-	elevation: { type: "t", value: elevation },
-	radius: { type: "f", value: this.planet.radius },
-	planetPosition = { type: "v3", value: this.planet.center },
-	bounds = { type: "v4", value: new Vector4(this.bounds.min.x, this.bounds.min.y, this.bounds.max.x, this.bounds.max.y) }
-}*/
-
 const PlanetShader = {
 
 	vertexShader: (numImageryLayers, tileSize) =>/* glsl */`

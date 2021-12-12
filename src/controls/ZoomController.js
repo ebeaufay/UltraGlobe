@@ -12,14 +12,15 @@ var pointer3;
 var pointer4;
 var pointer5;
 class ZoomController /*extends EventDispatcher*/ {
-	constructor(camera, domElement, planet) {
+	constructor(camera, domElement, map) {
 		this.dom = domElement;
-		this.planet = planet;
+		this.planet = map.planet;
+		this.map = map;
 		this.camera = camera;
 		this.isMouseDown = false;
 		this.mouseDownLocation = [];
 		this.next = null;
-
+		this.mouseRayCast = new THREE.Vector3();
 	}
 
 	event(eventName, e) {
@@ -32,6 +33,7 @@ class ZoomController /*extends EventDispatcher*/ {
 
 	zoomWheel(zoom, x, y) {
 	
+		this.map.screenPixelRayCast(x, y, this.mouseRayCast);
 		// calculate pointOnGlobe and distToGlobeSurface before zoom
 		pointer1 = Math.tan(this.camera.fov * 0.5 * 0.0174533) * this.camera.near * 2;
 		pointer2 = pointer1 / this.dom.clientHeight * this.dom.clientWidth;
@@ -44,7 +46,7 @@ class ZoomController /*extends EventDispatcher*/ {
 
 		if (!pointer1 || pointer1 < 0) {
 			this.simpleZoom(zoom);
-			this.resetCameraNearFar();
+			this.map.resetCameraNearFar(this.mouseRayCast);
 			return;
 		}
 		tempPointC.copy(this.camera.position).add(tempPointB.copy(tempPointA).multiplyScalar(pointer1));
@@ -63,7 +65,7 @@ class ZoomController /*extends EventDispatcher*/ {
 
 		if (!pointer1 || pointer1 < 0) {
 			//point not on globe after rotation
-			this.resetCameraNearFar();
+			this.map.resetCameraNearFar(this.mouseRayCast);
 			return;
 		}
 		
@@ -76,7 +78,7 @@ class ZoomController /*extends EventDispatcher*/ {
 		if((pointer3<=pointer5 && zoom>0) || (pointer3>=pointer5 && zoom<0)){
 			this.camera.position.copy(tempPointE);
 			this.simpleZoom(zoom);
-			this.resetCameraNearFar();
+			this.map.resetCameraNearFar(this.mouseRayCast);
 			return;
 		}
 		
@@ -84,8 +86,8 @@ class ZoomController /*extends EventDispatcher*/ {
 		this.camera.getWorldDirection(tempPointA).applyQuaternion(quaternion);
 		tempPointB.crossVectors(tempPointA, this.camera.position);
 		this.camera.lookAt(tempPointC.copy(this.camera.position).add(tempPointA));
-		this.camera.up.crossVectors(tempPointB, tempPointA);
-		this.resetCameraNearFar();
+		this.camera.up.crossVectors(tempPointB, tempPointA); // tempPointB = right t
+		this.map.resetCameraNearFar(this.mouseRayCast);
 	}
 
 	simpleZoom(zoom){
@@ -107,13 +109,6 @@ class ZoomController /*extends EventDispatcher*/ {
 		else {
 			return (-pointer3 - Math.sqrt(pointer4)) / (2.0 * pointer2);
 		}
-	}
-
-	resetCameraNearFar() {
-		pointer1 = this.planet.center.distanceTo(this.camera.position) - this.planet.radius;
-		this.camera.near = pointer1 * 0.1;
-		this.camera.far = Math.sqrt(2 * this.planet.radius * pointer1 + pointer1 * pointer1) * 2;
-		this.camera.updateProjectionMatrix();
 	}
 
 	append(aController) {

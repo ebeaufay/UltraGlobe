@@ -28,23 +28,21 @@ class UltraImageryLayer extends ImageryLayer{
         }) */
     }
 
-    getMap(bounds, callback, width = 128, height = 128) {
-        if(!this.bounds || !this.bounds.intersectsBox(bounds)){
-            return Promise.reject(new Error("bounds don't intersect with layer"));
+    getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
+        if(!this.bounds || !this.bounds.intersectsBox(tile.bounds)){
+            callbackFailure(new Error("bounds don't intersect with layer"));
         }
-        var minY = Math.min(90, Math.max(-90, bounds.min.y * toDegrees));
-            var maxY = Math.min(90, Math.max(-90, bounds.max.y * toDegrees));
-            var minX = Math.min(179.99999999, Math.max(-180, bounds.min.x * toDegrees));
-            var maxX = Math.min(179.99999999, Math.max(-180, bounds.max.x * toDegrees));
+        var minY = Math.min(90, Math.max(-90, tile.bounds.min.y * toDegrees));
+            var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
+            var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
+            var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
 
             var request = this.url + "/"+this.layer+"?"+
                 "bounds="+minX+","+minY+","+(maxX-minX)+","+(maxY-minY)+
                 "&width="+width+"&height="+height+
                 "&format=jpg";
             
-            return this.textureLoader.load(request, (texture) => {
-                callback(texture);
-            });
+            return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error)=>callbackFailure(error));
 
     };
 }

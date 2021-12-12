@@ -3,6 +3,8 @@ import { PlanetTile } from './PlanetTile.js';
 import { Object3D } from 'three/src/core/Object3D';
 import {LAYERS_CHANGED} from '../layers/LayerManager.js'
 
+const frustum = new THREE.Frustum();
+const mat = new THREE.Matrix4();
 class Planet extends Object3D {
     /**
      * 
@@ -51,28 +53,14 @@ class Planet extends Object3D {
             layerManager: self.layerManager, planet: this, level: 0
         }));
 
+        self.matrixAutoUpdate = false;
         setInterval(function () {
             self.children.forEach(child => {
-                var frustum = new THREE.Frustum();
-                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
                 child.update(self.camera, frustum);
             });
-        }, 200);
+        }, 500);
 
-        /* setTimeout(function () {
-            self.children.forEach(child => {
-                var frustum = new THREE.Frustum();
-                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                child.update(self.camera, frustum);
-            });
-        }, 5);
-        setTimeout(function () {
-            self.children.forEach(child => {
-                var frustum = new THREE.Frustum();
-                frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                child.update(self.camera, frustum);
-            });
-        }, 10000); */
     }
 
     /**
@@ -86,8 +74,30 @@ class Planet extends Object3D {
         return interactingTiles;
     }
 
+    cull(frustum){
+        this.children.forEach(child => {
+            child.cull(frustum);
+        });
+    }
 
-    
+    /**
+     * Returns the terrain height at the given longitude and latitude
+     * @param {Vector2} lonlat in radians 
+     */
+    getTerrainElevation(lonLat){
+        let elevation = 0;
+        this.children.every(child=>{
+            if(child.bounds.containsPoint(lonLat)){
+                elevation = child.getTerrainElevation(lonLat);
+                return false;
+            }
+            return true;
+        })
+        if(elevation === false){
+            return 0;
+        }
+        return elevation;
+    }
 }
 
 

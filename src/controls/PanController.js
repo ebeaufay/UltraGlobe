@@ -11,9 +11,10 @@ var pointer2;
 var pointer3;
 var pointer4;
 class PanController /*extends EventDispatcher*/ {
-	constructor(camera, domElement, planet) {
+	constructor(camera, domElement, map) {
 		this.dom = domElement;
-		this.planet = planet;
+		this.planet = map.planet;
+		this.map = map;
 		this.camera = camera;
 		this.isMouseDown = false;
 		this.mouseDownLocation = [];
@@ -51,9 +52,7 @@ class PanController /*extends EventDispatcher*/ {
 	pan(panStart, panEnd) {
 		
 		this.calculateMouseLocationOnPlanet(panStart[0], panStart[1], tempPointC);
-		
 		tempPointA.copy(this.camera.position).sub(this.planet.position).normalize();
-
 		pointer1 = tempPointC.distanceTo(this.camera.position)* 0.002;
 		pointer2 = (panEnd[0] - panStart[0]) * pointer1;
 		pointer3 = (panEnd[1] - panStart[1]) * pointer1;
@@ -84,6 +83,9 @@ class PanController /*extends EventDispatcher*/ {
 		this.camera.lookAt(tempPointD);
 		tempPointE.applyQuaternion(quaternion);
 		this.camera.up.crossVectors(tempPointD.sub(this.camera.position), tempPointE);
+
+		this.map.resetCameraNearFar();
+		this.map.moveCameraAboveSurface();
 	}
 
 	calculateMouseLocationOnPlanet(x, y, sideEffect) {
