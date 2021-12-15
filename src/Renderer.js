@@ -36,16 +36,26 @@ function Renderer(nkView, nkEngine)
 		nkGraphics.MainSystem.getInstance().initialize() ;
         nkAstraeus.Engine.initialize() ;
 
-        // Prepare window
-        const graphicsWindow = nkWinUi.ComponentManager.getInstance().createOrRetrieve("Win", nkWinUi.COMPONENT_TYPE.GRAPHICS_WINDOW).asGraphicsWindow() ;
-        graphicsWindow.load() ;
-
         // Prepare context
         const contextDesc = new nkGraphics.RenderContextDescriptor () ;
         const context = nkGraphics.RenderContextManager.getInstance().createRenderContext(contextDesc) ;
         self._nkView.appendChild(context.getAttachedWin().getCanvas()) ;
         context.getAttachedWin().getCanvas().style = "position: absolute; height: 100%; width: 100%; right: 0px; top : 0px;" ;
         self._nkContext = context ;
+        self._sceneTarget = null ;
+
+        new ResizeObserver (
+            function () 
+            {
+                if (self._sceneTarget)
+                {
+                    // Resize back target
+                    self._sceneTarget.setWidth(self._nkView.offsetWidth) ;
+                    self._sceneTarget.setHeight(self._nkView.offsetHeight) ;
+                    self._sceneTarget.load() ;
+                }
+            }
+        ).observe(self._nkView) ;
 
         // Prepare camera
         const camera = nkGraphics.CameraManager.getInstance().getDefaultCam() ;
@@ -72,12 +82,23 @@ function Renderer(nkView, nkEngine)
 				envEffect.setSourceTexture(backTex) ;
 				envEffect.load() ;
 
+                self._sceneTarget = nkGraphics.TextureManager.getInstance().createOrRetrieve("sceneTarget") ;
+                self._sceneTarget.setWidth(self._nkView.offsetWidth) ;
+                self._sceneTarget.setHeight(self._nkView.offsetHeight) ;
+                self._sceneTarget.setRenderFlag(nkGraphics.TEX_RENDER_FLAG.RENDER_TARGET) ;
+                self._sceneTarget.setTextureFormat(nkGraphics.FORMAT.R8G8B8A8_UNORM) ;
+                self._sceneTarget.load() ;
+
+                let fxaaEffect = nkAstraeus.EffectManager.getInstance().createOrRetrieve("fxaaEffect", nkAstraeus.EFFECT_TYPE.FXAA) ;
+                fxaaEffect.setSourceTexture(self._sceneTarget) ;
+                fxaaEffect.load() ;
+
                 // Prepare compositor as a result
                 let compositor = nkGraphics.CompositorManager.getInstance().createOrRetrieve("renderer") ;
 				let compositorNode = compositor.addNode() ;
 
                 let targetOp = compositorNode.addOperations() ;
-                targetOp.setToBackBuffer(true) ;
+                targetOp.addColorTarget(new nkGraphics.TargetDescriptor (self._sceneTarget)) ;
                 targetOp.setToChainDepthBuffer(true) ;
 
                 targetOp.addClearTargetsPass() ;
@@ -86,6 +107,11 @@ function Renderer(nkView, nkEngine)
                 let envPass = targetOp.addPostProcessPass() ;
 				envPass.setProcessShader(envEffect.getShader()) ;
 				envPass.setBackProcess(true) ;
+
+                let fxaaOp = compositorNode.addOperations() ;
+                fxaaOp.setToBackBuffer(true) ;
+                
+                fxaaOp.addPostProcessPass().setProcessShader(fxaaEffect.getShader()) ;
 
                 // Set in context
                 context.setCompositor(compositor) ;
