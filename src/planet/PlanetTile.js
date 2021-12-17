@@ -1,10 +1,15 @@
 import '../worker/WorkType.js';
 import {PlanetShader} from './PlanetShader.js';
 
-const MAX_LEVEL = 1 ;
+const MAX_LEVEL = 5 ;
 
 let TILE_INDEX_NK = 0 ;
 let TILE_GEOMETRY_NK = null ;
+
+let BASE_LOADED = false ;
+let BASE_LOAD_COUNT = 0 ;
+
+let nkMaths = null ;
 
 function generateBaseTile (nkEngine, resolution)
 {
@@ -153,15 +158,45 @@ function onImageLoaded (data, nkEngine, self)
 
     self._nkShader.setTexture(tex, 0) ;
     self._nkTexture = tex ;
+    self._ownsTexture = true ;
 
     self._uvLowerLeft = new nkEngine.nkMaths.Vector (0, 0) ;
     self._uvUpperRight = new nkEngine.nkMaths.Vector (1, 1) ;
     self._nkShader.getConstantBuffer(0).getPassMemorySlot(3).setFromVector(new nkEngine.nkMaths.Vector (self._uvLowerLeft._x, self._uvLowerLeft._y, self._uvUpperRight._x, self._uvUpperRight._y)) ;
+
+    if (!BASE_LOADED)
+    {
+        // Add a tile to the base level successful load count
+        // Base level is 2 tiles, one for each side, mark it as good once everything is loaded
+        BASE_LOAD_COUNT++ ;
+        BASE_LOADED = BASE_LOAD_COUNT == 2 ;
+    }
+}
+
+function requestTexture (tile)
+{
+    const requestUrl = tile.wmsService.getFullUrl(tile._bounds, 1024, 1024) ;
+    tile._workers.requestWork({_type : WORK_TYPE.PARSE_IMAGE, _path : requestUrl, _index : tile._index}, function (result) {onImageLoaded(result.data, tile._nkEngine, tile) ;}) ;
+}
+
+function cancelTexture (tile)
+{
+    tile._workers.cancelWork(tile._index) ;
+}
+
+function toLonLat (cartesianVector)
+{
+    return new nkMaths.Vector (Math.atan2(cartesianVector._z, -cartesianVector._x), Math.asin(cartesianVector._y)) ;
+}
+
+function toCartesian (lonLatVector)
+{
+    return new nkMaths.Vector (-(Math.cos(lonLatVector._y) * Math.cos(lonLatVector._x)), Math.sin(lonLatVector._y), Math.cos(lonLatVector._y) * Math.sin(lonLatVector._x)) ;
 }
 
 class PlanetTile
 {
-    constructor(nkEngine, workers, unitBounds, bounds, elevationService, wmsService, planetCenter, radius, level, texture, uvLowerLeft, uvUpperRight)
+    constructor (nkEngine, workers, unitBounds, bounds, elevationService, wmsService, planetCenter, radius, level, texture, uvLowerLeft, uvUpperRight)
     {
         // Check parameters
         var self = this;
@@ -184,13 +219,9 @@ class PlanetTile
         self._children = [] ;
         self._index = TILE_INDEX_NK++ ;
         self._nkTexture = texture ;
+        self._ownsTexture = false ;
 
-        // Compute bounds
-        //const center = new this._nkEngine.nkMaths.Vector (this._unitBounds.getCenter()) ;
-        //const c = new this._nkEngine.nkMaths.Vector (-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)) ;
-        //const m = new this._nkEngine.nkMaths.Vector (-(Math.cos(this._unitBounds.max.y) * Math.cos(this._unitBounds.max.x)), Math.sin(this._unitBounds.max.y), Math.cos(this._unitBounds.max.y) * Math.sin(this._unitBounds.max.x)) ;
-
-        //var boundingSphere = new THREE.Sphere(c.clone().add(this.planetCenter), c.distanceTo(m) * 1.1)
+        nkMaths = nkEngine.nkMaths ;
 
         // Setup nk
         if (!TILE_GEOMETRY_NK)
@@ -206,8 +237,7 @@ class PlanetTile
         subEnt.setMesh(TILE_GEOMETRY_NK) ;
 
         // Request dedicated texture for this tile
-        const requestUrl = self.wmsService.getFullUrl(self._bounds, 1024, 1024) ;
-        workers.requestWork({_type : WORK_TYPE.PARSE_IMAGE, _path : requestUrl, _index : self._index}, function (result) {onImageLoaded(result.data, nkEngine, self) ;}) ;
+        requestTexture(this) ;
     }
 
     /**
@@ -216,31 +246,34 @@ class PlanetTile
      */
     update (camera)
     {
-        var self = this ;
+        // First load base to offer a good starting view
+        // As a result, prevent going further in this case
+        if (!BASE_LOADED)
+            return ;
+
+        // Update rendering tree
         const metric = this.calculateUpdateMetric(camera) ;
 
         if (metric == -1)
         {
+            // This level is not visible (other side or outside camera)
             this.disposeChildren() ;
-            return;
+            this.showTile() ;
         }
-
-        if (metric < this.level)
-        {
-            // Should never happen
-            console.log("Metric < this.level, this should never happen, bad logic somewhere.") ;
-        }
-        else if (metric < this.level + 1 || this.level >= MAX_LEVEL)
+        else if (metric < this.level || this.level >= MAX_LEVEL)
         {
             // Right level
-            // If texture is texture from previous layer, load new texture, invalidate children
-            self.disposeChildren() ;
+            this.disposeChildren() ;
+            this.showTile() ;
         }
         else
         {
-            // if has children, recurse
-            // else generate Children
-            if (self._children.length > 0)
+            // Hide ourselves
+            this.hideTile() ;
+
+            // If has children, recurse
+            // Else generate children
+            if (this._children.length > 0)
             {
                 this._children.forEach(child => {
                         child.update(camera) ;
@@ -249,91 +282,127 @@ class PlanetTile
             }
             else
             {
-                if (this.level < MAX_LEVEL)
-                {
-                    const nkGraphics = this._nkEngine.nkGraphics ;
-                    const nkMaths = this._nkEngine.nkMaths ;
+                // Add new children
+                const nkGraphics = this._nkEngine.nkGraphics ;
+                const nkMaths = this._nkEngine.nkMaths ;
+                
+                const minUVX = this._uvLowerLeft._x ;
+                const minUVY = this._uvLowerLeft._y ;
+                const maxUVX = this._uvUpperRight._x ;
+                const maxUVY = this._uvUpperRight._y ;
 
-                    const unitBoundsCenter = this._unitBounds.getCenter() ;
-                    const boundsCenter = this._bounds.getCenter() ;
-                    const minUVX = this._uvLowerLeft._x ;
-                    const minUVY = this._uvLowerLeft._y ;
-                    const maxUVX = this._uvUpperRight._x ;
-                    const maxUVY = this._uvUpperRight._y ;
+                const halfUVWidth = (maxUVX - minUVX) * 0.5 ;
+                const halfUVHeight = (maxUVY - minUVY) * 0.5 ;
 
-                    const halfUVWidth = (maxUVX - minUVX) * 0.5 ;
-                    const halfUVHeight = (maxUVY - minUVY) * 0.5 ;
+                const boundsCenter = this._bounds.getCenter() ;
+                const boundsSides = this._bounds.getAxisAlignedSides() ;
+                const boundsQuarterSides = boundsSides.divScalar(4) ;
 
-                    let unitBoundsHalfSize = this._unitBounds.getMax().sub(this._unitBounds.getMin()).divScalar(2) ;
-                    let unitBoundsQuarterSize = unitBoundsHalfSize.divScalar(2) ;
-                    let unitBoundsOffset = new nkMaths.Vector (unitBoundsQuarterSize) ;
+                const bounds0 = new nkGraphics.BoundingBox (boundsCenter.sub(boundsQuarterSides), boundsQuarterSides) ;
+                const bounds1 = new nkGraphics.BoundingBox (new nkMaths.Vector(boundsCenter._x + boundsQuarterSides._x, boundsCenter._y - boundsQuarterSides._y), boundsQuarterSides) ;
+                const bounds2 = new nkGraphics.BoundingBox (new nkMaths.Vector(boundsCenter._x - boundsQuarterSides._x, boundsCenter._y + boundsQuarterSides._y), boundsQuarterSides) ;
+                const bounds3 = new nkGraphics.BoundingBox (boundsCenter.add(boundsQuarterSides), boundsQuarterSides) ;
 
-                    const boundsSides = this._bounds.getAxisAlignedSides() ;
-                    const boundsQuarterSides = boundsSides.divScalar(4) ;
+                const unitBoundsCenter0 = toCartesian(bounds0.getCenter()) ;
+                const unitBoundsCenter1 = toCartesian(bounds1.getCenter()) ;
+                const unitBoundsCenter2 = toCartesian(bounds2.getCenter()) ;
+                const unitBoundsCenter3 = toCartesian(bounds3.getCenter()) ;
 
-                    if (this.level < 2)
-                    {
-                        unitBoundsQuarterSize._z = 0.5 ;
-                        unitBoundsOffset._z = 0 ;
-                    }
+                const unitBoundsExtent0 = toCartesian(bounds0.getMax()).sub(toCartesian(bounds0.getMin())).divScalar(2) ;
+                const unitBoundsExtent1 = toCartesian(bounds1.getMax()).sub(toCartesian(bounds1.getMin())).divScalar(2) ;
+                const unitBoundsExtent2 = toCartesian(bounds2.getMax()).sub(toCartesian(bounds2.getMin())).divScalar(2) ;
+                const unitBoundsExtent3 = toCartesian(bounds3.getMax()).sub(toCartesian(bounds3.getMin())).divScalar(2) ;
 
-                    const unitBounds0 = new nkGraphics.BoundingBox(unitBoundsCenter.sub(unitBoundsOffset), unitBoundsHalfSize) ;
-                    const unitBounds1 = new nkGraphics.BoundingBox(new nkMaths.Vector(unitBoundsCenter._x + unitBoundsOffset._x, unitBoundsCenter._y + unitBoundsOffset._y, unitBoundsCenter._z + unitBoundsOffset._z), unitBoundsHalfSize) ;
-                    const unitBounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(unitBoundsCenter._x - unitBoundsOffset._x, unitBoundsCenter._y - unitBoundsOffset._y, unitBoundsCenter._z + unitBoundsOffset._z), unitBoundsHalfSize) ;
-                    const unitBounds3 = new nkGraphics.BoundingBox(unitBoundsCenter.add(unitBoundsOffset), unitBoundsHalfSize) ;
+                const unitBounds0 = new nkGraphics.BoundingBox (unitBoundsCenter0, unitBoundsExtent0) ;
+                const unitBounds1 = new nkGraphics.BoundingBox (unitBoundsCenter1, unitBoundsExtent1) ;
+                const unitBounds2 = new nkGraphics.BoundingBox (unitBoundsCenter2, unitBoundsExtent2) ;
+                const unitBounds3 = new nkGraphics.BoundingBox (unitBoundsCenter3, unitBoundsExtent3) ;
 
-                    const bounds0 = new nkGraphics.BoundingBox(boundsCenter.sub(boundsQuarterSides), boundsQuarterSides) ;
-                    const bounds1 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x + boundsQuarterSides._x, boundsCenter._y - boundsQuarterSides._y), boundsQuarterSides) ;
-                    const bounds2 = new nkGraphics.BoundingBox(new nkMaths.Vector(boundsCenter._x - boundsQuarterSides._x, boundsCenter._y + boundsQuarterSides._y), boundsQuarterSides) ;
-                    const bounds3 = new nkGraphics.BoundingBox(boundsCenter.add(boundsQuarterSides), boundsQuarterSides) ;
+                const uvMin0 = new nkMaths.Vector (minUVX + halfUVWidth, minUVY) ;
+                const uvMax0 = new nkMaths.Vector (maxUVX, minUVY + halfUVHeight) ;
+                
+                const uvMin1 = new nkMaths.Vector (minUVX, minUVY) ;
+                const uvMax1 = new nkMaths.Vector (minUVX + halfUVWidth, minUVY + halfUVHeight) ;
 
-                    const uvMin0 = new nkMaths.Vector (minUVX + halfUVWidth, minUVY) ;
-                    const uvMax0 = new nkMaths.Vector(maxUVX, minUVY + halfUVHeight) ;
-                    
-                    const uvMin1 = new nkMaths.Vector(minUVX, minUVY) ;
-                    const uvMax1 = new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight) ;
+                const uvMin2 = new nkMaths.Vector (minUVX + halfUVWidth, minUVY + halfUVHeight) ;
+                const uvMax2 = new nkMaths.Vector (maxUVX, maxUVY) ;
 
-                    const uvMin2 = new nkMaths.Vector(minUVX + halfUVWidth, minUVY + halfUVHeight) ;
-                    const uvMax2 = new nkMaths.Vector(maxUVX, maxUVY) ;
+                const uvMin3 = new nkMaths.Vector (minUVX, minUVY + halfUVHeight) ;
+                const uvMax3 = new nkMaths.Vector (minUVX + halfUVWidth, maxUVY) ;
 
-                    const uvMin3 = new nkMaths.Vector(minUVX, minUVY + halfUVHeight) ;
-                    const uvMax3 = new nkMaths.Vector(minUVX + halfUVWidth, maxUVY) ;
-
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin0, uvMax0)) ;
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin1, uvMax1)) ;
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin2, uvMax2)) ;
-                    this._children.push(new PlanetTile(self._nkEngine, self._workers, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, self._nkTexture, uvMin3, uvMax3)) ;
-                }
+                this._children.push(new PlanetTile (this._nkEngine, this._workers, unitBounds0, bounds0, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, this._nkTexture, uvMin0, uvMax0)) ;
+                this._children.push(new PlanetTile (this._nkEngine, this._workers, unitBounds1, bounds1, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, this._nkTexture, uvMin1, uvMax1)) ;
+                this._children.push(new PlanetTile (this._nkEngine, this._workers, unitBounds2, bounds2, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, this._nkTexture, uvMin2, uvMax2)) ;
+                this._children.push(new PlanetTile (this._nkEngine, this._workers, unitBounds3, bounds3, this.elevationService, this.wmsService, this.planetCenter, this.radius, this.level + 1, this._nkTexture, uvMin3, uvMax3)) ;
             }
         }
     }
 
+    showTile ()
+    {
+        // Check if visible already
+        if (this._entity)
+            return ;
+
+        // Add back to rq, with right shader
+        const rq = this._nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
+        this._entity = rq.addEntity() ;
+        this._entity.setShader(this._nkShader) ;
+        const subEnt = this._entity.addChild() ;
+        subEnt.setMesh(TILE_GEOMETRY_NK) ;
+
+        // Check if texture needs to be downloaded
+        if (!this._ownsTexture)
+            requestTexture(this) ;
+    }
+
+    hideTile ()
+    {
+        // Check visibility
+        if (!this._entity)
+            return ;
+
+        // Erase linked entity from rq
+        const rq = this._nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
+        rq.eraseEntity(this._entity) ;
+
+        this._entity = null ;
+
+        // Check if we cancel texture request
+        if (!this._ownsTexture)
+            cancelTexture(this) ;
+    }
+
     disposeChildren ()
     {
-        if (this._children.length != 0)
-        {
-            this._children.forEach(
-                function (element)
+        const parent = this ;
+
+        this._children.forEach(
+            function (element)
+            {
+                // Clear children just in case
+                element.disposeChildren() ; 
+                
+                // Clear what is displayed
+                if (element._entity)
                 {
-                    // Clear child just in case
-                    element.disposeChildren() ; 
-                    
-                    // Clear what is displayed
                     const rq = element._nkEngine.nkGraphics.RenderQueueManager.getInstance().get(0) ;
                     rq.eraseEntity(element._entity) ;
-
-                    // Clear shader
-                    element._nkEngine.nkGraphics.ShaderManager.getInstance().erase(element._nkShader.getResourceName()) ;
-                    element._nkShader = null ;
-
-                    // Clear texture
-                    if (element._nkTexture)
-                        element._nkEngine.nkGraphics.TextureManager.getInstance().erase(element._nkTexture.getResourceName()) ;
                 }
-            ) ;
 
-            this._children = [] ;
-        }
+                // Clear shader
+                element._nkEngine.nkGraphics.ShaderManager.getInstance().erase(element._nkShader.getResourceName()) ;
+                element._nkShader = null ;
+
+                // Clear texture                    
+                if (element._nkTexture && element._ownsTexture)
+                    element._nkEngine.nkGraphics.TextureManager.getInstance().erase(element._nkTexture.getResourceName()) ;
+                else if (element._nkTexture)
+                    cancelTexture(element) ;
+            }
+        ) ;
+
+        this._children = [] ;
     }
 
     calculateUpdateMetric (camera)
@@ -341,67 +410,19 @@ class PlanetTile
         // Check bounds
         const frustum = camera.getFrustum() ;
 
-        /*if (!this._unitBounds.checkAgainst(frustum))
-        {
-            console.log("Nope") ;
-            //console.log(this._unitBounds) ;
-            return -1 ;
-        }*/
-
-        // Compute error metrics
-        const p = camera.getPositionAbsolute().sub(this._planetCenter) ;
-
-        const pNormalized = p.getNormalizedVec3() ;
-        let lat = Math.asin(pNormalized._y) ;
-        let lon = Math.atan2(pNormalized._z, -pNormalized._x) ;
-
-        const boundsMin = this._bounds.getMin() ;
-        const boundsMax = this._bounds.getMax() ;
-
-        if (lon > boundsMax._x || lon < boundsMin._x)
-        {
-            var max = boundsMax._x - lon;
-            max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
-
-            var min = boundsMin._x - lon;
-            min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
-
-            if (Math.abs(max) < Math.abs(min))
-                lon = boundsMax._x;
-            else
-                lon = boundsMin._x;
-        }
-
-        lat = Math.min(boundsMax._y, Math.max(boundsMin._y, lat)) ;
-
-        lat = (((lat - boundsMin._y) / (boundsMax._y - boundsMin._y)) * 32) - 0.5 ; //lat in pixel coordinates
-        lon = (((lon - boundsMin._x) / (boundsMax._x - boundsMin._x)) * 32) - 0.5 ; // lon in pixel coordinates
-
-        lat = Math.round(Math.max(0, Math.min(31, lat))) ;
-        lon = Math.round(Math.max(0, Math.min(31, lon))) ;
-
-        var surfaceElevation = !!this.elevationArray ? this.elevationArray[(lat * 32) + lon] + this.radius : this.radius ;
-        //var surfaceElevationCenter = !!this.elevationArray ? this.elevationArray[(15 * 32) + 15] + this.radius : this.radius;
-        //var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(32 * 32) - 1] + this.radius : this.radius;
-
-        lat = (((lat + 0.5) / 32) * (boundsMax._y - boundsMin._y)) + boundsMin._y ; //lat in geodetic coordinates
-        lon = (((lon + 0.5) / 32) * (boundsMax._x - boundsMin._x)) + boundsMin._x ; // lon in geodetic coordinates
-        var nearest = new this._nkEngine.nkMaths.Vector (-(Math.cos(lat) * Math.cos(lon)), Math.sin(lat), Math.cos(lat) * Math.sin(lon)) ;
-        var nearestMSE = nearest.mulScalar(this.radius) ;
-        var nearestSurface = nearest.mulScalar(surfaceElevation) ;
-
-        const dot = nearestMSE.sub(this._planetCenter).normalizeVec3().dotProductVec3(pNormalized) ;
-
-        if (dot < 0)
+        if (!this._unitBounds.checkAgainst(frustum))
             return -1 ;
 
-        var distance = p.getDistanceVec3(nearestSurface) ;
+        // Simple check
+        const tileCenterLonLat = this._bounds.getCenter() ;
+        const tileCenter = toCartesian(tileCenterLonLat) ;
+        const tileOnSphere = tileCenter.getNormalizedVec3() ;
+        const onSphere = camera.getPositionAbsolute().getNormalizedVec3() ;
+        const camToSphere = camera.getPositionAbsolute().sub(onSphere) ;
 
-        if (distance < 1)
-            return MAX_LEVEL;
-
-        var log = Math.log(distance * 0.05) / Math.log(2) ;
-        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(MAX_LEVEL - log, 0.0001)) ;
+        const log = -Math.log(camToSphere.getLengthVec3() * 0.25) / Math.log(2) ;
+        const dotTile = Math.max(0, tileOnSphere.dotProductVec3(onSphere)) ;
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log * dotTile, 0.0001)) ;
 
         if (isNaN(metric))
             return this.level ;

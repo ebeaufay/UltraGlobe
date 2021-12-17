@@ -52,6 +52,7 @@ function init()
             nkView.addEventListener('mouseup', (e) => {panController.event('mouseup', e) ;}, false) ;
             nkView.addEventListener('mousemove', (e) => {panController.event('mousemove', e) ;}, false) ;
             nkView.addEventListener('mousewheel', (e) => {panController.event('mousewheel', e) ;}, false) ;
+            nkView.addEventListener('wheel', (e) => {panController.event('mousewheel', e) ;}, false) ;
             nkView.addEventListener('touchstart', (e) => {panController.event('touchstart', e) ;}, false) ;
             nkView.addEventListener('touchmove', (e) => {panController.event('touchmove', e) ;}, false) ;
             nkView.addEventListener('touchcancel', (e) => {panController.event('touchcancel', e) ;}, false) ;

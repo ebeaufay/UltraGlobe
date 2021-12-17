@@ -133,24 +133,11 @@ function Renderer(nkView, nkEngine)
 
     function render (time)
     {
-        //self.camera.near = 0.0 + Math.pow(self.camera.position.y / 10, 0.5);
-        //self.camera.far = 1000 + self.camera.position.y * 1;
-        //self.camera.updateProjectionMatrix();
+        // Continuously render
+        requestAnimationFrame(render) ;
 
-        requestAnimationFrame(render);
-
-        // nk Logic
-        if (start === undefined)
-            start = time ;
-
-        // Updating rotation
-        //const timeDiff = time - start ;
-        //const radianRot = (timeDiff / rotationTime) * (3.14159 * 2) ;
-        //const newPos = new nkEngine.nkMaths.Vector (Math.cos(radianRot) * 3, 0, (Math.sin(radianRot) * 3)) ;
-        //cam.setPositionRelative(newPos) ;
-        //cam.lookAt(new nkEngine.nkMaths.Vector (0, 0, 0), new nkEngine.nkMaths.Vector (0, 1, 0)) ;
+        // Frame Nilkins context
         self._nkEngine.nkGraphics.MainSystem.getInstance().frame(self._nkContext) ;
-        //
     }
 
 

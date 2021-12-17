@@ -20,9 +20,7 @@ class Planet
         const nkGraphics = nkEngine.nkGraphics ;
         const nkMaths = nkEngine.nkMaths ;
 
-       // var elevationLayer = new BingElevationLayer ("AteBKVs9dTvvEMIEus-KRwyTybV76si7jcncQK5TG02wgMLRG82Fb6ZO2qSVNNvW") ;
         var wmsLayer = new WMSLayer ("https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv", "GEBCO_LATEST_2") ;
-        //var wmsLayer = new WMSLayer("https://ows.terrestris.de/osm/service", "OSM-WMS")
 
         const unitBounds0 = new nkGraphics.BoundingBox (new nkMaths.Vector(0, 0, -0.5), new nkMaths.Vector(1.0, 1.0, 0.5)) ;
         const unitBounds1 = new nkGraphics.BoundingBox (new nkMaths.Vector(0, 0, 0.5), new nkMaths.Vector(1.0, 1.0, 0.5)) ;
@@ -41,16 +39,8 @@ class Planet
                 // var count = 0;
                 self._tiles.forEach(tile => {
                     tile.update(camera) ;
-                    /* tile.traverse(function (element) {
-                        if (element != self && element.material) {
-                            if (element.material.visible) {
-                                count++;
-                            }
-                        }
-                    }); */
-                });
-                // console.log(count);
-            }, 200) ;
+                }) ;
+            }, 500) ;
     }
 }
 
