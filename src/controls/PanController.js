@@ -24,15 +24,13 @@ class PanController /*extends EventDispatcher*/ {
 
 	event(eventName, e){
 		let self = this;
-		if(e.which ==1){
-			switch (eventName){
-				case "mousedown" : self.mouseDown(e); break;
-				case "mouseup" : self.mouseUp(e); break;
-				case "mousemove" : self.mouseMove(e); break;
-			}
-		}else if(!!self.next){
-			self.next.event(eventName, e)
+		switch (eventName){
+			case "mousedown" : if(e.which ==1) {self.mouseDown(e); break;}
+			case "mouseup" : if(e.which ==1) {self.mouseUp(e); break;}
+			case "mousemove" : self.mouseMove(e);
+			default : if(!!self.next){ self.next.event(eventName, e); }
 		}
+		
 		
 	}
 	mouseDown(e){

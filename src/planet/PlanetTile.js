@@ -460,7 +460,7 @@ class PlanetTile extends Mesh {
         var pNormalized = p.clone().normalize();
         var lat = Math.asin(pNormalized.y);
         var lon = Math.atan2(pNormalized.z, -pNormalized.x);
-
+        
         if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
             var max = this.bounds.max.x - lon;
             max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
@@ -516,12 +516,14 @@ class PlanetTile extends Mesh {
 
         if (distance < 1) return MAX_LEVEL;
 
-        var log = Math.log(distance * 47835 / this.planet.radius) / Math.log(2);
-        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(20 - log, 0.0001)) * Math.pow(dot, 0.1);
+        var log = -(Math.log(distance*2500 / this.planet.radius) / Math.log(2))+16;
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
         if (isNaN(metric)) {
             return this.level;
         }
+        
 
+        
         return metric;
     }
 

@@ -8,6 +8,7 @@ import { ZoomController } from './controls/ZoomController.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
+import { MapNavigator } from "./MapNavigator.js";
 
 // reused variables
 const frustum = new THREE.Frustum();
@@ -41,6 +42,7 @@ class Map {
         this.initRenderer();
 
         this.startAnimation();
+        this.mapNavigator = new MapNavigator(this);
     }
 
     setLayer(layer, index) {
@@ -78,6 +80,7 @@ class Map {
 
         this.target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         this.target.texture.format = THREE.RGBFormat;
+        this.target.texture.encoding = THREE.sRGBEncoding;
         this.target.texture.minFilter = THREE.LinearFilter;
         this.target.texture.magFilter = THREE.LinearFilter;
         this.target.texture.generateMipmaps = false;
@@ -175,9 +178,9 @@ class Map {
 
 
     initCamera() {
-        this.camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 1, 40000000);
+        this.camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 1, 4000000);
         this.camera.position.set(-40000000, 0, 0);
-        this.camera.lookAt(new THREE.Vector3(0, 10000, 0));
+        this.camera.lookAt(new THREE.Vector3(0, 100, 0));
     }
 
     initPlanet() {
@@ -195,34 +198,49 @@ class Map {
 
     // Three doesn't offer a listener on camera position so we leave it up to the controller to call planet updates.
     initController() {
-        this.controller = new PanController(this.camera, this.domContainer, this);
-        this.controller.append(new RotateController(this.camera, this.domContainer, this));
-        this.controller.append(new ZoomController(this.camera, this.domContainer, this));
-        this.domContainer.addEventListener('mousedown', (e) => {
-            this.controller.event('mousedown', e);
+        const self = this;
+        self.controller = new PanController(self.camera, self.domContainer, self);
+        self.controller.append(new RotateController(self.camera, self.domContainer, self));
+        self.controller.append(new ZoomController(self.camera, self.domContainer, self));
+        self.domContainer.addEventListener('mousedown', (e) => {
+            if(!!self.controller) self.controller.event('mousedown', e);
         }, false);
-        this.domContainer.addEventListener('mouseup', (e) => {
-            this.controller.event('mouseup', e);
+        self.domContainer.addEventListener('mouseup', (e) => {
+            if(!!self.controller) self.controller.event('mouseup', e);
         }, false);
-        this.domContainer.addEventListener('mousemove', (e) => {
-            this.controller.event('mousemove', e);
+        self.domContainer.addEventListener('mousemove', (e) => {
+            if(!!self.controller) self.controller.event('mousemove', e);
         }, false);
-        this.domContainer.addEventListener('mousewheel', (e) => {
-            this.controller.event('mousewheel', e);
+        self.domContainer.addEventListener('wheel', (e) => {
+            if(!!self.controller) self.controller.event('mousewheel', e);
         }, false);
-        this.domContainer.addEventListener('touchstart', (e) => {
-            this.controller.event('touchstart', e);
+        self.domContainer.addEventListener('touchstart', (e) => {
+            if(!!self.controller) self.controller.event('touchstart', e);
         }, false);
-        this.domContainer.addEventListener('touchmove', (e) => {
-            this.controller.event('touchmove', e);
+        self.domContainer.addEventListener('touchmove', (e) => {
+            if(!!self.controller) self.controller.event('touchmove', e);
         }, false);
-        this.domContainer.addEventListener('touchcancel', (e) => {
-            this.controller.event('touchcancel', e);
+        self.domContainer.addEventListener('touchcancel', (e) => {
+            if(!!self.controller) self.controller.event('touchcancel', e);
         }, false);
-        this.domContainer.addEventListener('touchend', (e) => {
-            this.controller.event('touchend', e);
+        self.domContainer.addEventListener('touchend', (e) => {
+            if(!!self.controller) self.controller.event('touchend', e);
         }, false);
 
+        /* //// mousewheel ////
+        if (this.domContainer.addEventListener) {
+            // IE9, Chrome, Safari, Opera
+            this.domContainer.addEventListener("mousewheel", mouseWheelHandler, false);
+            // Firefox
+            this.domContainer.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
+        }
+        // IE 6/7/8
+        else {
+            this.domContainer.attachEvent("onmousewheel", mouseWheelHandler);
+        }
+        const mouseWheelHandler = (e) => {
+            if(!!this.controller) this.controller.event('mousewheel', e);
+        } */
 
     }
     addElementsToScene(object) {

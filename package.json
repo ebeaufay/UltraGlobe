@@ -26,7 +26,7 @@
         "gltf-validator": ">=2.0.0-dev.3.3",
         "lodash": ">=4.17.20",
         "regenerator-runtime": ">=0.13.7",
-        "@jdultra/threedtiles": "3.0.5"
+        "@jdultra/threedtiles": "3.0.7"
     },
     "devDependencies": {
         "@babel/core": "^7.12.9",

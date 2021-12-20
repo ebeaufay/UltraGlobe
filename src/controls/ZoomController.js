@@ -26,7 +26,7 @@ class ZoomController /*extends EventDispatcher*/ {
 	event(eventName, e) {
 		let self = this;
 		switch (eventName) {
-			case "mousewheel": self.zoomWheel(e.deltaY, e.x, e.y); break;
+			case "mousewheel": self.zoomWheel(Math.sign(e.deltaY)*100, e.x, e.y); break;
 			default: if (!!self.next) self.next.event(eventName, e);
 		}
 	}
