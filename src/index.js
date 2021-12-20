@@ -19,13 +19,13 @@ document.addEventListener('keyup', (e) => {
 });
 
 let map = new Map({ divID: 'screen' });
-map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
+/* map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
 map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
 map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416);
 
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
-map.camera.updateProjectionMatrix();
+map.camera.updateProjectionMatrix(); */
 //map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
 /*map.mapNavigator.moveThroughCartesianSinusoidalSmooth(
  [new THREE.Vector3(-3801661.953649642,5493319.0414049085,-965899.9395956083),new THREE.Vector3(-4140562.0957549973,5543729.045920986,1129637.24563917), new THREE.Vector3(-3133082.467283349,5566781.494291212,696080.8143572904)],
@@ -99,7 +99,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 });
 
-map.setLayer(ogc3dTiles, 6)
+//map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)

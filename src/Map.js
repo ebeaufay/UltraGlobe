@@ -178,9 +178,9 @@ class Map {
 
 
     initCamera() {
-        this.camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 1, 4000000);
-        this.camera.position.set(-40000000, 0, 0);
-        this.camera.lookAt(new THREE.Vector3(0, 100, 0));
+        this.camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
+        this.camera.position.set(-5000, 0, 0);
+        this.camera.lookAt(new THREE.Vector3(-0, 10, 0));
     }
 
     initPlanet() {
@@ -188,7 +188,7 @@ class Map {
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            radius: 6378000,
+            radius: 100.0,
             layerManager: this.layerManager
         });
 
@@ -283,16 +283,18 @@ class Map {
     }
 
     resetCameraNearFar() {
-        const distToMSE = this.planet.center.distanceTo(this.camera.position) - this.planet.radius;
+        const distToMSE = Math.abs(this.planet.center.distanceTo(this.camera.position) - this.planet.radius);
         A.copy(this.camera.position).sub(this.planet.center);
         A.normalize();
 		B.set(Math.atan2(A.z, -A.x), Math.asin(A.y))
         const distToGround = distToMSE - this.planet.getTerrainElevation(B);
         this.planet.getTerrainElevation(B);
 
-        this.camera.near = Math.max(distToGround * 0.5, 2);
-        this.camera.far = Math.max(10000, Math.sqrt(2 * this.planet.radius * distToMSE + distToMSE * distToMSE) * 2);
+        this.camera.near = Math.max(distToGround * 0.25, this.planet.radius*0.0000001);
+        this.camera.far = Math.max(this.planet.radius*0.0001, Math.sqrt(2 * this.planet.radius * distToMSE + distToMSE * distToMSE) * 2);
         this.camera.updateProjectionMatrix();
+
+        console.log(this.camera.near+"    "+this.camera.far)
         
     }
 
@@ -328,9 +330,10 @@ class Map {
         A.normalize();
 		B.set(Math.atan2(A.z, -A.x), Math.asin(A.y))
         
-		let elevation = this.planet.getTerrainElevation(B)+this.planet.radius;
+		let elevation = this.planet.getTerrainElevation(B)+(this.planet.radius * 1.000001);
         if(this.planet.center.distanceTo(this.camera.position)<elevation){
-            this.camera.position.normalize().multiplyScalar(elevation+5);
+            this.camera.position.copy(A.multiplyScalar(elevation).add(this.planet.center));
+            console.log(this.camera.position);
         }
     }
 

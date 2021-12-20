@@ -17,7 +17,7 @@ const PlanetShader = {
 	varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 
 	void main() {
-		vec3 vPosition = position;
+		vec3 vPosition = vec3(position);
         
 		float lon = vPosition.x * (bounds[2] - bounds[0]) + bounds[0];
 		float lat = vPosition.y * (bounds[3] - bounds[1]) + bounds[1];
@@ -38,7 +38,7 @@ const PlanetShader = {
 		vec2 texUV = vec2((elevationUV.x*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0, (elevationUV.y*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0);
 		
 
-		float terrainElevation = texture2D(elevation, texUV.xy).r;
+		float terrainElevation = texture2D(elevation, texUV.xy).r-1.0;
 			vPosition *= (radius*position.z) + terrainElevation;
 		
 	    gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);

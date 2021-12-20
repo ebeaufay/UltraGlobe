@@ -50,7 +50,7 @@ function generateBaseTile(resolution) {
             var vY = y / (resolution - 1);
             vertices.push(vX, vY, 1.0);
             if (y == 0 || y == resolution - 1 || x == 0 || x == resolution - 1) {
-                skirts.push(vX, vY, 0.99);
+                skirts.push(vX, vY, 0.998);
             }
         }
     }
@@ -431,6 +431,7 @@ class PlanetTile extends Mesh {
         if (self.children.length != 0) {
             self.traverse(function (element) {
                 if (element != self && element.material) {
+                    element.disposed = true;
                     // dispose textures
                     for (const id in element.layerDataMap) {
                         if (element.layerDataMap.hasOwnProperty(id)) {
@@ -449,6 +450,14 @@ class PlanetTile extends Mesh {
                         element.material.dispose()
                     }
 
+                    element.material = void 0;
+                    element.layerManager = void 0;
+                    element.layerDataMap = void 0;
+                    element.elevationArray = void 0;
+                    element.geometry = void 0;
+                    element.planet = void 0;
+                    element.mapRequests = void 0;
+                    element.parent = void 0;
                 }
             });
             self.clear();
@@ -486,7 +495,6 @@ class PlanetTile extends Mesh {
         var surfaceElevationCenter = !!this.elevationArray ? this.billinearInterpolationOnElevationArray(0.5, 0.5) + this.planet.radius : this.planet.radius;
         var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1] + this.planet.radius : this.planet.radius;
 
-
         var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
         var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
         var nearest = new THREE.Vector3(-(Math.cos(lati) * Math.cos(long)), Math.sin(lati), Math.cos(lati) * Math.sin(long));
@@ -518,11 +526,13 @@ class PlanetTile extends Mesh {
 
         var log = -(Math.log(distance*2500 / this.planet.radius) / Math.log(2))+16;
         const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
+    
+        
         if (isNaN(metric)) {
             return this.level;
         }
         
-
+        console.log(metric);
         
         return metric;
     }
