@@ -10,8 +10,8 @@ export class MapNavigator {
         this.interval;
     }
 
-    moveToCartesionSinusoidal(destination, destinationOrientation, timeTotal, adaptNearFar, cameraMovedCallback) {
-        return moveThroughCartesianSinusoidal(
+    moveToCartesianSinusoidal(destination, destinationOrientation, timeTotal, adaptNearFar, cameraMovedCallback) {
+        return this.moveThroughCartesianSinusoidal(
             [this.map.camera.position, destination],
             [this.map.camera.quaternion, destinationOrientation],
             timeTotal,
@@ -34,6 +34,7 @@ export class MapNavigator {
                 const currentTime = Date.now() - startTime;
                 const percentageTime = currentTime / timeTotal;
                 const overallPercentage = (Math.sin(((percentageTime) * Math.PI) - (Math.PI / 2)) + 1) / 2;
+                
                 if (percentageTime >= 1.0) {
                     if (positions.length > 0) this.map.camera.position.copy(positions[positions.length - 1]);
                     if (quaternions.length > 0) this.map.camera.setRotationFromQuaternion(quaternions[quaternions.length - 1]);
@@ -48,6 +49,7 @@ export class MapNavigator {
                     let percentage = overallPercentage * (positions.length - 1);
                     let previousIndex = Math.floor(percentage);
                     percentage -= previousIndex;
+                    console.log(previousIndex+ "  "+percentage);
                     this.map.camera.position.lerpVectors(positions[previousIndex], positions[previousIndex + 1], percentage);
                 }
 

@@ -29,13 +29,20 @@ class Map {
      *        } properties
      */
     constructor(properties) {
-        this.layerManager = new LayerManager()
-        this.initScene();
-        this.initDomContainer(properties.divID);
-        this.initCamera();
+        this.layerManager = new LayerManager();
+        this.scene = !!properties.scene?properties.scene:this.initScene();
+        if(!!properties.domContainer){
+            this.domContainer = properties.domContainer;
+        }else if(!!properties.divID){
+            this.domContainer = this.initDomContainer(properties.divID);
+        }else{
+            throw "cannot create Map without a domContainer or divID"
+        }
+        this.camera = !!properties.camera?properties.camera:this.initCamera();
+        
         this.initPlanet();
         this.initController();
-        this.addElementsToScene(this.planet);
+        this.scene.add(this.planet);
         this.initStats();
         this.setupRenderTarget();
         this.setupPost();
@@ -56,10 +63,10 @@ class Map {
         return this.layerManager.getLayers();
     }
     initScene() {
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x000000);
-        this.scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
-
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
+        return scene;
         /*  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
          dirLight.position.set(49, 500, 151);
          dirLight.target.position.set(0, 0, 0);
@@ -69,9 +76,9 @@ class Map {
     }
 
     initDomContainer(divID) {
-
-        this.domContainer = document.getElementById(divID);
-        document.body.appendChild(this.domContainer);
+        const domContainer = document.getElementById(divID);
+        document.body.appendChild(domContainer);
+        return domContainer;
     }
 
     setupRenderTarget() {
@@ -178,9 +185,10 @@ class Map {
 
 
     initCamera() {
-        this.camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
-        this.camera.position.set(-5000, 0, 0);
-        this.camera.lookAt(new THREE.Vector3(-0, 10, 0));
+        const camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
+        camera.position.set(-40000000, 0, 0);
+        camera.lookAt(new THREE.Vector3(-0, 1000, 0));
+        return camera;
     }
 
     initPlanet() {
@@ -188,9 +196,12 @@ class Map {
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            radius: 100.0,
+            radius: 6378000,
             layerManager: this.layerManager
         });
+
+        
+        
 
         this.resetCameraNearFar();
     }
@@ -243,9 +254,7 @@ class Map {
         } */
 
     }
-    addElementsToScene(object) {
-        this.scene.add(object);
-    }
+    
 
     startAnimation() {
         var self = this;
@@ -294,7 +303,6 @@ class Map {
         this.camera.far = Math.max(this.planet.radius*0.0001, Math.sqrt(2 * this.planet.radius * distToMSE + distToMSE * distToMSE) * 2);
         this.camera.updateProjectionMatrix();
 
-        console.log(this.camera.near+"    "+this.camera.far)
         
     }
 
@@ -333,7 +341,6 @@ class Map {
 		let elevation = this.planet.getTerrainElevation(B)+(this.planet.radius * 1.000001);
         if(this.planet.center.distanceTo(this.camera.position)<elevation){
             this.camera.position.copy(A.multiplyScalar(elevation).add(this.planet.center));
-            console.log(this.camera.position);
         }
     }
 

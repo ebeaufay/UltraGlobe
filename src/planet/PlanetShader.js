@@ -38,10 +38,10 @@ const PlanetShader = {
 		vec2 texUV = vec2((elevationUV.x*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0, (elevationUV.y*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0);
 		
 
-		float terrainElevation = texture2D(elevation, texUV.xy).r-1.0;
-			vPosition *= (radius*position.z) + terrainElevation;
+		float terrainElevation = texture2D(elevation, texUV.xy).r;
+		vPosition *= ((radius*position.z) + terrainElevation);
 		
-	    gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
+		gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
 	}`,
 
 	fragmentShader: (numImageryLayers) => {

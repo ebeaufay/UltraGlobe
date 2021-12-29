@@ -27,9 +27,9 @@ for (let index = 0; index < TILE_SIZE * TILE_SIZE; index++) {
 
 function buildZeroTexture() {
     var data = new Uint8Array(3);
-    data[0] = 255;
-    data[1] = 255;
-    data[2] = 255;
+    data[0] = 0;
+    data[1] = 0;
+    data[2] = 0;
     return new THREE.DataTexture(data, 1, 1, THREE.RGBFormat);
 }
 
@@ -126,7 +126,7 @@ function scheduleLoadLayers(tile) {
 
 setInterval(() => {
     const tile = tilesToLoad.shift();
-    if (!!tile) tile._loadLayers(tile);
+    if (!!tile && !tile.disposed) tile._loadLayers(tile);
 }, 0)
 
 
@@ -168,7 +168,7 @@ class PlanetTile extends Mesh {
         }
 
         //Listen to changes in the list of layers, rebuild material if raster layer
-        self.layerManager.addListener((eventName, layer) => {
+        self.layerManager.addListener(self, (eventName, layer) => {
             if (LAYERS_CHANGED === eventName && layer instanceof RasterLayer) {
                 scheduleLoadLayers(self);
             }
@@ -210,7 +210,7 @@ class PlanetTile extends Mesh {
                         self._endLoading(self);
                     });
                 }
-                layer.addListener((layer, event) => {
+                layer.addListener(self, (layer, event) => {
                     if (VISIBILITY_CHANGE === event) {
                         self.fillShaderUniforms(self);
                     }
@@ -265,6 +265,10 @@ class PlanetTile extends Mesh {
     _loadImagery(self, layer, callbackSuccess, callbackFailure) {
         self.mapRequests.push(
             layer.getMap(self, (texture) => {
+                if(!!self.disposed){
+                    texture.dispose();
+                    return;
+                }
                 texture.wrapS = THREE.ClampToEdgeWrapping;
                 texture.wrapT = THREE.ClampToEdgeWrapping;
                 texture.magFilter = THREE.LinearFilter;
@@ -279,13 +283,14 @@ class PlanetTile extends Mesh {
 
     update(camera, frustum) {
         const self = this;
+
         const metric = self.calculateUpdateMetric(camera, frustum);
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");
         }
 
 
-        /////// handle visibility and lo
+        
         if (metric == -1) { // outside frustum or facing away from camera
             self.material.visible = true;
             self.disposeChildren(self);
@@ -343,6 +348,8 @@ class PlanetTile extends Mesh {
                         layerManager: self.layerManager, planet: self.planet, level: self.level + 1
                     }
                 ));
+                
+                
 
                 self.children.forEach(child => {
                     child.update(camera, frustum);
@@ -431,7 +438,7 @@ class PlanetTile extends Mesh {
         if (self.children.length != 0) {
             self.traverse(function (element) {
                 if (element != self && element.material) {
-                    element.disposed = true;
+
                     // dispose textures
                     for (const id in element.layerDataMap) {
                         if (element.layerDataMap.hasOwnProperty(id)) {
@@ -449,7 +456,16 @@ class PlanetTile extends Mesh {
                     else {
                         element.material.dispose()
                     }
-
+                    
+                    var index = tilesToLoad.indexOf(this);
+                    if (index !== -1) {
+                        tilesToLoad.splice(index, 1);
+                    }
+                    self.layerManager.removeListener(self);
+                    self.layerManager.getLayers().forEach(layer => {
+                        layer.removeListener(self);
+                    });
+                    element.disposed = true;
                     element.material = void 0;
                     element.layerManager = void 0;
                     element.layerDataMap = void 0;
@@ -469,7 +485,7 @@ class PlanetTile extends Mesh {
         var pNormalized = p.clone().normalize();
         var lat = Math.asin(pNormalized.y);
         var lon = Math.atan2(pNormalized.z, -pNormalized.x);
-        
+
         if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
             var max = this.bounds.max.x - lon;
             max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
@@ -514,7 +530,7 @@ class PlanetTile extends Mesh {
             return -1;
         }
 
-        var dot = Math.max(0.02,Math.abs(c.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
+        var dot = Math.max(0.02, Math.abs(c.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
 
         if (dot < 0) {
             return -1;
@@ -522,18 +538,16 @@ class PlanetTile extends Mesh {
 
         var distance = p.distanceTo(nearestSurface);
 
-        if (distance < 1) return MAX_LEVEL;
-
-        var log = -(Math.log(distance*2500 / this.planet.radius) / Math.log(2))+16;
-        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
-    
         
+
+        var log = -(Math.log(distance * 2500 / this.planet.radius) / Math.log(2)) + 16;
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
+
+
         if (isNaN(metric)) {
             return this.level;
         }
-        
-        console.log(metric);
-        
+
         return metric;
     }
 
@@ -603,8 +617,8 @@ class PlanetTile extends Mesh {
             return elevation;
         }
 
-        if (!this.elevationDisplayed) { 
-            return false; 
+        if (!this.elevationDisplayed) {
+            return false;
         }
         else {
             let lat = ((lonLat.y - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)); // lat in uv coordinates

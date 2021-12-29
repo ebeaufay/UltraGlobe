@@ -16,7 +16,7 @@ class Layer {
             this.bounds = new THREE.Box2(new THREE.Vector2(-180,-90), new THREE.Vector2(180,90));
         }
         this.visible = properties.visible;
-        this.listeners = [];
+        this.listeners = {};
     }
 
     getID() {
@@ -32,11 +32,11 @@ class Layer {
     }
     setVisible(visible) {
         this.visible = visible;
-        this.listeners.forEach(element => {
-            element(this, VISIBILITY_CHANGE);
-        });
+        for (const element in this.listeners) {
+            this.listeners[element](this, VISIBILITY_CHANGE);
+        }
+        
     }
-
 
     getBounds() {
         return this.bounds;
@@ -46,8 +46,12 @@ class Layer {
 
     }
 
-    addListener(listener) {
-        this.listeners.push(listener);
+    removeListener(key){
+        delete this.listeners[key];
+    }
+
+    addListener(key, listener) {
+        this.listeners[key] = listener;
     }
 }
 

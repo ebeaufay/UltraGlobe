@@ -2,14 +2,14 @@ const LAYERS_CHANGED = "layers-changed";
 class LayerManager{
     constructor(){
         this.layers = [];
-        this.listeners = [];
+        this.listeners = {};
     }
 
     setLayer(layer, index){
         this.layers[index] = layer;
-        this.listeners.forEach(element => {
-            element(LAYERS_CHANGED, layer);
-        });
+        for (const element in this.listeners) {
+            this.listeners[element](LAYERS_CHANGED, layer);
+        }
     }
     
     getLayers(){
@@ -24,8 +24,11 @@ class LayerManager{
         return sideEffect;
     }
 
-    addListener( listener){
-        this.listeners.push(listener);
+    addListener( key,listener){
+        this.listeners[key] = listener;
+    }
+    removeListener(key){
+        delete this.listeners[key];
     }
 }
 export{LayerManager, LAYERS_CHANGED}

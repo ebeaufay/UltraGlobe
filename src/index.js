@@ -17,23 +17,28 @@ document.addEventListener('keyup', (e) => {
         console.log("{ position: new THREE.Vector3("+cam.position.x+","+cam.position.y+","+cam.position.z+"), quaternion: new THREE.Quaternion("+cam.quaternion.x+","+cam.quaternion.y+","+cam.quaternion.z+","+cam.quaternion.w+") }")
     }
 });
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
 
-let map = new Map({ divID: 'screen' });
-/* map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
+const domContainer = document.getElementById('screen');
+document.body.appendChild(domContainer);
+
+let map = new Map({ scene: scene, domContainer: domContainer, divID: 'screen' });
+ map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
 map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
 map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416);
 
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
-map.camera.updateProjectionMatrix(); */
-//map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
-/*map.mapNavigator.moveThroughCartesianSinusoidalSmooth(
- [new THREE.Vector3(-3801661.953649642,5493319.0414049085,-965899.9395956083),new THREE.Vector3(-4140562.0957549973,5543729.045920986,1129637.24563917), new THREE.Vector3(-3133082.467283349,5566781.494291212,696080.8143572904)],
- [new THREE.Quaternion(-0.24275813559876883,0.936981381419383,0.1716691926451317,-0.1834777010173254),new THREE.Quaternion(-0.05333718681073973,-0.5692385193522304,0.007440687832537013,0.8204067824886478), new THREE.Quaternion(-0.21066558480298186,0.24311229885578783,0.31293733595080436,0.8936367524294675)],
- 10000,
- true
-);*/
 
+//map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
+/* map.mapNavigator.moveToCartesianSinusoidal(
+    new THREE.Vector3(1135168.465413011,1582722.9152907282,6073374.939534078),
+    new THREE.Quaternion(0.42375213637431813,-0.13982529341937766,-0.27725624673796234,0.8508889398054039),
+    10000,
+ true
+); */
 // these layers connect to custom imagery and elevation services
 var imageryLayer = new UltraImageryLayer({
     id: 1,
@@ -99,7 +104,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 });
 
-//map.setLayer(ogc3dTiles, 6)
+map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)

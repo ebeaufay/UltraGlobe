@@ -34,15 +34,6 @@ class Planet extends Object3D {
         }
         
         self.layerManager = properties.layerManager;
-        self.layerManager.addListener((layer, event)=>{
-            /* if(LAYERS_CHANGED===event){
-                self.traverse(function (element) {
-                    if (element != self && element.reloadLayers) {
-                        element.reloadLayers();
-                    }
-                });
-            } */
-        });
         
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
@@ -59,7 +50,7 @@ class Planet extends Object3D {
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
                 child.update(self.camera, frustum);
             });
-        }, 500);
+        }, 100);
 
     }
 
