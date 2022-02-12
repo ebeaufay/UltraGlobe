@@ -9,6 +9,7 @@ import { LayerManager } from './layers/LayerManager.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
+import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 
 // reused variables
 const frustum = new THREE.Frustum();
@@ -46,6 +47,7 @@ class Map {
         this.initStats();
         this.setupRenderTarget();
         this.setupPost();
+        this.initLabelRenderer();
         this.initRenderer();
 
         this.startAnimation();
@@ -175,7 +177,17 @@ class Map {
             self.target.setSize(self.domContainer.offsetWidth * dpr, self.domContainer.offsetHeight * dpr);
             self.depthTarget.setSize(self.domContainer.offsetWidth * dpr, self.domContainer.offsetHeight * dpr);
             self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+            self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
         }
+    }
+
+    initLabelRenderer() {
+        this.labelRenderer = new CSS3DRenderer();
+        this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.labelRenderer.domElement.style.position = 'absolute';
+        this.labelRenderer.domElement.style.top = '0px';
+        this.labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(this.labelRenderer.domElement);
     }
 
     initStats() {
@@ -286,6 +298,7 @@ class Map {
 
             self.renderer.setRenderTarget(null);
             self.renderer.render(self.postScene, self.postCamera);
+            self.labelRenderer.render(self.scene, self.camera);
             self.stats.update();
         }
         animate();
