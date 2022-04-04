@@ -10,6 +10,7 @@ import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
+import opticalDepth from './images/optical_depth.png';
 
 // reused variables
 const frustum = new THREE.Frustum();
@@ -19,6 +20,7 @@ const depth16 = new THREE.Vector2();
 const unpacker = new THREE.Vector2(1, 1 / 256);
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
+const loader = new THREE.TextureLoader();
 
 
 class Map {
@@ -115,6 +117,7 @@ class Map {
     setupPost() {
 
         // Setup post processing stage
+        const self = this;
         this.postCamera = new THREE.OrthographicCamera(- 1, 1, 1, - 1, 0, 1);
         this.postMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
@@ -123,9 +126,37 @@ class Map {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
                 tDiffuse: { value: null },
-                tDepth: { value: null }
+                tDepth: { value: null },
+                radius: {value: 0 },
+                xfov: {value: 0 },
+                yfov: {value: 0 },
+                planetPosition: {value: new THREE.Vector3(0,0,0)},
+                nonPostCameraPosition: {value: new THREE.Vector3(0,0,0)},
+                viewCenterFar: {value: new THREE.Vector3(0,0,0)},
+                up: {value: new THREE.Vector3(0,0,0)},
+                right: {value: new THREE.Vector3(0,0,0)},
+                heightAboveSeaLevel: {value: 0},
+                opticalDepth:{value: null}
             }
         });
+
+        loader.load(
+            // resource URL
+            opticalDepth,
+        
+            // onLoad callback
+            function ( texture ) {
+                texture.wrapS = THREE.ClampToEdgeWrapping;
+                texture.wrapT = THREE.ClampToEdgeWrapping;
+                texture.magFilter = THREE.LinearFilter;
+                texture.minFilter = THREE.LinearFilter;
+                self.postMaterial.uniforms.opticalDepth.value =texture;
+            },
+            undefined,
+            function ( err ) {
+                console.error( 'An error happened: '+err );
+            }
+        );
 
         this.depthPassMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
@@ -289,12 +320,27 @@ class Map {
 
             self.depthPassMaterial.uniforms.tDepth.value = self.target.depthTexture;
 
+            /// post params
             self.postMaterial.uniforms.tDiffuse.value = self.target.texture;
             self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
+            self.postMaterial.uniforms.cameraNear.value = self.camera.near;
+            self.postMaterial.uniforms.cameraFar.value = self.camera.far;
+            self.postMaterial.uniforms.radius.value = self.planet.radius;
+            self.postMaterial.uniforms.xfov.value = 2 * Math.atan( Math.tan( self.camera.fov * Math.PI / 180 / 2 ) * self.camera.aspect ) * 180 / Math.PI;
+            self.postMaterial.uniforms.yfov.value = self.camera.fov;
+            self.postMaterial.uniforms.planetPosition.value = self.planet.position;
+            self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
+            
+            
+            self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
+            self.postMaterial.uniforms.up.value = self.camera.up.normalize();
+            self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
+            self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
 
+            self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.distanceTo(self.planet.position) - self.planet.radius;
+            
             self.renderer.setRenderTarget(self.depthTarget);
             self.renderer.render(self.depthScene, self.postCamera);
-
 
             self.renderer.setRenderTarget(null);
             self.renderer.render(self.postScene, self.postCamera);

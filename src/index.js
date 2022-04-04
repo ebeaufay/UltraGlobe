@@ -25,7 +25,7 @@ const domContainer = document.getElementById('screen');
 document.body.appendChild(domContainer);
 
 let map = new Map({ scene: scene, domContainer: domContainer, divID: 'screen' });
- map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
+map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
 map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
 map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416);
 
@@ -92,7 +92,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: 6,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tileset.json",
+    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
     zUp: false,
     longitude: 100.5877 * 0.01745329251994329576923690768489,
     latitude: 14.3692 * 0.01745329251994329576923690768489,

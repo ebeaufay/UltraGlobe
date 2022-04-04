@@ -37,7 +37,7 @@ class OGC3DTilesLayer extends Layer{
         this.tileset = new OGC3DTile({
             url:properties.url,
             geometricErrorMultiplier: !!properties.geometricErrorMultiplier? properties.geometricErrorMultiplier:1.0,
-            meshCallback:!!properties.meshCallback? properties.meshCallback : mesh=>{mesh.material.side = THREE.FrontSide;},
+            meshCallback:!!properties.meshCallback? properties.meshCallback : mesh=>{mesh.material.side = THREE.DoubleSide;},
             loadOutsideView: !!properties.loadOutsideView? properties.loadOutsideView: false
         });
     }

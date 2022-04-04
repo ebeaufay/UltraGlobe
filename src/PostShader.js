@@ -8,9 +8,24 @@ const PostShader = {
 	vertexShader: () =>/* glsl */`
 
 	varying vec2 vUv;
+	varying vec3 farPlanePosition;
+	uniform vec3 viewCenterFar;
+    uniform vec3 up;
+    uniform vec3 right;
+	uniform float xfov;
+	uniform float yfov;
+	uniform float cameraNear;
+	uniform float cameraFar;
 
 	void main() {
 		vUv = uv;
+		float x = (uv.x-0.5)*2.0;
+		float y = (uv.y-0.5)*2.0;
+		farPlanePosition = viewCenterFar;
+		float distX = ( x * (tan(radians(xfov*0.5))*cameraFar));
+		float distY = ( y * (tan(radians(yfov*0.5))*cameraFar));
+		farPlanePosition += right * distX;
+		farPlanePosition += up * distY;
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 	}`,
 
@@ -21,9 +36,21 @@ const PostShader = {
 			varying vec2 vUv;
 			uniform sampler2D tDiffuse;
 			uniform sampler2D tDepth;
+			uniform sampler2D opticalDepth;
 			uniform float cameraNear;
 			uniform float cameraFar;
-
+			uniform float radius;
+			uniform float xfov;
+			uniform float yfov;
+			uniform float heightAboveSeaLevel;
+			uniform vec3 planetPosition;
+			uniform vec3 nonPostCameraPosition;
+			uniform vec3 viewCenter;
+			uniform vec3 up;
+			uniform vec3 right;
+			varying vec3 farPlanePosition;
+			
+			float atmosphereRadius = 1.02;
 
 			float readDepth( sampler2D depthSampler, vec2 coord ) {
 				float fragCoordZ = texture2D( depthSampler, coord ).x;
@@ -31,12 +58,128 @@ const PostShader = {
 				return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
 			}
 
+
+			vec2 raySphereIntersection(
+				in vec3 sphereOrigin, in float sphereRadius,
+				in vec3 rayOrigin, in vec3 rayDirection
+			) {
+				vec3 distSphereToRayOrigin = sphereOrigin - rayOrigin;
+				float t = dot(distSphereToRayOrigin, rayDirection);
+				vec3 P = rayDirection * t + rayOrigin;
+				float y = length(sphereOrigin-P);
+
+				if(y > sphereRadius){
+					return vec2(-1.0);
+				}
+				float x = sqrt(sphereRadius*sphereRadius - y*y);
+        		return vec2(t-x, t+x);
+			}
+
+			float getOpticalDepth(
+				in vec3 sphereOrigin,
+				in vec3 rayOrigin, in vec3 rayDirection,
+				in float depth
+			) {
+				
+				vec3 sphereToRayOrigin = normalize(sphereOrigin - rayOrigin);
+				
+				float opticalDepthY = heightAboveSeaLevel/(radius*(atmosphereRadius-1.0));
+				if(opticalDepthY<1.0){
+					float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
+					//return opticalDepthX;
+					//return opticalDepthX;
+					if(depth<0.99){
+						float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
+						vec3 impact = rayOrigin + (rayDirection*depthInMeters);
+						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
+						//return impactOpticalDepthY;
+						return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+					}else{
+						return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+					}
+				}
+				else{
+					vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
+					if(intersection.x > 0.0){
+						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
+						opticalDepthY = 1.0;
+						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
+						float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
+						//return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+						if(depth<0.99){
+							float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
+							vec3 impact = rayOrigin + (rayDirection*depthInMeters);
+							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
+							
+							return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+						}else{
+							return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+						}
+					}else{
+						return 0.0;
+					}
+				}
+				float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
+				return opticalDepthX;
+				//return opticalDepthX;
+				if(depth<0.99){
+					float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
+					vec3 impact = rayOrigin + (rayDirection*depthInMeters);
+					float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
+					return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x;
+				}else{
+					return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+				}
+
+				/* float t = dot(sphereToRayOrigin, rayDirection);
+				vec3 P = rayDirection * t + rayOrigin;
+				float y = length(sphereOrigin-P);
+
+				if(y > sphereRadius){
+					return 0.0;
+				}
+				float x = sqrt(sphereRadius*sphereRadius - y*y);
+				
+				float d = x*2.0;
+
+				float start = max(x-t, 0.0) / d;
+
+				
+				float t2 = t+x;
+				if(depth<0.99){
+					t2 = min(depth * (cameraFar - cameraNear) + cameraNear, t+x);
+				}
+				float end = (t2 - (t-x))/d;
+
+
+				d/=sphereRadius*2.0;
+				float m = (sphereRadius-y)/sphereRadius;
+        		return texture2D( opticalDepth, vec2(start, end) ).r *(1.0-m)*d*5.0; */
+			}
+
 			void main() {
 				vec3 diffuse = texture2D( tDiffuse, vUv ).rgb;
 				float depth = readDepth( tDepth, vUv );
 
+				vec3 rayDirection = normalize(farPlanePosition-nonPostCameraPosition);
+				float atmosphereThickness = getOpticalDepth(planetPosition, nonPostCameraPosition, rayDirection, depth)*2.0;
+				
+				
+
+				vec3 atmosphereColor = mix(vec3(0.0,0.3,1.0), vec3(0.5,0.9,1.0), atmosphereThickness);
+				
+				
+				diffuse = atmosphereColor*atmosphereThickness+diffuse;
+				/* float max = max(max(diffuse.x, diffuse.y), diffuse.z);
+				if(max > 1.0){
+					diffuse = diffuse/max;
+				} */
 				gl_FragColor.rgb = diffuse;
 				gl_FragColor.a = 1.0;
+
+				//remove
+				//gl_FragColor.rgb = vec3(atmosphereThickness);
+				
 			}`;
 		return code;
 	},
