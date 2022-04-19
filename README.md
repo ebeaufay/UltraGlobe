@@ -123,7 +123,13 @@ map.setLayer(ogc3dTiles, 2);
 Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming eventually, you can follow the progress of the 3DTiles implementation here: https://github.com/ebeaufay/3DTilesViewer
 Furthermore, only Box and Sphere bounding volumes are supported (unrefferenced tileset).
 
+I also have a project to convert meshes to 3DTiles. I'm keeping that code private but I'm working on a web-service that I'll try to make free for small meshes.
+Feel free to contact me at emericbeaufays@gmail.com if you want a specific model converted.
+
+### Atmosphere
+atmosphere is on by default, and there shouldn't be anything to do there.
+
 # NILKINS
 
-This project is being ported to the nilkins engine, a c++ engine with javascript transpilation and superior performance.
-Write once and compile for web and desktop with this next generation Rendering engine : https://www.nilkinsengine.com/
+This project is being ported to the nilkins engine, a c++ engine with javascript transpilation.
+Write once and compile for web and desktop with optimal performance and a bunch of cool features : https://www.nilkinsengine.com/
