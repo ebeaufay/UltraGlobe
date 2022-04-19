@@ -37,8 +37,9 @@ class OGC3DTilesLayer extends Layer{
         this.tileset = new OGC3DTile({
             url:properties.url,
             geometricErrorMultiplier: !!properties.geometricErrorMultiplier? properties.geometricErrorMultiplier:1.0,
-            meshCallback:!!properties.meshCallback? properties.meshCallback : mesh=>{mesh.material.side = THREE.DoubleSide;},
-            loadOutsideView: !!properties.loadOutsideView? properties.loadOutsideView: false
+            loadOutsideView: !!properties.loadOutsideView? properties.loadOutsideView: false,
+            tileLoader: !!properties.tileLoader? properties.tileLoader: new TileLoader(
+                !!properties.meshCallback? properties.meshCallback : mesh=>{mesh.material.side = THREE.DoubleSide;}, 500)
         });
     }
 
@@ -75,6 +76,7 @@ class OGC3DTilesLayer extends Layer{
         this.tileset.updateMatrix();
         this.tileset.updateMatrixWorld();
         //cartesianLocation.multiplyScalar(this.planet.radius+this.location.z)
+        
     }
 }
 export{OGC3DTilesLayer}

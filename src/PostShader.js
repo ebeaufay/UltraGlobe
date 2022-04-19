@@ -93,7 +93,7 @@ const PostShader = {
 						vec3 impact = rayOrigin + (rayDirection*depthInMeters);
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						//return impactOpticalDepthY;
-						return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+						return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.01;
 					}else{
 						return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
 					}
@@ -111,7 +111,7 @@ const PostShader = {
 							vec3 impact = rayOrigin + (rayDirection*depthInMeters);
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
-							return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+							return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.01;
 						}else{
 							return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
 						}
@@ -131,30 +131,6 @@ const PostShader = {
 					return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
 				}
 
-				/* float t = dot(sphereToRayOrigin, rayDirection);
-				vec3 P = rayDirection * t + rayOrigin;
-				float y = length(sphereOrigin-P);
-
-				if(y > sphereRadius){
-					return 0.0;
-				}
-				float x = sqrt(sphereRadius*sphereRadius - y*y);
-				
-				float d = x*2.0;
-
-				float start = max(x-t, 0.0) / d;
-
-				
-				float t2 = t+x;
-				if(depth<0.99){
-					t2 = min(depth * (cameraFar - cameraNear) + cameraNear, t+x);
-				}
-				float end = (t2 - (t-x))/d;
-
-
-				d/=sphereRadius*2.0;
-				float m = (sphereRadius-y)/sphereRadius;
-        		return texture2D( opticalDepth, vec2(start, end) ).r *(1.0-m)*d*5.0; */
 			}
 
 			void main() {
@@ -166,7 +142,7 @@ const PostShader = {
 				
 				
 
-				vec3 atmosphereColor = mix(vec3(0.0,0.3,1.0), vec3(0.5,0.9,1.0), atmosphereThickness);
+				vec3 atmosphereColor = mix(vec3(0.1,0.3,1.0), vec3(0.32,0.72,1.0), atmosphereThickness);
 				
 				
 				diffuse = atmosphereColor*atmosphereThickness+diffuse;

@@ -37,7 +37,7 @@ class Map {
         if(!!properties.domContainer){
             this.domContainer = properties.domContainer;
         }else if(!!properties.divID){
-            this.domContainer = this.initDomContainer(properties.divID);
+            this.domContainer = document.getElementById(properties.divID);
         }else{
             throw "cannot create Map without a domContainer or divID"
         }
@@ -77,12 +77,6 @@ class Map {
  
          this.scene.add(dirLight);
          this.scene.add(dirLight.target); */
-    }
-
-    initDomContainer(divID) {
-        const domContainer = document.getElementById(divID);
-        document.body.appendChild(domContainer);
-        return domContainer;
     }
 
     setupRenderTarget() {
@@ -181,22 +175,13 @@ class Map {
         let self = this;
         self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false });
         self.renderer.setPixelRatio(window.devicePixelRatio);
-        self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+        self.renderer.setSize(window.innerWidth, window.innerHeight);
 
         self.renderer.outputEncoding = THREE.sRGBEncoding;
         self.renderer.autoClear = false;
-
+        self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
-
-        onWindowResize();
-        window.addEventListener('resize', onWindowResize);
-        function onWindowResize() {
-            self.camera.aspect = self.domContainer.offsetWidth / self.domContainer.offsetHeight;
-            self.camera.updateProjectionMatrix();
-            //const dpr = self.renderer.getPixelRatio();
-            self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
-        }
-        onWindowResize();
+        
         window.addEventListener('resize', onWindowResize);
         function onWindowResize() {
 
@@ -205,11 +190,12 @@ class Map {
             self.camera.updateProjectionMatrix();
 
             const dpr = self.renderer.getPixelRatio();
-            self.target.setSize(self.domContainer.offsetWidth * dpr, self.domContainer.offsetHeight * dpr);
-            self.depthTarget.setSize(self.domContainer.offsetWidth * dpr, self.domContainer.offsetHeight * dpr);
-            self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
-            self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+            self.target.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+            self.depthTarget.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+            self.renderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+            self.labelRenderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
         }
+        onWindowResize();
     }
 
     initLabelRenderer() {

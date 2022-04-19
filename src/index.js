@@ -8,7 +8,6 @@ import { WMSLayer } from './layers/WMSLayer.js';
 import { SimpleElevationLayer } from './layers/SimpleElevationLayer.js';
 import { BingMapsImagerySet, BingMapsLayer } from './layers/BingMapsLayer';
 
-
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
         const cam = map.camera;
@@ -22,9 +21,8 @@ scene.background = new THREE.Color(0x000000);
 scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
 
 const domContainer = document.getElementById('screen');
-document.body.appendChild(domContainer);
 
-let map = new Map({ scene: scene, domContainer: domContainer, divID: 'screen' });
+let map = new Map({ scene: scene, divID: 'screen' });
 map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
 map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
 map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416);
@@ -104,16 +102,13 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 });
 
-map.setLayer(ogc3dTiles, 6)
+//map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)
 
 //map.setLayer(elevationLayer, 3)
 
-document.getElementById("elevation").addEventListener('click', function () {
-    simpleElevation.setVisible(!simpleElevation.visible)
-});
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
         const cam = map.camera;

@@ -24,9 +24,11 @@ class WMSLayer extends ImageryLayer {
         this.layer = properties.layer;
         this.epsg = properties.epsg;
         this.version = properties.version;
+        this.format = properties.format? properties.format:"jpeg";
         this.textureLoader = new CancellableTextureLoader();
     }
 
+    
     getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
         if(!this.bounds || !this.bounds.intersectsBox(tile.bounds)){
             callbackFailure("bounds don't intersect with layer");
@@ -36,15 +38,16 @@ class WMSLayer extends ImageryLayer {
             var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
             var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
 
-            var request = this.url + "?request=getmap&service=wms&format=image/jpeg&BBOX=" +
+            var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=" +
                 minX + "," + minY + "," +
                 maxX + "," + maxY +
-                "&srs=" + this.epsg +
-                "&layers=" + this.layer +
-                "&width=" + width +
-                "&height=" + height +
-                "&version=" + this.version +
-                "&styles=default";
+                "&SRS=" + this.epsg +
+                "&LAYERS=" + this.layer +
+                "&WIDTH=" + width +
+                "&HEIGHT=" + height +
+                "&VERSION=" + this.version +
+                "&FORMAT=image/"+ this.format+
+                "&STYLES=default";
 
             
             
