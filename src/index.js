@@ -102,7 +102,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 });
 
-//map.setLayer(ogc3dTiles, 6)
+map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)

@@ -1,6 +1,7 @@
 import { Layer } from "./Layer";
 import { OGC3DTile } from "@jdultra/threedtiles/src/tileset/OGC3DTile";
 import * as THREE from 'three';
+import {TileLoader} from '@jdultra/threedtiles/src/tileset/TileLoader';
 
 const cartesianLocation = new THREE.Vector3();
 const up = new THREE.Vector3(0,1,0);
