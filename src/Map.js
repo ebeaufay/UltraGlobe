@@ -189,11 +189,11 @@ class Map {
             self.camera.aspect = aspect;
             self.camera.updateProjectionMatrix();
 
-            const dpr = self.renderer.getPixelRatio();
-            self.target.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
-            self.depthTarget.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
-            self.renderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
-            self.labelRenderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+            
+            self.target.setSize(window.innerWidth, window.innerHeight);
+            self.depthTarget.setSize(window.innerWidth, window.innerHeight);
+            self.renderer.setSize(window.innerWidth, window.innerHeight);
+            self.labelRenderer.setSize(window.innerWidth, window.innerHeight);
         }
         onWindowResize();
     }
