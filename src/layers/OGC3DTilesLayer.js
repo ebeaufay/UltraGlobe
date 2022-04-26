@@ -2,6 +2,7 @@ import { Layer } from "./Layer";
 import { OGC3DTile } from "@jdultra/threedtiles/src/tileset/OGC3DTile";
 import * as THREE from 'three';
 import {TileLoader} from '@jdultra/threedtiles/src/tileset/TileLoader';
+import { clearIntervalAsync, setIntervalAsync } from "set-interval-async/dynamic";
 
 const cartesianLocation = new THREE.Vector3();
 const up = new THREE.Vector3(0,1,0);
@@ -52,9 +53,9 @@ class OGC3DTilesLayer extends Layer{
     addToScene(scene, camera){
         scene.add(this.tileset);
         const self = this;
-        setInterval(function () {
+        self.updateInterval = setIntervalAsync(function () {
             self.tileset.update(camera);
-        }, 200);
+        }, 25);
     }
 
     update(){
@@ -78,6 +79,11 @@ class OGC3DTilesLayer extends Layer{
         this.tileset.updateMatrixWorld();
         //cartesianLocation.multiplyScalar(this.planet.radius+this.location.z)
         
+    }
+
+    dispose(){
+        this.tileset.dispose();
+        if(this.updateInterval) clearIntervalAsync(this.updateInterval);
     }
 }
 export{OGC3DTilesLayer}

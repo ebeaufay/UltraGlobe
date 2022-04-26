@@ -11,6 +11,8 @@ import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth.png';
+import { I3SLayer } from "./layers/i3s/I3SLayer.js";
+
 
 // reused variables
 const frustum = new THREE.Frustum();
@@ -61,7 +63,15 @@ class Map {
             layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
         }
+        if (layer instanceof I3SLayer) {
+            //layer.setPlanet(this.planet);
+            layer.addToScene(this.scene, this.camera);
+        }
         this.layerManager.setLayer(layer, index);
+    }
+
+    removeLayer(index){
+        this.layerManager.removeLayer(index);
     }
     getLayers() {
         return this.layerManager.getLayers();
@@ -225,7 +235,8 @@ class Map {
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            radius: 6378000,
+            radius: 6369000,
+            
             layerManager: this.layerManager
         });
 

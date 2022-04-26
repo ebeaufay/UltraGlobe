@@ -7,6 +7,7 @@ import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { WMSLayer } from './layers/WMSLayer.js';
 import { SimpleElevationLayer } from './layers/SimpleElevationLayer.js';
 import { BingMapsImagerySet, BingMapsLayer } from './layers/BingMapsLayer';
+import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
@@ -23,9 +24,9 @@ scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
 const domContainer = document.getElementById('screen');
 
 let map = new Map({ scene: scene, divID: 'screen' });
-map.camera.position.set(1135374.1079837575, 1582929.2067864006, 6073246.228415415);
+/* map.camera.position.set(1340720, -4641221, 4150429);
 map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
-map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416);
+map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416); */
 
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
@@ -102,8 +103,18 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 });
 
+var treesLayer = new I3SLayer({
+    id: 7,
+    name: "new york trees",
+    visible: true,
+    url: "https://tiles.arcgis.com/tiles/z2tnIkrLQ2BRzr6P/arcgis/rest/services/2015_Street_Tree_Survey_v17/SceneServer",
+    layer: "0"
+
+});
+
 map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
+map.setLayer(treesLayer, 1)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)
 

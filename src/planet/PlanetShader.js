@@ -60,7 +60,7 @@ const PlanetShader = {
 			if(fragmentImageryUV[`+i+`].x>=0.0 && fragmentImageryUV[`+i+`].x<=1.0 && fragmentImageryUV[`+i+`].y>=0.0 && fragmentImageryUV[`+i+`].y<=1.0){
 				color = mix(color, texture2D(imagery[`+i+`], fragmentImageryUV[`+i+`].xy), transparency[`+i+`]);
 			}
-			gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,1.0);`;
+			gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.01);`;
 			//gl_FragColor = c;`;
 		}
 		code+=`}`;

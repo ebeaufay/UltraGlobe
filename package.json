@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "1.0.11",
+    "version": "1.1.0",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles!!",
     "main": "tileset.js",
     "scripts": {
@@ -27,7 +27,9 @@
         "gltf-validator": "^2.0.0-dev.3.6",
         "lodash": ">=4.17.20",
         "path-browserify": "^1.0.1",
-        "regenerator-runtime": "^0.13.9"
+        "regenerator-runtime": "^0.13.9",
+        "epsg-index": "^1.0.0",
+        "proj4": "^2.4.4"
     },
     "devDependencies": {
         "@babel/core": "^7.17.9",

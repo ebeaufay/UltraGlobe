@@ -156,6 +156,7 @@ class PlanetTile extends Mesh {
         ///// Important, a tile cannot be made visible while "loaded" is false.
         self.loaded = false;
         self.loading = 0;
+    
         self.material.visible = false;
         self.elevationDisplayed = false;
 

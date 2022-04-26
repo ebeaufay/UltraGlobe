@@ -6,9 +6,21 @@ class LayerManager{
     }
 
     setLayer(layer, index){
+        if(this.layers[index] && this.layers[index].dispose){
+            this.layers[index].dispose();
+        }
         this.layers[index] = layer;
         for (const element in this.listeners) {
             this.listeners[element](LAYERS_CHANGED, layer);
+        }
+    }
+
+    removeLayer(index){
+        if(this.layers[index] && this.layers[index].dispose){
+            if(this.layers[index].dispose){
+                this.layers[index].dispose();
+            }
+            this.layers[index] = void 0;
         }
     }
     
