@@ -1,6 +1,10 @@
 # ULTRA Globe
 
-Displays a globe in threeJS with level of detail, imagery and elevation with connection to OGC web services.
+Displays a geographically correct earth in threeJS with level of detail, imagery, elevation and connection to OGC web services.
+
+support for WMS and OGC 3DTiles.
+
+I3S support is in progress.
 
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
@@ -16,7 +20,7 @@ Demo : https://ebeaufay.github.io/UltraGlobeDemo/
 
 Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
 
-## How to use
+## API
 
 In your HTML, have a div with a specific id.
 
