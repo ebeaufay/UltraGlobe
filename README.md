@@ -14,6 +14,7 @@ Displays a globe in threeJS with level of detail, imagery and elevation with con
 
 Demo : https://ebeaufay.github.io/UltraGlobeDemo/
 
+Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
 
 ## How to use
 
