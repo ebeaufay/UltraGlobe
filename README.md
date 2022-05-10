@@ -16,9 +16,11 @@ I3S support is in progress.
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
 </p>
 
-Demo : https://ebeaufay.github.io/UltraGlobeDemo/
+3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
 
 Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
+
+Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation/index.html
 
 ## API
 
