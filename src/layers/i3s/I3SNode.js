@@ -103,7 +103,6 @@ class I3SNode extends THREE.Object3D {
         ////// return -1 if not in frustum
         tempSphere.copy(this.mbs);
         tempSphere.applyMatrix4(this.matrixWorld);
-        console.log(camera.position.distanceTo(tempSphere.center));
         if (!frustum.intersectsSphere(tempSphere)) return false;
 
 

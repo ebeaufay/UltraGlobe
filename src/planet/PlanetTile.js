@@ -18,8 +18,21 @@ const defaultTexture = buildZeroTexture();
 const emptyVec4 = new THREE.Vector4(0, 0, 0, 0);
 
 const defaultMaterial = new THREE.MeshBasicMaterial();
-
+const degreeToRadians = Math.PI / 180;
+const radiansToDegrees = 180 / Math.PI;
 const defaultElevation = [];
+
+// reusable points
+const nearestMSE = new THREE.Vector3();
+const nearestSurface = new THREE.Vector3();
+const p = new THREE.Vector3();
+const p1 = new THREE.Vector3();
+const p2 = new THREE.Vector3();
+const p3 = new THREE.Vector3();
+const center = new THREE.Vector2();
+const boundingSphere = new THREE.Sphere(new THREE.Vector3(), 0)
+
+
 for (let index = 0; index < TILE_SIZE * TILE_SIZE; index++) {
     defaultElevation.push(0);
 
@@ -44,13 +57,13 @@ function generateBaseTile(resolution) {
     var skirts = [];
 
     //// vertices
-    for (var y = 0; y <= resolution - 1; y += 1) {
+    for (var z = 0; z <= resolution - 1; z += 1) {
         for (var x = 0; x <= resolution - 1; x += 1) {
             var vX = x / (resolution - 1);
-            var vY = y / (resolution - 1);
-            vertices.push(vX, vY, 1.0);
-            if (y == 0 || y == resolution - 1 || x == 0 || x == resolution - 1) {
-                skirts.push(vX, vY, 0.998);
+            var vZ = z / (resolution - 1);
+            vertices.push(vX, 1.0, vZ);
+            if (z == 0 || z == resolution - 1 || x == 0 || x == resolution - 1) {
+                skirts.push(vX, 0.99, vZ);
             }
         }
     }
@@ -124,10 +137,14 @@ function scheduleLoadLayers(tile) {
     tilesToLoad.push(tile);
 }
 
-setInterval(() => {
-    const tile = tilesToLoad.shift();
-    if (!!tile && !tile.disposed) tile._loadLayers(tile);
-}, 0)
+function loadLayersLoop() {
+    window.requestIdleCallback(() => {
+        const tile = tilesToLoad.shift();
+        if (!!tile && !tile.disposed) tile._loadLayers(tile);
+        loadLayersLoop();
+    }, { timeout: 100 });
+}
+loadLayersLoop();
 
 
 class PlanetTile extends Mesh {
@@ -156,7 +173,6 @@ class PlanetTile extends Mesh {
         ///// Important, a tile cannot be made visible while "loaded" is false.
         self.loaded = false;
         self.loading = 0;
-    
         self.material.visible = false;
         self.elevationDisplayed = false;
 
@@ -176,6 +192,11 @@ class PlanetTile extends Mesh {
         });
 
         scheduleLoadLayers(self);
+        self.rendered = false;
+        self.onAfterRender = () => {
+            self.rendered = true;
+            delete self.onAfterRender;
+        };
 
     }
 
@@ -266,7 +287,7 @@ class PlanetTile extends Mesh {
     _loadImagery(self, layer, callbackSuccess, callbackFailure) {
         self.mapRequests.push(
             layer.getMap(self, (texture) => {
-                if(!!self.disposed){
+                if (!!self.disposed) {
                     texture.dispose();
                     return;
                 }
@@ -291,11 +312,14 @@ class PlanetTile extends Mesh {
         }
 
 
-        
-        if (metric == -1) { // outside frustum or facing away from camera
+
+        if (metric == -1 && self.rendered) { // outside frustum or facing away from camera
             self.material.visible = true;
-            self.disposeChildren(self);
-            return true;
+            if (self.rendered) {
+                self.disposeChildren(self);
+                return true;
+            }
+            return false;
         }
         if (metric < self.level + 1 || self.level >= self.maxLevel) { // if self is ideal LOD
             if (self.loaded) { // if layers are loaded
@@ -310,7 +334,8 @@ class PlanetTile extends Mesh {
             if (self.children.length > 0) { // if self tile already has children
                 let childrenReadyCounter = 0;
                 self.children.every(child => {
-                    let childReady = child.update(camera, frustum);
+                    let childReady = child.update(camera, frustum) && child.rendered;
+
                     if (childReady) {
                         childrenReadyCounter++;
                     } else {
@@ -349,8 +374,8 @@ class PlanetTile extends Mesh {
                         layerManager: self.layerManager, planet: self.planet, level: self.level + 1
                     }
                 ));
-                
-                
+
+
 
                 self.children.forEach(child => {
                     child.update(camera, frustum);
@@ -385,6 +410,9 @@ class PlanetTile extends Mesh {
 
         self.material = new THREE.ShaderMaterial({
             uniforms: {},
+            depthTest:true,
+            depthWrite: true,
+            depthFunc: THREE.LessDepth,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
             fragmentShader: PlanetShader.fragmentShader(numLayers)
         });
@@ -427,7 +455,6 @@ class PlanetTile extends Mesh {
         self.material.uniforms.imageryBounds = { type: "v4v", value: imageryBounds };
         self.material.uniforms.imageryTransparency = { type: "fv", value: imageryTransparency };
         self.material.uniforms.elevation = { type: "t", value: elevation };
-        self.material.uniforms.radius = { type: "f", value: self.planet.radius };
         self.material.uniforms.planetPosition = { type: "v3", value: self.planet.center };
         self.material.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         self.material.uniforms.c = { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
@@ -457,7 +484,7 @@ class PlanetTile extends Mesh {
                     else {
                         element.material.dispose()
                     }
-                    
+
                     var index = tilesToLoad.indexOf(this);
                     if (index !== -1) {
                         tilesToLoad.splice(index, 1);
@@ -482,11 +509,12 @@ class PlanetTile extends Mesh {
     }
 
     calculateUpdateMetric(camera, frustum) {
-        var p = camera.position.clone().sub(this.planet.center);
-        var pNormalized = p.clone().normalize();
-        var lat = Math.asin(pNormalized.y);
-        var lon = Math.atan2(pNormalized.z, -pNormalized.x);
+        p.copy(camera.position).sub(this.planet.center);
 
+        const llh = this.planet.llhToCartesian.inverse(p);
+
+        let lon = llh.x * degreeToRadians;
+        let lat = llh.y * degreeToRadians;
         if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
             var max = this.bounds.max.x - lon;
             max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
@@ -508,30 +536,27 @@ class PlanetTile extends Mesh {
         lat = Math.max(0, Math.min(1, lat));
         lon = Math.max(0, Math.min(1, lon));
 
-        var surfaceElevation = !!this.elevationArray ? this.billinearInterpolationOnElevationArray(lon, lat) + this.planet.radius : this.planet.radius;
-        var surfaceElevationCenter = !!this.elevationArray ? this.billinearInterpolationOnElevationArray(0.5, 0.5) + this.planet.radius : this.planet.radius;
-        var surfaceElevationMax = !!this.elevationArray ? this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1] + this.planet.radius : this.planet.radius;
-
         var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
         var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-        var nearest = new THREE.Vector3(-(Math.cos(lati) * Math.cos(long)), Math.sin(lati), Math.cos(lati) * Math.sin(long));
+        this.transformWGS84ToCartesian(long, lati, 0, nearestMSE);
+        this.transformWGS84ToCartesian(long, lati, this.billinearInterpolationOnElevationArray(lon, lat), nearestSurface);
 
-        var nearestMSE = nearest.clone().multiplyScalar(this.planet.radius);
-        var nearestSurface = nearest.clone().multiplyScalar(surfaceElevation);
-
-        var center = new THREE.Vector2();
         this.bounds.getCenter(center);
-        var c = new THREE.Vector3(-(Math.cos(center.y) * Math.cos(center.x)), Math.sin(center.y), Math.cos(center.y) * Math.sin(center.x)).multiplyScalar(surfaceElevationCenter);
-        var min = new THREE.Vector3(-(Math.cos(this.bounds.min.y) * Math.cos(this.bounds.min.x)), Math.sin(this.bounds.min.y), Math.cos(this.bounds.min.y) * Math.sin(this.bounds.min.x)).multiplyScalar(surfaceElevationMax);
-        var max = new THREE.Vector3(-(Math.cos(this.bounds.max.y) * Math.cos(this.bounds.max.x)), Math.sin(this.bounds.max.y), Math.cos(this.bounds.max.y) * Math.sin(this.bounds.max.x)).multiplyScalar(surfaceElevationMax);
+
+        this.transformWGS84ToCartesian(center.x, center.y, this.billinearInterpolationOnElevationArray(0.5, 0.5), p1);
+        this.transformWGS84ToCartesian(this.bounds.min.x, this.bounds.min.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p2);
+        this.transformWGS84ToCartesian(this.bounds.max.x, this.bounds.max.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p3);
 
         // an estimation of the bounding volume is calculated based on the size of the tile and the elevation at the center and max elevation.
-        this.boundingSphere = new THREE.Sphere(c.clone().add(this.planet.center), Math.max(c.distanceTo(min), c.distanceTo(max)) * 1.1)
-        if (!frustum.intersectsSphere(this.boundingSphere)) {
+        boundingSphere.radius = Math.max(p1.distanceTo(p2), p1.distanceTo(p3)) * 1.1;
+        boundingSphere.center.copy(p1).add(this.planet.center);
+
+
+        if (!frustum.intersectsSphere(boundingSphere)) {
             return -1;
         }
 
-        var dot = Math.max(0.02, Math.abs(c.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
+        var dot = Math.max(0.02, Math.abs(p1.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
 
         if (dot < 0) {
             return -1;
@@ -539,11 +564,10 @@ class PlanetTile extends Mesh {
 
         var distance = p.distanceTo(nearestSurface);
 
-        
+        const localRadius = nearestSurface.sub(this.planet.center).length();
 
-        var log = -(Math.log(distance * 2500 / this.planet.radius) / Math.log(2)) + 16;
+        var log = -(Math.log(distance * 2500 / localRadius) / Math.log(2)) + 16;
         const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
-
 
         if (isNaN(metric)) {
             return this.level;
@@ -552,10 +576,9 @@ class PlanetTile extends Mesh {
         return metric;
     }
 
-    billinearInterpolationOnElevationArray(lon, lat) {
-
-        var x = lon * (TILE_SIZE - 1);
-        var y = lat * (TILE_SIZE - 1);
+    billinearInterpolationOnElevationArray(percentageX, percentageY) {
+        var x = percentageX * (TILE_SIZE - 1);
+        var y = percentageY * (TILE_SIZE - 1);
 
 
         var floorX = Math.floor(x);
@@ -633,6 +656,24 @@ class PlanetTile extends Mesh {
 
 
     }
+
+    transformWGS84ToCartesian(lon, lat, h, sfct) {
+        const a = 6378137.0;
+        const e = 0.006694384442042;
+        const N = a / (Math.sqrt(1.0 - (e * Math.pow(Math.sin(lat), 2))));
+        const cosLat = Math.cos(lat);
+        const cosLon = Math.cos(lon);
+        const sinLat = Math.sin(lat);
+        const sinLon = Math.sin(lon);
+        const nPh = (N + h);
+        const x = nPh * cosLat * cosLon;
+        const y = nPh * cosLat * sinLon;
+        const z = (0.993305615557957 * N + h) * sinLat;
+
+        sfct.set(x, y, z);
+    }
+
+
 
     /*cull(frustum){
         if(this.visibility == false){

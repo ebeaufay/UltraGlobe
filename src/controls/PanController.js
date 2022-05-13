@@ -19,7 +19,6 @@ class PanController /*extends EventDispatcher*/ {
 		this.isMouseDown = false;
 		this.mouseDownLocation = [];
 		this.next = null;
-		
 	}
 
 	event(eventName, e){
@@ -82,8 +81,8 @@ class PanController /*extends EventDispatcher*/ {
 		tempPointE.applyQuaternion(quaternion);
 		this.camera.up.crossVectors(tempPointD.sub(this.camera.position), tempPointE);
 
-		this.map.resetCameraNearFar();
 		this.map.moveCameraAboveSurface();
+		this.map.resetCameraNearFar();
 	}
 
 	calculateMouseLocationOnPlanet(x, y, sideEffect) {

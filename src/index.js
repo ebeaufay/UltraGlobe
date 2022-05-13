@@ -3,18 +3,21 @@ import * as THREE from 'three';
 import { Map } from './Map.js';
 import { UltraElevationLayer } from './layers/UltraElevationLayer';
 import { UltraImageryLayer } from './layers/UltraImageryLayer';
+import { SingleImageElevationLayer } from './layers/SingleImageElevationLayer';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { WMSLayer } from './layers/WMSLayer.js';
 import { SimpleElevationLayer } from './layers/SimpleElevationLayer.js';
 import { BingMapsImagerySet, BingMapsLayer } from './layers/BingMapsLayer';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
+import geoidImage from './images/egm84-15.jpg'
+import earthElevationImage from './images/earth_elevation.jpg'
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
         const cam = map.camera;
         let p = new THREE.Vector3();
         cam.getWorldDirection(p).normalize();
-        console.log("{ position: new THREE.Vector3("+cam.position.x+","+cam.position.y+","+cam.position.z+"), quaternion: new THREE.Quaternion("+cam.quaternion.x+","+cam.quaternion.y+","+cam.quaternion.z+","+cam.quaternion.w+") }")
+        console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
     }
 });
 const scene = new THREE.Scene();
@@ -24,20 +27,23 @@ scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
 const domContainer = document.getElementById('screen');
 
 let map = new Map({ scene: scene, divID: 'screen' });
-/* map.camera.position.set(1340720, -4641221, 4150429);
-map.camera.up.set(0.07262682094327516, 0.12390382390695276, 0.9896328548006621);
-map.camera.lookAt(1135373.469332833, 1582928.4504241983, 6073246.369982416); */
 
+
+/* map.mapNavigator.moveToCartesianSinusoidal(
+    new THREE.Vector3(1323138.125100387,-4696351.773575135,4111000.619625971),
+    new THREE.Quaternion(0.8576339439266205,0.06966174508783496,-0.160838910275853,0.4834688246800035),
+    2000
+); */
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
 
 //map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
 /* map.mapNavigator.moveToCartesianSinusoidal(
-    new THREE.Vector3(1135168.465413011,1582722.9152907282,6073374.939534078),
-    new THREE.Quaternion(0.42375213637431813,-0.13982529341937766,-0.27725624673796234,0.8508889398054039),
-    10000,
+    new THREE.Vector3(5328337.770919393,-616702.0204824861,3666880.272101925),
+    new THREE.Quaternion(0.6035951782272387,0.47730443539347106,-0.07332093800495981,0.6344110472119955),
+    5000,
  true
-); */
+);  */
 // these layers connect to custom imagery and elevation services
 var imageryLayer = new UltraImageryLayer({
     id: 1,
@@ -56,6 +62,28 @@ var elevationLayer = new UltraElevationLayer({
     visible: true
 });
 
+var geoid = new SingleImageElevationLayer({
+    id: 8,
+    name: "ultraElevation",
+    bounds: [-180, -90, 180, 90],
+    url: geoidImage,
+    layer: "1",
+    visible: true,
+    min: -103,
+    max: 85
+});
+
+var earthElevation = new SingleImageElevationLayer({
+    id: 9,
+    name: "singleImageEarthElevation",
+    bounds: [-180, -90, 180, 90],
+    url: earthElevationImage,
+    layer: "1",
+    visible: true,
+    min: 0,
+    max: 40000
+});
+
 var wmsLayer = new WMSLayer({
     id: 2,
     name: "WMS",
@@ -67,6 +95,17 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
+var wmsLayer2 = new WMSLayer({
+    id: 20,
+    name: "BlueMarble",
+    bounds: [-180, -90, 180, 90],
+    url: "https://worldwind25.arc.nasa.gov/wms",
+    layer: "BlueMarble-200401",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    visible: true
+})
+
 
 
 // this is a sample elevation layer class that generates a sinusoidal terrain
@@ -74,7 +113,7 @@ var simpleElevation = new SimpleElevationLayer({
     id: 4,
     name: "ultraElevation",
     bounds: [-180, -90, 180, 90],
-    visible: false
+    visible: true
 });
 
 var bingMapsLayer = new BingMapsLayer({
@@ -93,13 +132,13 @@ var ogc3dTiles = new OGC3DTilesLayer({
     visible: true,
     url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
     zUp: false,
-    longitude: 100.5877 * 0.01745329251994329576923690768489,
-    latitude: 14.3692 * 0.01745329251994329576923690768489,
-    height: 16,
+    longitude: 100.5877,
+    latitude: 14.3692,
+    height: 100,
     rotationY: 0.5,
     scale: 1,
     geometricErrorMultiplier: 1.5,
-    loadOutsideView:true
+    loadOutsideView: true
 
 });
 
@@ -112,9 +151,10 @@ var treesLayer = new I3SLayer({
 
 });
 
-map.setLayer(ogc3dTiles, 6)
+//map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
-map.setLayer(treesLayer, 1)
+//map.setLayer(treesLayer, 1)
+map.setLayer(earthElevation, 3)
 //map.setLayer(simpleElevation, 2)
 //map.setLayer(imageryLayer, 1)
 

@@ -2,9 +2,9 @@ import "regenerator-runtime/runtime.js";
 import * as THREE from 'three';
 import { Planet } from './planet/Planet.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { PanController } from './controls/PanController.js';
-import { RotateController } from './controls/RotateController.js';
-import { ZoomController } from './controls/ZoomController.js';
+import { PanController2 } from './controls/PanController2.js';
+import { RotateController2 } from './controls/RotateController2.js';
+import { ZoomController2 } from './controls/ZoomController2.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
@@ -23,7 +23,7 @@ const unpacker = new THREE.Vector2(1, 1 / 256);
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
 const loader = new THREE.TextureLoader();
-
+const degreeToRadians = Math.PI/180;
 
 class Map {
 
@@ -45,6 +45,8 @@ class Map {
         }
         this.camera = !!properties.camera?properties.camera:this.initCamera();
         
+        
+
         this.initPlanet();
         this.initController();
         this.scene.add(this.planet);
@@ -56,6 +58,7 @@ class Map {
 
         this.startAnimation();
         this.mapNavigator = new MapNavigator(this);
+        
     }
 
     setLayer(layer, index) {
@@ -225,8 +228,11 @@ class Map {
 
     initCamera() {
         const camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
-        camera.position.set(-40000000, 0, 0);
-        camera.lookAt(new THREE.Vector3(-0, 1000, 0));
+        camera.position.set(40000000, 0, 0);
+        camera.up.set(0,0,1)
+        camera.lookAt(new THREE.Vector3(-0, 0, 10000));
+        camera.updateProjectionMatrix();
+        
         return camera;
     }
 
@@ -235,7 +241,6 @@ class Map {
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            radius: 6369000,
             
             layerManager: this.layerManager
         });
@@ -250,9 +255,9 @@ class Map {
     // Three doesn't offer a listener on camera position so we leave it up to the controller to call planet updates.
     initController() {
         const self = this;
-        self.controller = new PanController(self.camera, self.domContainer, self);
-        self.controller.append(new RotateController(self.camera, self.domContainer, self));
-        self.controller.append(new ZoomController(self.camera, self.domContainer, self));
+        self.controller = new PanController2(self.camera, self.domContainer, self);
+        self.controller.append(new RotateController2(self.camera, self.domContainer, self));
+        self.controller.append(new ZoomController2(self.camera, self.domContainer, self));
         self.domContainer.addEventListener('mousedown', (e) => {
             if(!!self.controller) self.controller.event('mousedown', e);
         }, false);
@@ -277,6 +282,15 @@ class Map {
         self.domContainer.addEventListener('touchend', (e) => {
             if(!!self.controller) self.controller.event('touchend', e);
         }, false);
+        document.addEventListener("mouseleave", function(event){
+
+            if(event.clientY <= 0 || event.clientX <= 0 || (event.clientX >= window.innerWidth || event.clientY >= window.innerHeight))
+            {
+                
+                self.controller.event('mouseup', {which: "all"});
+          
+            }
+          });
 
         /* //// mousewheel ////
         if (this.domContainer.addEventListener) {
@@ -307,6 +321,8 @@ class Map {
         function animate() {
             requestAnimationFrame(animate);
 
+            self.controller.update();
+
             frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
             //self.planet.cull(frustum);
 
@@ -322,7 +338,7 @@ class Map {
             self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
             self.postMaterial.uniforms.cameraNear.value = self.camera.near;
             self.postMaterial.uniforms.cameraFar.value = self.camera.far;
-            self.postMaterial.uniforms.radius.value = self.planet.radius;
+            self.postMaterial.uniforms.radius.value = 6356752.3142;
             self.postMaterial.uniforms.xfov.value = 2 * Math.atan( Math.tan( self.camera.fov * Math.PI / 180 / 2 ) * self.camera.aspect ) * 180 / Math.PI;
             self.postMaterial.uniforms.yfov.value = self.camera.fov;
             self.postMaterial.uniforms.planetPosition.value = self.planet.position;
@@ -334,7 +350,7 @@ class Map {
             self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
             self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
 
-            self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.distanceTo(self.planet.position) - self.planet.radius;
+            self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length()-6356752.3142;
             
             self.renderer.setRenderTarget(self.depthTarget);
             self.renderer.render(self.depthScene, self.postCamera);
@@ -348,24 +364,33 @@ class Map {
     }
 
     resetCameraNearFar() {
-        const distToMSE = Math.abs(this.planet.center.distanceTo(this.camera.position) - this.planet.radius);
-        A.copy(this.camera.position).sub(this.planet.center);
-        A.normalize();
-		B.set(Math.atan2(A.z, -A.x), Math.asin(A.y))
-        const distToGround = distToMSE - this.planet.getTerrainElevation(B);
-        this.planet.getTerrainElevation(B);
-
-        this.camera.near = Math.max(distToGround * 0.25, this.planet.radius*0.0000001);
-        this.camera.far = Math.max(this.planet.radius*0.0001, Math.sqrt(2 * this.planet.radius * distToMSE + distToMSE * distToMSE) * 2);
-        this.camera.updateProjectionMatrix();
-
+        const geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
+		B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
+        const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
         
+        this.camera.near = Math.max(distToGround * 0.25, 1.25);
+        const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
+        this.camera.far = Math.max(10000, Math.max(distanceToHorizon * 1.5, this.camera.near*50000));
+        this.camera.updateProjectionMatrix();
+        
+    }
+    moveCameraAboveSurface(){
+        let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
+        //A.copy(this.camera.position).sub(this.planet.center);
+        //A.normalize();
+		B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
+
+        const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+        if(distToGround<10){
+            geodeticCameraPosition.z += (10-distToGround);
+            geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
+            this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
+        }
     }
 
 
     screenPixelRayCast(x, y, sideEffect) {
-        const dpr = this.renderer.getPixelRatio();
-        this.renderer.readRenderTargetPixels(this.depthTarget, x * dpr, (this.domContainer.offsetHeight - y) * dpr, 1, 1, depths);
+        this.renderer.readRenderTargetPixels(this.depthTarget, x, (this.domContainer.offsetHeight - y), 1, 1, depths);
 
         depth16.set(depths[0], depths[1]);
         let z = depth16.dot(unpacker)
@@ -389,16 +414,7 @@ class Map {
         this.planet.heightAboveElevation();
     }
 
-    moveCameraAboveSurface(){
-        A.copy(this.camera.position).sub(this.planet.center);
-        A.normalize();
-		B.set(Math.atan2(A.z, -A.x), Math.asin(A.y))
-        
-		let elevation = this.planet.getTerrainElevation(B)+(this.planet.radius * 1.000001);
-        if(this.planet.center.distanceTo(this.camera.position)<elevation){
-            this.camera.position.copy(A.multiplyScalar(elevation).add(this.planet.center));
-        }
-    }
+    
 
     moveCamera(location, lookAt){
         
@@ -420,6 +436,8 @@ class Map {
 
 function perspectiveDepthToViewZ(invClipZ, near, far) {
     return (near * far) / ((far - near) * invClipZ - far);
+    
+    
 }
 
 export { Map };

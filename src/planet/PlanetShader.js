@@ -7,25 +7,42 @@ const PlanetShader = {
 
 	vertexShader: (numImageryLayers, tileSize) =>/* glsl */`
 	
-	uniform float radius;
 	uniform vec3 planetPosition;
 	uniform vec4 bounds;
 	uniform vec4 imageryBounds[`+ numImageryLayers + `];
 	uniform sampler2D elevation;
 
-	
 	varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
+
+	varying float elevationX;
+
+	float a = 6378137.0;
+    float e = 0.006694384442042;
+
+	vec3 transformWGS84ToCartesian (float lon, float lat, float h) {
+        
+        float N = a / (sqrt(1.0 - (e * pow(sin(lat), 2.0))));
+        float cosLat = cos(lat);
+        float cosLon = cos(lon);
+        float sinLat = sin(lat);
+        float sinLon = sin(lon);
+        float nPh = (N + h);
+
+        return vec3(nPh * cosLat * cosLon,nPh * cosLat * sinLon,(0.993305615557957 * N + h) * sinLat);
+
+
+		
+    }
 
 	void main() {
 		vec3 vPosition = vec3(position);
         
 		float lon = vPosition.x * (bounds[2] - bounds[0]) + bounds[0];
-		float lat = vPosition.y * (bounds[3] - bounds[1]) + bounds[1];
+		float lat = vPosition.z * (bounds[3] - bounds[1]) + bounds[1];
+		float h = vPosition.y;
 
 		float width = bounds[2] - bounds[0];
 		float height = bounds[3] - bounds[1];
-
-		vPosition = vec3(-(cos(lat) * cos(lon)), sin(lat), cos(lat) * sin(lon));
 
 		for(int i=0;i<`+ numImageryLayers + `;i++) {
 			if(lon<imageryBounds[i][0] || lon > imageryBounds[i][2] || lat < imageryBounds[i][1] || lat > imageryBounds[i][3]){
@@ -39,7 +56,9 @@ const PlanetShader = {
 		
 
 		float terrainElevation = texture2D(elevation, texUV.xy).r;
-		vPosition *= ((radius*position.z) + terrainElevation);
+		vPosition = transformWGS84ToCartesian(lon, lat, terrainElevation);
+		elevationX = terrainElevation;
+		vPosition*=h;
 		
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
 	}`,
@@ -50,6 +69,8 @@ const PlanetShader = {
 		uniform sampler2D imagery[`+ numImageryLayers + `];
 		uniform float transparency[`+ numImageryLayers + `];
 		uniform vec4 c;
+
+		varying float elevationX;
 
 		void main() {
 			vec4 color = vec4(0.0,0.0,0.0,1.0);`;

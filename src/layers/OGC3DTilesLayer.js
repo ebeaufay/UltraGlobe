@@ -5,6 +5,7 @@ import {TileLoader} from '@jdultra/threedtiles/src/tileset/TileLoader';
 import { clearIntervalAsync, setIntervalAsync } from "set-interval-async/dynamic";
 
 const cartesianLocation = new THREE.Vector3();
+const orientationHelper = new THREE.Vector3();
 const up = new THREE.Vector3(0,1,0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
@@ -32,6 +33,7 @@ class OGC3DTilesLayer extends Layer{
         this.longitude = !!properties.longitude?properties.longitude: 0;
         this.latitude = !!properties.latitude?properties.latitude: 0;
         this.height = !!properties.height?properties.height: 0;
+        this.llh = new THREE.Vector3(!!properties.longitude?properties.longitude: 0, !!properties.longitude?properties.latitude: 0, !!properties.longitude?properties.height: 0)
 
         this.zUp = !!properties.zUp?properties.zUp: false;
 
@@ -64,15 +66,15 @@ class OGC3DTilesLayer extends Layer{
         scaleMatrix.multiplyScalar(scaleMatrix);
         
         this.tileset.applyMatrix4(scaleMatrix); */
-        cartesianLocation.set(-(Math.cos(this.latitude) * Math.cos(this.longitude)), Math.sin(this.latitude), Math.cos(this.latitude) * Math.sin(this.longitude));
-        quaternionSelfRotation
-        quaternionToEarthNormalOrientation.setFromUnitVectors( up, cartesianLocation );
+        const transform = this.planet.llhToCartesian.forward(this.llh);
+        cartesianLocation.set(transform.x, transform.y, transform.z);
+        //quaternionSelfRotation
+        quaternionToEarthNormalOrientation.setFromUnitVectors( up, orientationHelper.copy(cartesianLocation).normalize() );
         if(this.zUp){
             quaternionToEarthNormalOrientation.multiply(quaternionZUPtoYUP);
         }
         quaternionSelfRotation.setFromEuler(this.rotation);
         this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-        cartesianLocation.multiplyScalar(this.planet.radius+this.height);
         this.tileset.position.copy(cartesianLocation);
         this.tileset.scale.set(this.scale, this.scale, this.scale);
         this.tileset.updateMatrix();

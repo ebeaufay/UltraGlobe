@@ -4,6 +4,9 @@ const tempQuaternion = new THREE.Quaternion();
 const tempPointA = new THREE.Vector3();
 const tempPointB = new THREE.Vector3();
 const tempPointC = new THREE.Vector3();
+const tempPointD = new THREE.Vector3();
+const tempPointE = new THREE.Vector3();
+const tempPointF = new THREE.Vector3();
 export class MapNavigator {
     constructor(map) {
         this.map = map;
@@ -12,8 +15,8 @@ export class MapNavigator {
 
     moveToCartesianSinusoidal(destination, destinationOrientation, timeTotal, adaptNearFar, cameraMovedCallback) {
         return this.moveThroughCartesianSinusoidal(
-            [this.map.camera.position, destination],
-            [this.map.camera.quaternion, destinationOrientation],
+            [new THREE.Vector3().copy(this.map.camera.position), destination],
+            [new THREE.Quaternion().copy(this.map.camera.quaternion), destinationOrientation],
             timeTotal,
             adaptNearFar,
             cameraMovedCallback
@@ -23,7 +26,7 @@ export class MapNavigator {
         const curve = new THREE.CatmullRomCurve3(positions);
         return this.moveThroughCartesianSinusoidal(curve.getPoints(Math.max(positions.length, Math.min(1000, positions.length * 10))), quaternions, timeTotal, adaptNearFar, cameraMovedCallback);
     }
-    moveThroughCartesianSinusoidal(positions, quaternions, timeTotal, adaptNearFar, cameraMovedCallback) {
+    moveThroughCartesianSinusoidal(positions, quaternions, timeTotal, adaptNearFar = true, cameraMovedCallback) {
         const self = this;
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
@@ -31,6 +34,7 @@ export class MapNavigator {
                 clearInterval(this.interval);
             }
             this.interval = setInterval(() => {
+                
                 const currentTime = Date.now() - startTime;
                 const percentageTime = currentTime / timeTotal;
                 const overallPercentage = (Math.sin(((percentageTime) * Math.PI) - (Math.PI / 2)) + 1) / 2;
@@ -49,8 +53,10 @@ export class MapNavigator {
                     let percentage = overallPercentage * (positions.length - 1);
                     let previousIndex = Math.floor(percentage);
                     percentage -= previousIndex;
-                    console.log(previousIndex+ "  "+percentage);
+                    //console.log(previousIndex+ "  "+percentage);
                     this.map.camera.position.lerpVectors(positions[previousIndex], positions[previousIndex + 1], percentage);
+                    
+
                 }
 
                 if (quaternions.length == 1) {
@@ -65,11 +71,18 @@ export class MapNavigator {
                 }
                 if (cameraMovedCallback) cameraMovedCallback();
                 if (adaptNearFar) self.map.resetCameraNearFar();
+                self.straighten();
             }, 20);
         });
 
     }
 
+    moveTo(position, quaternion){
+        this.map.camera.position.copy(position);
+        this.map.camera.setRotationFromQuaternion(quaternion);
+        //this.straighten();
+        this.map.camera.updateProjectionMatrix();
+    }
 
     moveThroughGeodeticSinusoidalSmooth(positions, quaternions, timeTotal, adaptNearFar, cameraMovedCallback) {
         const curve = new THREE.CatmullRomCurve3(positions);
@@ -180,5 +193,15 @@ export class MapNavigator {
         if (this.interval) {
             clearInterval(this.interval);
         }
+    }
+
+    straighten() {
+
+        this.map.camera.getWorldDirection(tempPointD).normalize();
+
+        tempPointE.crossVectors(tempPointF.copy(this.map.camera.position).normalize(), tempPointD);
+        tempPointD.add(this.map.camera.position);
+        this.map.camera.lookAt(tempPointD);
+        this.map.camera.up.crossVectors(tempPointD.sub(this.map.camera.position), tempPointE);
     }
 }

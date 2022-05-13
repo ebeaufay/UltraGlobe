@@ -119,7 +119,6 @@ class RotateController /*extends EventDispatcher*/ {
 		this.camera.up.crossVectors(tempPointA, tempPointC);
 
 		this.map.moveCameraAboveSurface();
-		
 		//this.map.g
 		
 		/*tempPointC.crossVectors(tempPointA, this.camera.up).normalize();

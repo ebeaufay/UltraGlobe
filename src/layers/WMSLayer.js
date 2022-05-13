@@ -38,10 +38,12 @@ class WMSLayer extends ImageryLayer {
             var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
             var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
 
-            var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=" +
-                minX + "," + minY + "," +
-                maxX + "," + maxY +
-                "&SRS=" + this.epsg +
+            var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=" ;
+            switch (this.version){
+                case "1.1.1":request += minX + "," + minY + "," + maxX + "," + maxY+"&SRS=" + this.epsg ; break;
+                default :request += minY + "," + minX + "," + maxY + "," + maxX + "&CRS=" + this.epsg ; break;
+            }
+            request += 
                 "&LAYERS=" + this.layer +
                 "&WIDTH=" + width +
                 "&HEIGHT=" + height +
