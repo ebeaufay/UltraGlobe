@@ -16,6 +16,8 @@ Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation
 
 I3S Points (new york trees) and blue marble (slow imagery service): https://storage.googleapis.com/jdultra.com/i3s/index.html
 
+Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
+
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
 </p>
