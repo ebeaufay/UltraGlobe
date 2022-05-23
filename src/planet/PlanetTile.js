@@ -43,7 +43,7 @@ function buildZeroTexture() {
     data[0] = 0;
     data[1] = 0;
     data[2] = 0;
-    return new THREE.DataTexture(data, 1, 1, THREE.RGBFormat);
+    return new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat);
 }
 
 function generateBaseTile(resolution) {
@@ -221,6 +221,7 @@ class PlanetTile extends Mesh {
                     self.layerDataMap[layer.id] = {};
                     layer.getElevation(self.bounds, TILE_SIZE, TILE_SIZE).then(elevationArray => {
                         var elevationTexture = new THREE.DataTexture(Float32Array.from(elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
+                        elevationTexture.needsUpdate = true;
                         elevationTexture.magFilter = THREE.LinearFilter;
                         elevationTexture.minFilter = THREE.LinearFilter;
                         elevationTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -412,7 +413,7 @@ class PlanetTile extends Mesh {
             uniforms: {},
             depthTest:true,
             depthWrite: true,
-            depthFunc: THREE.LessDepth,
+            //depthFunc: THREE.LessDepth,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
             fragmentShader: PlanetShader.fragmentShader(numLayers)
         });

@@ -27,6 +27,7 @@ class SingleImageElevationLayer extends ElevationLayer{
 
         const canvas = document.createElement('canvas');
         this.context = canvas.getContext('2d');
+        
         const img = new Image;
         const self = this;
         
@@ -34,6 +35,7 @@ class SingleImageElevationLayer extends ElevationLayer{
             canvas.height = img.height;
             canvas.width = img.width;
             self.context.drawImage(img,0,0); // Or at whatever offset you like
+            self.data = self.context.getImageData(0, 0, canvas.width, canvas.height).data;
             self.loaded = true;
             self.pendingRequests.forEach(f=>f());
         };
@@ -107,12 +109,10 @@ class SingleImageElevationLayer extends ElevationLayer{
         ceilX = Math.min((this.context.canvas.width - 1), ceilX);
         ceilY = Math.min((this.context.canvas.height - 1), ceilY);
 
-        const data = this.context.getImageData(floorX, floorY, 2, 2).data;
-
-        return ((1 - (x - floorX)) * (1 - (y - floorY)) * data[0]) +
-            ((1 - (ceilX - x)) * (1 - (y - floorY)) * data[4]) +
-            ((1 - (x - floorX)) * (1 - (ceilY - y)) * data[8]) +
-            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * data[12]);
+        return ((1 - (x - floorX)) * (1 - (y - floorY)) * this.data[floorY*4*this.context.canvas.width+floorX*4]) +
+            ((1 - (ceilX - x)) * (1 - (y - floorY)) * this.data[floorY*4*this.context.canvas.width+floorX*4+4]) +
+            ((1 - (x - floorX)) * (1 - (ceilY - y)) * this.data[(floorY+1)*4*this.context.canvas.width+floorX*4]) +
+            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * this.data[(floorY+1)*4*this.context.canvas.width+floorX*4+4]);
     }
 
 }

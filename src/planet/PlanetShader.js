@@ -29,9 +29,6 @@ const PlanetShader = {
         float nPh = (N + h);
 
         return vec3(nPh * cosLat * cosLon,nPh * cosLat * sinLon,(0.993305615557957 * N + h) * sinLat);
-
-
-		
     }
 
 	void main() {
@@ -68,8 +65,7 @@ const PlanetShader = {
 		varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 		uniform sampler2D imagery[`+ numImageryLayers + `];
 		uniform float transparency[`+ numImageryLayers + `];
-		uniform vec4 c;
-
+		
 		varying float elevationX;
 
 		void main() {
@@ -82,7 +78,7 @@ const PlanetShader = {
 				color = mix(color, texture2D(imagery[`+i+`], fragmentImageryUV[`+i+`].xy), transparency[`+i+`]);
 			}
 			gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.01);`;
-			//gl_FragColor = c;`;
+			
 		}
 		code+=`}`;
 		return code;

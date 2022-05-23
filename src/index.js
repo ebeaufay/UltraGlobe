@@ -45,33 +45,33 @@ map.resetCameraNearFar();
  true
 );  */
 // these layers connect to custom imagery and elevation services
-var imageryLayer = new UltraImageryLayer({
-    id: 1,
-    name: "ultraElevation",
-    bounds: [-180, -90, 180, 90],
-    url: "http://localhost:8080/imagery",
-    layer: "1",
-    visible: true
-});
-var elevationLayer = new UltraElevationLayer({
-    id: 3,
-    name: "ultraElevation",
-    bounds: [-180, -90, 180, 90],
-    url: "http://localhost:8080/elevation",
-    layer: "1",
-    visible: true
-});
+// var imageryLayer = new UltraImageryLayer({
+//     id: 1,
+//     name: "ultraElevation",
+//     bounds: [-180, -90, 180, 90],
+//     url: "http://localhost:8080/imagery",
+//     layer: "1",
+//     visible: true
+// });
+// var elevationLayer = new UltraElevationLayer({
+//     id: 3,
+//     name: "ultraElevation",
+//     bounds: [-180, -90, 180, 90],
+//     url: "http://localhost:8080/elevation",
+//     layer: "1",
+//     visible: true
+// });
 
-var geoid = new SingleImageElevationLayer({
-    id: 8,
-    name: "ultraElevation",
-    bounds: [-180, -90, 180, 90],
-    url: geoidImage,
-    layer: "1",
-    visible: true,
-    min: -103,
-    max: 85
-});
+// var geoid = new SingleImageElevationLayer({
+//     id: 8,
+//     name: "ultraElevation",
+//     bounds: [-180, -90, 180, 90],
+//     url: geoidImage,
+//     layer: "1",
+//     visible: true,
+//     min: -103,
+//     max: 85
+// });
 
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
@@ -81,7 +81,7 @@ var earthElevation = new SingleImageElevationLayer({
     layer: "1",
     visible: true,
     min: 0,
-    max: 40000
+    max: 22000
 });
 
 var wmsLayer = new WMSLayer({
@@ -95,61 +95,62 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
-var wmsLayer2 = new WMSLayer({
-    id: 20,
-    name: "BlueMarble",
-    bounds: [-180, -90, 180, 90],
-    url: "https://worldwind25.arc.nasa.gov/wms",
-    layer: "BlueMarble-200401",
-    epsg: "EPSG:4326",
-    version: "1.3.0",
-    visible: true
-})
+// var wmsLayer2 = new WMSLayer({
+//     id: 20,
+//     name: "BlueMarble",
+//     bounds: [-180, -90, 180, 90],
+//     url: "https://worldwind25.arc.nasa.gov/wms",
+//     layer: "BlueMarble-200401",
+//     epsg: "EPSG:4326",
+//     version: "1.3.0",
+//     visible: true
+// })
 
 
 
 // this is a sample elevation layer class that generates a sinusoidal terrain
-var simpleElevation = new SimpleElevationLayer({
-    id: 4,
-    name: "ultraElevation",
-    bounds: [-180, -90, 180, 90],
-    visible: true
-});
+// var simpleElevation = new SimpleElevationLayer({
+//     id: 4,
+//     name: "ultraElevation",
+//     bounds: [-180, -90, 180, 90],
+//     visible: true
+// });
 
-var bingMapsLayer = new BingMapsLayer({
-    id: 5,
-    name: "bing",
-    bounds: [-180, -90, 180, 90],
-    visible: true,
-    imagerySet: "Aerial",
-    key: "AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS"
+// var bingMapsLayer = new BingMapsLayer({
+//     id: 5,
+//     name: "bing",
+//     bounds: [-180, -90, 180, 90],
+//     visible: true,
+//     imagerySet: "Aerial",
+//     key: "AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS"
 
-})
+// })
 
-var ogc3dTiles = new OGC3DTilesLayer({
-    id: 6,
-    name: "OGC 3DTiles",
-    visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
-    zUp: false,
-    longitude: 100.5877,
-    latitude: 14.3692,
-    height: 100,
-    rotationY: 0.5,
-    scale: 1,
-    geometricErrorMultiplier: 1.5,
-    loadOutsideView: true
+// var ogc3dTiles = new OGC3DTilesLayer({
+//     id: 6,
+//     name: "OGC 3DTiles",
+//     visible: true,
+//     url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
+//     //url: "http://localhost:8080/tileset.json",
+//     zUp: true,
+//     longitude: 100.5877,
+//     latitude: 14.3692,
+//     height: 100,
+//     //rotationY: 0.5,
+//     scale: 100,
+//     geometricErrorMultiplier: 1.0,
+//     loadOutsideView: true
 
-});
+// });
 
-var treesLayer = new I3SLayer({
-    id: 7,
-    name: "new york trees",
-    visible: true,
-    url: "https://tiles.arcgis.com/tiles/z2tnIkrLQ2BRzr6P/arcgis/rest/services/2015_Street_Tree_Survey_v17/SceneServer",
-    layer: "0"
+// var treesLayer = new I3SLayer({
+//     id: 7,
+//     name: "new york trees",
+//     visible: true,
+//     url: "https://tiles.arcgis.com/tiles/z2tnIkrLQ2BRzr6P/arcgis/rest/services/2015_Street_Tree_Survey_v17/SceneServer",
+//     layer: "0"
 
-});
+// });
 
 //map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)

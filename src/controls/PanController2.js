@@ -25,11 +25,48 @@ class PanController2 extends Controller {
         switch (eventName) {
             case "mousedown": self.mouseDown(e); break;
             case "mouseup": self.mouseUp(e); break;
-            case "mousemove": self.mouseMove(e); break
+            case "mousemove": self.mouseMove(e); break;
+            case "touchstart": self.touchStart(e); break;
+            case "touchmove": self.touchMove(e); break;
+            case "touchend": self.touchEnd(e); break;
+            case "touchcancel": self.touchEnd(e); break;
         }
         super._handleEvent(eventName, e);
     }
 
+    touchStart(e){
+        if(!this.touchId && e.touches.length == 1){
+            this.touchId = e.changedTouches[0].identifier; 
+            this.isMouseDown = true;
+            this.mouseDownLocation = [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+            this.mouseLatest = [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+            this.map.screenPixelRayCast(e.changedTouches[0].clientX, e.changedTouches[0].clientY, this.mouseRayCast);
+        }else{
+            delete this.touchID; 
+            this.isMouseDown = false;
+        }
+    }
+    touchEnd(e){
+        for (let index = 0; index < e.changedTouches.length; index++) {
+            const touch = e.changedTouches[index];
+            if(this.touchId == touch.identifier){
+                delete this.touchID; 
+                this.isMouseDown = false;
+                break;
+            }
+        }
+        
+    }
+    touchMove(e){
+        for (let index = 0; index < e.changedTouches.length; index++) {
+            const touch = e.changedTouches[index];
+            if(this.touchId == touch.identifier){
+                this.mouseLatest = [touch.clientX, touch.clientY];
+                break;
+            }
+        }
+    }
+    
     mouseDown(e) {
         if (e.which == 1 || e.which == "all") {
             this.isMouseDown = true;
@@ -45,7 +82,7 @@ class PanController2 extends Controller {
     }
     mouseMove(e) {
         if (!!this.isMouseDown) {
-            this.mouseLatest = ([e.x, e.y])
+            this.mouseLatest = [e.x, e.y];
         }
     }
 

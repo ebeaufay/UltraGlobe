@@ -33,9 +33,37 @@ class ZoomController2 extends Controller {
     _handleEvent(eventName, e) {
         switch (eventName) {
             case "mousewheel": this.mouseWheel(e); break;
+            case "touchstart": this.touchStart(e); break;
+			case "touchmove": this.touchMove(e); break;
+			case "touchend": this.touchEnd(e); break;
+			case "touchcancel": this.touchEnd(e); break;
         }
         super._handleEvent(eventName, e)
     }
+
+    touchStart(e) {
+		if (e.touches.length == 2) {
+			
+			this.zoomLocation = {x:(e.touches[0].clientX+e.touches[1].clientX)*0.5, y:(e.touches[0].clientY+e.touches[1].clientY)*0.5};
+			this.map.screenPixelRayCast(this.zoomLocation.x, this.zoomLocation.y, this.mouseRayCast);
+            this.touchDist = Math.sqrt(Math.pow(e.touches[0].clientX-e.touches[1].clientX,2)+Math.pow(e.touches[0].clientY-e.touches[1].clientY,2))
+		} else {
+			this.touchEnd();
+            
+		}
+	}
+	touchEnd() {
+		this.zoom = 0;
+	}
+	touchMove(e) {
+        if(e.touches.length == 2){
+            this.newDist = Math.sqrt(Math.pow(e.touches[0].clientX-e.touches[1].clientX,2)+Math.pow(e.touches[0].clientY-e.touches[1].clientY,2));
+            this.zoom = -(this.newDist - this.touchDist)*0.5;
+        }else{
+            this.touchEnd();
+        }
+		
+	}
 
     mouseWheel(e) {
         this.zoom += Math.sign(e.deltaY);
@@ -48,6 +76,7 @@ class ZoomController2 extends Controller {
             this.zoomAction();
             this.straighten();
             this.zoom = 0;
+            this.touchDist = this.newDist;
             this.map.moveCameraAboveSurface();
             this.map.resetCameraNearFar();
         }

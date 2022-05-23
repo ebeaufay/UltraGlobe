@@ -82,7 +82,7 @@ class Map {
     initScene() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
+        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.5));
         return scene;
         /*  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
          dirLight.position.set(49, 500, 151);
@@ -97,7 +97,7 @@ class Map {
         if (this.target) this.target.dispose();
 
         this.target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-        this.target.texture.format = THREE.RGBFormat;
+        this.target.texture.format = THREE.RGBAFormat;
         this.target.texture.encoding = THREE.sRGBEncoding;
         this.target.texture.minFilter = THREE.LinearFilter;
         this.target.texture.magFilter = THREE.LinearFilter;
@@ -187,6 +187,7 @@ class Map {
     initRenderer() {
         let self = this;
         self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false });
+        //self.renderer.debug.checkShaderErrors = false;
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -244,10 +245,6 @@ class Map {
             
             layerManager: this.layerManager
         });
-
-        
-        
-
         this.resetCameraNearFar();
     }
 
