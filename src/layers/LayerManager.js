@@ -5,6 +5,12 @@ class LayerManager{
         this.listeners = {};
     }
 
+    pause(){
+        this.layers.forEach(layer=>layer.pause());
+    }
+    resume(){
+        this.layers.forEach(layer=>layer.resume());
+    }
     setLayer(layer, index){
         if(this.layers[index] && this.layers[index].dispose){
             this.layers[index].dispose();

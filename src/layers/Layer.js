@@ -35,9 +35,14 @@ class Layer {
         for (const element in this.listeners) {
             this.listeners[element](this, VISIBILITY_CHANGE);
         }
-        
     }
 
+    pause(){
+        this.pause = true;
+    }
+    resume(){
+        this.pause = false;
+    }
     getBounds() {
         return this.bounds;
     }

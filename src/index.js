@@ -81,7 +81,7 @@ var earthElevation = new SingleImageElevationLayer({
     layer: "1",
     visible: true,
     min: 0,
-    max: 22000
+    max: 8000
 });
 
 var wmsLayer = new WMSLayer({
@@ -126,22 +126,22 @@ var wmsLayer = new WMSLayer({
 
 // })
 
-// var ogc3dTiles = new OGC3DTilesLayer({
-//     id: 6,
-//     name: "OGC 3DTiles",
-//     visible: true,
-//     url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
-//     //url: "http://localhost:8080/tileset.json",
-//     zUp: true,
-//     longitude: 100.5877,
-//     latitude: 14.3692,
-//     height: 100,
-//     //rotationY: 0.5,
-//     scale: 100,
-//     geometricErrorMultiplier: 1.0,
-//     loadOutsideView: true
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
+    //url: "http://localhost:8080/tileset.json",
+    zUp: false,
+    longitude: 100.5877,
+    latitude: 14.3692,
+    height: 100,
+    //rotationY: 0.5,
+    scale: 1,
+    geometricErrorMultiplier: 1.0,
+    loadOutsideView: true
 
-// });
+});
 
 // var treesLayer = new I3SLayer({
 //     id: 7,
@@ -152,7 +152,7 @@ var wmsLayer = new WMSLayer({
 
 // });
 
-//map.setLayer(ogc3dTiles, 6)
+map.setLayer(ogc3dTiles, 6)
 map.setLayer(wmsLayer, 0)
 //map.setLayer(treesLayer, 1)
 map.setLayer(earthElevation, 3)

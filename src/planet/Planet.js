@@ -51,10 +51,12 @@ class Planet extends Object3D {
         self.matrixAutoUpdate = false;
         setInterval(function () {
             self.children.forEach(child => {
-                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                child.update(self.camera, frustum);
+                if(!pause){
+                    frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                    child.update(self.camera, frustum);
+                }
             });
-        }, 100);
+        }, 50);
 
     }
 
@@ -92,6 +94,12 @@ class Planet extends Object3D {
             return 0;
         }
         return elevation;
+    }
+    pause(){
+        this.pause = true;
+    }
+    resume(){
+        this.pause = false;
     }
 }
 

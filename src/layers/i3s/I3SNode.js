@@ -24,12 +24,6 @@ class I3SNode extends THREE.Object3D {
                 const mbsCenter = self.properties.transform.forward(self.info.mbs);
                 self.mbs = new THREE.Sphere(new THREE.Vector3(mbsCenter[0], mbsCenter[1], mbsCenter[2]), mbsCenter[3]);
                 self.loadFeatures(properties.url + properties.node+"/");
-
-                /* const geometry = new THREE.SphereGeometry( self.mbs.radius, 32, 16 );
-                geometry.translate(self.mbs.center.x, self.mbs.center.y, self.mbs.center.z);
-                const material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:true } );
-                const sphere = new THREE.Mesh( geometry, material );
-                self.add( sphere ); */
             });
         });
     }

@@ -56,7 +56,9 @@ class OGC3DTilesLayer extends Layer{
         scene.add(this.tileset);
         const self = this;
         self.updateInterval = setIntervalAsync(function () {
-            self.tileset.update(camera);
+            if(!self.pause){
+                self.tileset.update(camera);
+            }
         }, 25);
     }
 

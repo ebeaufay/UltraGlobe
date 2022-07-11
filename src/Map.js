@@ -82,7 +82,7 @@ class Map {
     initScene() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.5));
+        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
         return scene;
         /*  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
          dirLight.position.set(49, 500, 151);
@@ -98,7 +98,7 @@ class Map {
 
         this.target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         this.target.texture.format = THREE.RGBAFormat;
-        this.target.texture.encoding = THREE.sRGBEncoding;
+        this.target.texture.encoding = THREE.LinearEncoding;
         this.target.texture.minFilter = THREE.LinearFilter;
         this.target.texture.magFilter = THREE.LinearFilter;
         this.target.texture.generateMipmaps = false;
@@ -191,7 +191,7 @@ class Map {
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(window.innerWidth, window.innerHeight);
 
-        self.renderer.outputEncoding = THREE.sRGBEncoding;
+        self.renderer.outputEncoding = THREE.LinearEncoding;
         self.renderer.autoClear = false;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
@@ -307,54 +307,62 @@ class Map {
     }
     
 
+    pauseRendering(){
+        this.pause = true;
+        this.planet.pause();
+        this.layerManager.pause();
+    }
+    resumeRendering(){
+        this.pause = false;
+        this.planet.resume();
+        this.layerManager.resume();
+    }
     startAnimation() {
         var self = this;
-        /* function animate() {
-            requestAnimationFrame(animate);
-            self.camera.updateMatrixWorld();
-            self.renderer.render(self.scene, self.camera);
-            self.stats.update();
-        } */
+        
         function animate() {
             requestAnimationFrame(animate);
 
-            self.controller.update();
+            if(this.pause === true){
+                self.controller.update();
 
-            frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-            //self.planet.cull(frustum);
-
-            self.camera.updateMatrixWorld();
-
-            self.renderer.setRenderTarget(self.target);
-            self.renderer.render(self.scene, self.camera);
-
-            self.depthPassMaterial.uniforms.tDepth.value = self.target.depthTexture;
-
-            /// post params
-            self.postMaterial.uniforms.tDiffuse.value = self.target.texture;
-            self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
-            self.postMaterial.uniforms.cameraNear.value = self.camera.near;
-            self.postMaterial.uniforms.cameraFar.value = self.camera.far;
-            self.postMaterial.uniforms.radius.value = 6356752.3142;
-            self.postMaterial.uniforms.xfov.value = 2 * Math.atan( Math.tan( self.camera.fov * Math.PI / 180 / 2 ) * self.camera.aspect ) * 180 / Math.PI;
-            self.postMaterial.uniforms.yfov.value = self.camera.fov;
-            self.postMaterial.uniforms.planetPosition.value = self.planet.position;
-            self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
+                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                //self.planet.cull(frustum);
+    
+                self.camera.updateMatrixWorld();
+    
+                self.renderer.setRenderTarget(self.target);
+                self.renderer.render(self.scene, self.camera);
+    
+                self.depthPassMaterial.uniforms.tDepth.value = self.target.depthTexture;
+    
+                /// post params
+                self.postMaterial.uniforms.tDiffuse.value = self.target.texture;
+                self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
+                self.postMaterial.uniforms.cameraNear.value = self.camera.near;
+                self.postMaterial.uniforms.cameraFar.value = self.camera.far;
+                self.postMaterial.uniforms.radius.value = 6356752.3142;
+                self.postMaterial.uniforms.xfov.value = 2 * Math.atan( Math.tan( self.camera.fov * Math.PI / 180 / 2 ) * self.camera.aspect ) * 180 / Math.PI;
+                self.postMaterial.uniforms.yfov.value = self.camera.fov;
+                self.postMaterial.uniforms.planetPosition.value = self.planet.position;
+                self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
+                
+                
+                self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
+                self.postMaterial.uniforms.up.value = self.camera.up.normalize();
+                self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
+                self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
+    
+                self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length()-6356752.3142;
+                
+                self.renderer.setRenderTarget(self.depthTarget);
+                self.renderer.render(self.depthScene, self.postCamera);
+    
+                self.renderer.setRenderTarget(null);
+                self.renderer.render(self.postScene, self.postCamera);
+                self.labelRenderer.render(self.scene, self.camera);
+            }
             
-            
-            self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
-            self.postMaterial.uniforms.up.value = self.camera.up.normalize();
-            self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
-            self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-
-            self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length()-6356752.3142;
-            
-            self.renderer.setRenderTarget(self.depthTarget);
-            self.renderer.render(self.depthScene, self.postCamera);
-
-            self.renderer.setRenderTarget(null);
-            self.renderer.render(self.postScene, self.postCamera);
-            self.labelRenderer.render(self.scene, self.camera);
             self.stats.update();
         }
         animate();
