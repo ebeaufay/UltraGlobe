@@ -37,10 +37,10 @@ class Layer {
         }
     }
 
-    pause(){
+    pauseRendering(){
         this.pause = true;
     }
-    resume(){
+    resumeRendering(){
         this.pause = false;
     }
     getBounds() {

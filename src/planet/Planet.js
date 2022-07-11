@@ -51,7 +51,7 @@ class Planet extends Object3D {
         self.matrixAutoUpdate = false;
         setInterval(function () {
             self.children.forEach(child => {
-                if(!pause){
+                if(!self.pause){
                     frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
                     child.update(self.camera, frustum);
                 }
@@ -95,10 +95,10 @@ class Planet extends Object3D {
         }
         return elevation;
     }
-    pause(){
+    pauseRendering(){
         this.pause = true;
     }
-    resume(){
+    resumeRendering(){
         this.pause = false;
     }
 }

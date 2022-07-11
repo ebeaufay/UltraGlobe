@@ -309,13 +309,13 @@ class Map {
 
     pauseRendering(){
         this.pause = true;
-        this.planet.pause();
-        this.layerManager.pause();
+        this.planet.pauseRendering();
+        this.layerManager.pauseRendering();
     }
     resumeRendering(){
         this.pause = false;
-        this.planet.resume();
-        this.layerManager.resume();
+        this.planet.resumeRendering();
+        this.layerManager.resumeRendering();
     }
     startAnimation() {
         var self = this;
@@ -323,7 +323,7 @@ class Map {
         function animate() {
             requestAnimationFrame(animate);
 
-            if(this.pause === true){
+            if(!self.pause){
                 self.controller.update();
 
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));

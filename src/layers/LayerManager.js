@@ -5,11 +5,11 @@ class LayerManager{
         this.listeners = {};
     }
 
-    pause(){
-        this.layers.forEach(layer=>layer.pause());
+    pauseRendering(){
+        this.layers.forEach(layer=>layer.pauseRendering());
     }
-    resume(){
-        this.layers.forEach(layer=>layer.resume());
+    resumeRendering(){
+        this.layers.forEach(layer=>layer.resumeRendering());
     }
     setLayer(layer, index){
         if(this.layers[index] && this.layers[index].dispose){
