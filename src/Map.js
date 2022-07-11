@@ -62,6 +62,11 @@ class Map {
     }
 
     setLayer(layer, index) {
+        _prepareLayer(layer)
+        this.layerManager.setLayer(layer, index);
+    }
+
+    _prepareLayer(layer){
         if (layer instanceof OGC3DTilesLayer) {
             layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
@@ -70,9 +75,13 @@ class Map {
             //layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
         }
-        this.layerManager.setLayer(layer, index);
     }
 
+    addLayer(layer){
+        _prepareLayer(layer)
+        return this.layerManager.addLayer(layer);
+    }
+    
     removeLayer(index){
         this.layerManager.removeLayer(index);
     }

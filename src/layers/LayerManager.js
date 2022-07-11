@@ -21,6 +21,15 @@ class LayerManager{
         }
     }
 
+    addLayer(layer){
+        for (let i = 0; i < this.layers.length; i++) {
+            if(!this.layers[i]){
+                this.setLayer(layer, i);
+                return i;
+            }
+        }
+    }
+
     removeLayer(index){
         if(this.layers[index] && this.layers[index].dispose){
             if(this.layers[index].dispose){
