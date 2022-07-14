@@ -1,5 +1,15 @@
 # ULTRA Globe
 
+<p align="center">
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
+</p>
+<p align="center">
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
+</p>
+<p align="center">
+  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
+</p>
+
 Displays the earth in threeJS with level of detail, imagery, elevation and connection to OGC web services.
 
 The earth model is wgs 84.
@@ -7,6 +17,8 @@ The earth model is wgs 84.
 Support for WMS and OGC 3DTiles.
 
 I3S support is in progress.
+
+## Demos
 
 3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
 
@@ -19,16 +31,6 @@ I3S Points (new york trees) and blue marble (slow imagery service): https://stor
 Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
 
 More controls for selecting and moving tilesets : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
-
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
-</p>
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
-</p>
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
-</p>
 
 ## API
 
