@@ -3,9 +3,11 @@ const VISIBILITY_CHANGE = "visibility-change";
 class Layer {
     /**
      * 
-     * @param {id: Object, 
+     * @param {
+     * id: Object, 
      * name: String, 
-     * bounds: [Double]} properties 
+     * bounds: [Double]
+     * } properties 
      */
     constructor(properties) {
         this.id = properties.id;
@@ -57,6 +59,25 @@ class Layer {
 
     addListener(key, listener) {
         this.listeners[key] = listener;
+    }
+
+    select(objectsToSelect){
+        // to be implemented by children
+        return;
+    }
+
+    unselect(objectsToUnselect){
+        // to be implemented by children
+        return;
+    }
+
+    /**
+     * Get all the selectable objects of this layer.
+     * @returns an array of ray-castable objects with a property "layer" pointing to this layer.
+     */
+    getSelectableObjects(){
+        // to be implemented by children
+        return [];
     }
 }
 

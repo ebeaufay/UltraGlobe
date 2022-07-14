@@ -13,7 +13,7 @@ var pointer3;
 var pointer4;
 
 
-class PanController2 extends Controller {
+class PanController extends Controller {
     constructor(camera, domElement, map) {
         super(camera, domElement, map);
         this.isMouseDown = false;
@@ -130,4 +130,4 @@ class PanController2 extends Controller {
 
 
 
-} export { PanController2 }
+} export { PanController }

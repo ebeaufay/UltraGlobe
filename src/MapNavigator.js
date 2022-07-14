@@ -72,6 +72,8 @@ export class MapNavigator {
                 if (cameraMovedCallback) cameraMovedCallback();
                 if (adaptNearFar) self.map.resetCameraNearFar();
                 self.straighten();
+                this.map.moveCameraAboveSurface();
+                this.map.resetCameraNearFar();
             }, 20);
         });
 

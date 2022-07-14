@@ -12,12 +12,49 @@
       font-size: 0;
       touch-action: none;
     }
+
+    .footer {
+      position: absolute;
+      bottom: 0%;
+      width: 100%;
+      height: 100px;
+      background: #151515;
+      z-index: 1000;
+      box-shadow: 0 0 0 4px #353535, 0 0 0 5px #3e3e3e, inset 0 0 10px rgba(0, 0, 0, 1);
+    }
+
+    .outlinedText {
+      position: absolute;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      text-align: center;
+      font-weight: bold;
+      color: rgb(0, 0, 0);
+      font-size: 14px;
+      padding: 15px 0;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      -webkit-text-fill-color: rgb(255, 255, 255);
+      -webkit-text-stroke: 1px;
+    }
   </style>
 </head>
 
 <body>
-  <div id="screen" oncontextmenu="return false;">
+  <div id="screen" oncontextmenu="return false;"></div>
+  <a class="outlinedText" style="left:5%;bottom: 10%;" href="https://openheritage3d.org/project.php?id=taz6-n215">ORIGINAL MODEL</a>
+  
+  <a class="outlinedText" style="left:5%;bottom: 5%;" href="https://worldwind25.arc.nasa.gov">Map service</a>
+  
+  <div class="outlinedText" style="left:0%;bottom: 150px; width:100%;pointer-events: none;">
+    Select a tileset with left-click, Move with mouse and drop with Left-click
   </div>
+  <div class="outlinedText" style="left:0%;bottom: 100px; width:100%;pointer-events: none;">
+    Map controls: Left-click pan | Right-click rotation | Mouse-wheel zoom
+  </div>
+  
 </body>
 
 </html>

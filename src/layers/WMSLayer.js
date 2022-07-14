@@ -48,8 +48,7 @@ class WMSLayer extends ImageryLayer {
                 "&WIDTH=" + width +
                 "&HEIGHT=" + height +
                 "&VERSION=" + this.version +
-                "&FORMAT=image/"+ this.format+
-                "&STYLES=default";
+                "&FORMAT=image/"+ this.format;
 
             
             

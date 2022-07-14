@@ -2,9 +2,10 @@ import "regenerator-runtime/runtime.js";
 import * as THREE from 'three';
 import { Planet } from './planet/Planet.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { PanController2 } from './controls/PanController2.js';
-import { RotateController2 } from './controls/RotateController2.js';
-import { ZoomController2 } from './controls/ZoomController2.js';
+import { PanController } from './controls/PanController.js';
+import { RotateController } from './controls/RotateController.js';
+import { ZoomController } from './controls/ZoomController.js';
+import { SelectController } from './controls/SelectController.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
@@ -23,7 +24,8 @@ const unpacker = new THREE.Vector2(1, 1 / 256);
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
 const loader = new THREE.TextureLoader();
-const degreeToRadians = Math.PI/180;
+const degreeToRadians = Math.PI / 180;
+
 
 class Map {
 
@@ -35,17 +37,17 @@ class Map {
      */
     constructor(properties) {
         this.layerManager = new LayerManager();
-        this.scene = !!properties.scene?properties.scene:this.initScene();
-        if(!!properties.domContainer){
+        this.scene = !!properties.scene ? properties.scene : this.initScene();
+        if (!!properties.domContainer) {
             this.domContainer = properties.domContainer;
-        }else if(!!properties.divID){
+        } else if (!!properties.divID) {
             this.domContainer = document.getElementById(properties.divID);
-        }else{
+        } else {
             throw "cannot create Map without a domContainer or divID"
         }
-        this.camera = !!properties.camera?properties.camera:this.initCamera();
-        
-        
+        this.camera = !!properties.camera ? properties.camera : this.initCamera();
+
+
 
         this.initPlanet();
         this.initController();
@@ -58,15 +60,19 @@ class Map {
 
         this.startAnimation();
         this.mapNavigator = new MapNavigator(this);
-        
+
+        this.raycaster = new THREE.Raycaster();
+
+        this.selection = {};
+
     }
 
     setLayer(layer, index) {
-        _prepareLayer(layer)
+        this._prepareLayer(layer)
         this.layerManager.setLayer(layer, index);
     }
 
-    _prepareLayer(layer){
+    _prepareLayer(layer) {
         if (layer instanceof OGC3DTilesLayer) {
             layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
@@ -77,12 +83,12 @@ class Map {
         }
     }
 
-    addLayer(layer){
-        _prepareLayer(layer)
+    addLayer(layer) {
+        this._prepareLayer(layer)
         return this.layerManager.addLayer(layer);
     }
-    
-    removeLayer(index){
+
+    removeLayer(index) {
         this.layerManager.removeLayer(index);
     }
     getLayers() {
@@ -93,12 +99,6 @@ class Map {
         scene.background = new THREE.Color(0x000000);
         scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
         return scene;
-        /*  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-         dirLight.position.set(49, 500, 151);
-         dirLight.target.position.set(0, 0, 0);
- 
-         this.scene.add(dirLight);
-         this.scene.add(dirLight.target); */
     }
 
     setupRenderTarget() {
@@ -143,34 +143,34 @@ class Map {
                 cameraFar: { value: this.camera.far },
                 tDiffuse: { value: null },
                 tDepth: { value: null },
-                radius: {value: 0 },
-                xfov: {value: 0 },
-                yfov: {value: 0 },
-                planetPosition: {value: new THREE.Vector3(0,0,0)},
-                nonPostCameraPosition: {value: new THREE.Vector3(0,0,0)},
-                viewCenterFar: {value: new THREE.Vector3(0,0,0)},
-                up: {value: new THREE.Vector3(0,0,0)},
-                right: {value: new THREE.Vector3(0,0,0)},
-                heightAboveSeaLevel: {value: 0},
-                opticalDepth:{value: null}
+                radius: { value: 0 },
+                xfov: { value: 0 },
+                yfov: { value: 0 },
+                planetPosition: { value: new THREE.Vector3(0, 0, 0) },
+                nonPostCameraPosition: { value: new THREE.Vector3(0, 0, 0) },
+                viewCenterFar: { value: new THREE.Vector3(0, 0, 0) },
+                up: { value: new THREE.Vector3(0, 0, 0) },
+                right: { value: new THREE.Vector3(0, 0, 0) },
+                heightAboveSeaLevel: { value: 0 },
+                opticalDepth: { value: null }
             }
         });
 
         loader.load(
             // resource URL
             opticalDepth,
-        
+
             // onLoad callback
-            function ( texture ) {
+            function (texture) {
                 texture.wrapS = THREE.ClampToEdgeWrapping;
                 texture.wrapT = THREE.ClampToEdgeWrapping;
                 texture.magFilter = THREE.LinearFilter;
                 texture.minFilter = THREE.LinearFilter;
-                self.postMaterial.uniforms.opticalDepth.value =texture;
+                self.postMaterial.uniforms.opticalDepth.value = texture;
             },
             undefined,
-            function ( err ) {
-                console.error( 'An error happened: '+err );
+            function (err) {
+                console.error('An error happened: ' + err);
             }
         );
 
@@ -204,7 +204,7 @@ class Map {
         self.renderer.autoClear = false;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
-        
+
         window.addEventListener('resize', onWindowResize);
         function onWindowResize() {
 
@@ -212,7 +212,7 @@ class Map {
             self.camera.aspect = aspect;
             self.camera.updateProjectionMatrix();
 
-            
+
             self.target.setSize(window.innerWidth, window.innerHeight);
             self.depthTarget.setSize(window.innerWidth, window.innerHeight);
             self.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -239,10 +239,10 @@ class Map {
     initCamera() {
         const camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
         camera.position.set(40000000, 0, 0);
-        camera.up.set(0,0,1)
+        camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
         camera.updateProjectionMatrix();
-        
+
         return camera;
     }
 
@@ -251,127 +251,120 @@ class Map {
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            
+
             layerManager: this.layerManager
         });
         this.resetCameraNearFar();
     }
 
 
-    // Three doesn't offer a listener on camera position so we leave it up to the controller to call planet updates.
     initController() {
         const self = this;
-        self.controller = new PanController2(self.camera, self.domContainer, self);
-        self.controller.append(new RotateController2(self.camera, self.domContainer, self));
-        self.controller.append(new ZoomController2(self.camera, self.domContainer, self));
+        self.selectController = new SelectController(self.camera, self.domContainer, self);
+        self.panController = new PanController(self.camera, self.domContainer, self);
+        self.rotateController = new RotateController(self.camera, self.domContainer, self);
+        self.zoomController = new ZoomController(self.camera, self.domContainer, self);
+        self.controller = self.selectController;
+        self.controller.append(self.panController);
+        self.controller.append(self.rotateController);
+        self.controller.append(self.zoomController);
         self.domContainer.addEventListener('mousedown', (e) => {
-            if(!!self.controller) self.controller.event('mousedown', e);
+            if (!!self.controller) self.controller.event('mousedown', e);
         }, false);
         self.domContainer.addEventListener('mouseup', (e) => {
-            if(!!self.controller) self.controller.event('mouseup', e);
+            if (!!self.controller) self.controller.event('mouseup', e);
         }, false);
         self.domContainer.addEventListener('mousemove', (e) => {
-            if(!!self.controller) self.controller.event('mousemove', e);
+            if (!!self.controller) self.controller.event('mousemove', e);
         }, false);
         self.domContainer.addEventListener('wheel', (e) => {
-            if(!!self.controller) self.controller.event('mousewheel', e);
+            if (!!self.controller) self.controller.event('mousewheel', e);
         }, false);
         self.domContainer.addEventListener('touchstart', (e) => {
-            if(!!self.controller) self.controller.event('touchstart', e);
+            if (!!self.controller) self.controller.event('touchstart', e);
         }, false);
         self.domContainer.addEventListener('touchmove', (e) => {
-            if(!!self.controller) self.controller.event('touchmove', e);
+            if (!!self.controller) self.controller.event('touchmove', e);
         }, false);
         self.domContainer.addEventListener('touchcancel', (e) => {
-            if(!!self.controller) self.controller.event('touchcancel', e);
+            if (!!self.controller) self.controller.event('touchcancel', e);
         }, false);
         self.domContainer.addEventListener('touchend', (e) => {
-            if(!!self.controller) self.controller.event('touchend', e);
+            if (!!self.controller) self.controller.event('touchend', e);
         }, false);
-        document.addEventListener("mouseleave", function(event){
+        self.domContainer.addEventListener('keyup', (e) => {
+            if (!!self.controller) self.controller.event('keyup', e);
+        }, false);
 
-            if(event.clientY <= 0 || event.clientX <= 0 || (event.clientX >= window.innerWidth || event.clientY >= window.innerHeight))
-            {
-                
-                self.controller.event('mouseup', {which: "all"});
-          
+        document.addEventListener("mouseleave", function (event) {
+
+            if (event.clientY <= 0 || event.clientX <= 0 || (event.clientX >= window.innerWidth || event.clientY >= window.innerHeight)) {
+
+                self.controller.event('mouseup', { which: "all" });
+
             }
-          });
-
-        /* //// mousewheel ////
-        if (this.domContainer.addEventListener) {
-            // IE9, Chrome, Safari, Opera
-            this.domContainer.addEventListener("mousewheel", mouseWheelHandler, false);
-            // Firefox
-            this.domContainer.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
-        }
-        // IE 6/7/8
-        else {
-            this.domContainer.attachEvent("onmousewheel", mouseWheelHandler);
-        }
-        const mouseWheelHandler = (e) => {
-            if(!!this.controller) this.controller.event('mousewheel', e);
-        } */
+        });
 
     }
-    
 
-    pauseRendering(){
+
+    pauseRendering() {
         this.pause = true;
         this.planet.pauseRendering();
         this.layerManager.pauseRendering();
     }
-    resumeRendering(){
+    resumeRendering() {
         this.pause = false;
         this.planet.resumeRendering();
         this.layerManager.resumeRendering();
     }
     startAnimation() {
         var self = this;
-        
+
         function animate() {
             requestAnimationFrame(animate);
 
-            if(!self.pause){
+            if (!self.pause) {
                 self.controller.update();
 
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
                 //self.planet.cull(frustum);
-    
+
                 self.camera.updateMatrixWorld();
-    
+
                 self.renderer.setRenderTarget(self.target);
                 self.renderer.render(self.scene, self.camera);
-    
+
+                
                 self.depthPassMaterial.uniforms.tDepth.value = self.target.depthTexture;
-    
+
                 /// post params
                 self.postMaterial.uniforms.tDiffuse.value = self.target.texture;
                 self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
                 self.postMaterial.uniforms.cameraNear.value = self.camera.near;
                 self.postMaterial.uniforms.cameraFar.value = self.camera.far;
                 self.postMaterial.uniforms.radius.value = 6356752.3142;
-                self.postMaterial.uniforms.xfov.value = 2 * Math.atan( Math.tan( self.camera.fov * Math.PI / 180 / 2 ) * self.camera.aspect ) * 180 / Math.PI;
+                self.postMaterial.uniforms.xfov.value = 2 * Math.atan(Math.tan(self.camera.fov * Math.PI / 180 / 2) * self.camera.aspect) * 180 / Math.PI;
                 self.postMaterial.uniforms.yfov.value = self.camera.fov;
                 self.postMaterial.uniforms.planetPosition.value = self.planet.position;
                 self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
-                
-                
+
+
                 self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
                 self.postMaterial.uniforms.up.value = self.camera.up.normalize();
                 self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
                 self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-    
-                self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length()-6356752.3142;
-                
+
+                self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - 6356752.3142;
+
                 self.renderer.setRenderTarget(self.depthTarget);
                 self.renderer.render(self.depthScene, self.postCamera);
-    
+
                 self.renderer.setRenderTarget(null);
                 self.renderer.render(self.postScene, self.postCamera);
                 self.labelRenderer.render(self.scene, self.camera);
             }
-            
+
             self.stats.update();
         }
         animate();
@@ -379,24 +372,24 @@ class Map {
 
     resetCameraNearFar() {
         const geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
-		B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
+        B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
         const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-        
+
         this.camera.near = Math.max(distToGround * 0.25, 1.25);
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = Math.max(10000, Math.max(distanceToHorizon * 1.5, this.camera.near*50000));
+        this.camera.far = Math.max(10000, Math.max(distanceToHorizon * 1.5, this.camera.near * 50000));
         this.camera.updateProjectionMatrix();
-        
+
     }
-    moveCameraAboveSurface(){
+    moveCameraAboveSurface() {
         let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
         //A.copy(this.camera.position).sub(this.planet.center);
         //A.normalize();
-		B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
+        B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
         const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-        if(distToGround<10){
-            geodeticCameraPosition.z += (10-distToGround);
+        if (distToGround < 10) {
+            geodeticCameraPosition.z += (10 - distToGround);
             geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
             this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
         }
@@ -424,34 +417,119 @@ class Map {
 
         sideEffect.set(clipSpacePosition.x, clipSpacePosition.y, clipSpacePosition.z);
     }
-    checkCameraCollision(){
+    checkCameraCollision() {
         this.planet.heightAboveElevation();
     }
 
-    
 
-    moveCamera(location, lookAt){
-        
+
+    moveCamera(location, lookAt) {
+
         this.camera.position.set(location);
         this.camera.lookAt(lookAt);
         let p1 = new THREE.Vector3();
         let p2 = new THREE.Vector3();
         let p3 = new THREE.Vector3();
         this.camera.getWorldDirection(p1).normalize();
-		p2.copy(this.planet.center).sub(this.camera.position);
+        p2.copy(this.planet.center).sub(this.camera.position);
 
-		p3.crossVectors(p1, p2);
-		this.camera.up.crossVectors(p1, p3);
+        p3.crossVectors(p1, p2);
+        this.camera.up.crossVectors(p1, p3);
 
-		this.moveCameraAboveSurface();
+        this.moveCameraAboveSurface();
         this.resetCameraNearFar();
+    }
+
+    addSelectionListener(calback){
+        if(!this.selectionListeners) this.selectionListeners = [];
+        this.selectionListeners.push(calback);
+    }
+    removeSelectionListener(callback){
+        if(this.selectionListeners) this.selectionListeners.filter(f=>f !== callback);
+    }
+    /**
+     * select action at a particular location on this map (normalized between -1 and 1)
+     * @param {THREE.Vector2} screenLocation 
+     * @param {int} type 0(Add), 1(Remove) or 2(Replace)
+     */
+    select(screenLocation, type) {
+
+        this.raycaster.setFromCamera(screenLocation, this.camera);
+        const selectableObjects = [];
+        const layers = this.layerManager.getLayers();
+        for (let i = layers.length - 1; i >= 0; i--) {
+            const l = layers[i];
+            if (l) {
+                const selectable = l.getSelectableObjects();
+                while(selectable.length) selectableObjects.push(selectable.shift());
+            }
+        }
+
+        const select = this.raycaster.intersectObjects(selectableObjects, false);
+
+        const selected = [];
+        const unselected = [];
+        if(type == 0){
+            select.forEach(object=>{
+                if(!this.selection[object.object.layer.id]){
+                    this.selection[object.object.layer.id] = [];
+                }
+                if(!this.selection[object.object.layer.id].includes(object)){
+                    this.selection[object.object.layer.id].push(object);
+                    selected.push(object.object);
+                }
+            });
+            for (const layerID in this.selection) {
+                const selectLayer = this.layerManager.getLayerByID(layerID);
+                selectLayer.select(this.selection[layerID]);
+            }
+        }else if(type == 1){
+            select.forEach(object=>{
+                if(this.selection[object.object.layer.id] && this.selection[object.object.layer.id].includes(object.object)){
+                    this.selection[object.object.layer.id].filter(o=> o!== object.object);
+                    if(!this.selection[object.object.layer.id].length) delete this.selection[object.object.layer.id];
+                    unselected.push(object.object);
+                    object.object.layer.unselect([object.object])
+                }
+            });
+        }else if(type == 2){
+            // unselect everything
+            for (const key in this.selection) {
+                const unselectLayer = this.layerManager.getLayerByID(key);
+                unselectLayer.unselect(this.selection[key])
+                while(this.selection[key].length) unselected.push(this.selection[key].shift());
+            }
+            this.selection = {};
+            // select first object
+            if(select.length>0){
+                const object = select[0].object;
+                if(!this.selection[object.layer.id]){
+                    this.selection[object.layer.id] = [];
+                }
+                if(!unselected.includes(object)){
+                    this.selection[object.layer.id].push(object);
+                    object.layer.select([object]);
+                    selected.push(object);
+                    unselected.filter(o=>o!==object);
+                }
+            }
+        }
+
+        const selections = {
+            selection: this.selection,
+            selected: selected,
+            unselected: unselected,
+        }
+        if(this.selectionListeners) this.selectionListeners.forEach(callback=>callback(selections))
+        return selections;
     }
 }
 
+
 function perspectiveDepthToViewZ(invClipZ, near, far) {
     return (near * far) / ((far - near) * invClipZ - far);
-    
-    
+
+
 }
 
 export { Map };

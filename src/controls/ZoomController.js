@@ -19,7 +19,7 @@ var pointer5;
 
 var wgs84MajorMinorRatio = new THREE.Vector3(1,1,6378137.0 / 6356752.3142);
 
-class ZoomController2 extends Controller {
+class ZoomController extends Controller {
     constructor(camera, domElement, map) {
         super(camera, domElement, map)
 
@@ -246,4 +246,4 @@ class ZoomController2 extends Controller {
         this.camera.up.crossVectors(tempPointD.sub(this.camera.position), tempPointE);
     }
 
-} export { ZoomController2 }
+} export { ZoomController }

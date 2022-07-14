@@ -7,7 +7,7 @@ const tempPointC = new THREE.Vector3();
 const tempPointD = new THREE.Vector3();
 const tempPointE = new THREE.Vector3();
 
-class RotateController2 extends Controller {
+class RotateController extends Controller {
 	constructor(camera, domElement, map) {
 		super(camera, domElement, map);
 		this.isMouseDown = false;
@@ -149,4 +149,4 @@ class RotateController2 extends Controller {
 	}
 
 
-} export { RotateController2 }
+} export { RotateController }

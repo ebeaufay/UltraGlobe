@@ -42,6 +42,13 @@ class LayerManager{
     getLayers(){
         return this.layers;
     }
+    getLayerByID(layerID){
+        for (let i = 0; i < this.layers.length; i++) {
+            if(this.layers[i] && this.layers[i].id == layerID){
+                return this.layers[i];
+            }
+        }
+    }
     getRasterLayers(sideEffect){
         this.layers.forEach(element => {
             if(element instanceof RasterLayer){
