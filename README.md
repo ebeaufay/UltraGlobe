@@ -18,7 +18,7 @@ I3S Points (new york trees) and blue marble (slow imagery service): https://stor
 
 Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
 
-Move tilesets around : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
+More controls for selecting and moving tilesets : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
 
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
