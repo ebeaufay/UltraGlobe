@@ -141,7 +141,7 @@ Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming
 Furthermore, only Box and Sphere bounding volumes are supported (unrefferenced tileset).
 
 I also have a project to convert meshes to 3DTiles. I'm keeping that code private but I'm working on a web-service that I'll try to make free for small meshes.
-Feel free to contact me at emericbeaufays@gmail.com if you want a specific model converted.
+Feel free to contact me at emeric.beaufays@jdultra.com if you want a specific model converted.
 
 ### Atmosphere
 atmosphere is on by default, and there shouldn't be anything to do there.
