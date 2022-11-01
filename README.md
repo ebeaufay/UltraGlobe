@@ -22,6 +22,8 @@ I3S support is in progress.
 
 3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
 
+Berlin (3 km²) : https://storage.googleapis.com/jdultra.com/berlin/index.html
+
 Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
 
 Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation/index.html
