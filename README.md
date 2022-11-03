@@ -1,4 +1,4 @@
-# U L T R A G L O B E    http://www.jdultra.com/
+# U L T R A G L O B E  :  http://www.jdultra.com/
 
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
