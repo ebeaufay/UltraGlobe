@@ -128,22 +128,32 @@ function generateBaseTile(resolution) {
 
 const tilesToLoad = [];
 function scheduleLoadLayers(tile) {
-    /* for (let index = 0; index < tilesToLoad.length; index++) {
-        if(tilesToLoad.level < tile.level){
+    const length = tilesToLoad.length;
+    for (let index = 0; index < tilesToLoad.length; index++) {
+        if(tilesToLoad[index].priority > tile.priority){
             tilesToLoad.splice(index, 0, tile);
             return;
         }
-    } */
-    tilesToLoad.push(tile);
+    }
+    if(tilesToLoad.length == length){
+        tilesToLoad.push(tile);
+    }
 }
 
 
 
 setInterval(() => {
-    const tile = tilesToLoad.shift();
-    if (!!tile && !tile.disposed) tile._loadLayers(tile);
-}, 1)
+    const start = now();
+    while(tilesToLoad.length>0 && now()-start<5){
+        const tile = tilesToLoad.shift();
+        if (!!tile && !tile.disposed) tile._loadLayers(tile);
+    }
+    
+}, 10)
 
+function now() {
+    return (typeof performance === 'undefined' ? Date : performance).now(); // see #10732
+}
 
 class PlanetTile extends Mesh {
 
@@ -174,6 +184,7 @@ class PlanetTile extends Mesh {
         self.material.visible = false;
         self.elevationDisplayed = false;
 
+        self.priority = self.level;
         self.mapRequests = []; // collects texture requests in order to abort them when needed
         /////// prevent loading too many levels at the poles
         if (self.bounds.max.y == Math.PI / 2 || self.bounds.min.y == -Math.PI / 2) {
@@ -575,7 +586,7 @@ class PlanetTile extends Mesh {
         if (isNaN(metric)) {
             return this.level;
         }
-
+        self.priority = (distance) * this.level;
         return metric;
     }
 

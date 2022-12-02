@@ -22,6 +22,7 @@ class Planet extends Object3D {
         if (!properties.camera) {
             throw ("A camera is required in order to refine the planet's levels of detail.")
         }
+        self.llhToCartesian = TRANSFORM.transform("EPSG:4326", 'EPSG:4978');
         self.camera = properties.camera;
     
         self.a = 6378137.0;
@@ -35,7 +36,7 @@ class Planet extends Object3D {
         } else {
             self.center = new THREE.Vector3(0, 0, 0);
         }
-        self.llhToCartesian = TRANSFORM.transform("EPSG:4326", 'EPSG:4978');
+        
         self.radius = 6378137.0;
         self.layerManager = properties.layerManager;
 

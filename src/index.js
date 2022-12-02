@@ -89,7 +89,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     height: 170,
     //rotationY: 0.5,
     scale: 1,
-    geometricErrorMultiplier: 0.1,
+    geometricErrorMultiplier: 0.02,
     loadOutsideView: false
 });
 

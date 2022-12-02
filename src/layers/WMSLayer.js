@@ -57,7 +57,7 @@ class WMSLayer extends ImageryLayer {
             "&FORMAT=image/" + this.format;
 
         
-        return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error) => callbackFailure(error), tile.level);
+        return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error) => callbackFailure(error));
 
     };
 }
