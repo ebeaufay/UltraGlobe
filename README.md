@@ -1,24 +1,4 @@
-# ULTRA Globe
-
-Displays the earth in threeJS with level of detail, imagery, elevation and connection to OGC web services.
-
-The earth model is wgs 84.
-
-Support for WMS and OGC 3DTiles.
-
-I3S support is in progress.
-
-3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
-
-Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
-
-Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation/index.html
-
-I3S Points (new york trees) and blue marble (slow imagery service): https://storage.googleapis.com/jdultra.com/i3s/index.html
-
-Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
-
-Move tilesets around : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
+# U L T R A G L O B E  :  http://www.jdultra.com/
 
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
@@ -29,6 +9,30 @@ Move tilesets around : https://storage.googleapis.com/jdultra.com/tilesetplaceme
 <p align="center">
   <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
 </p>
+
+Displays the earth in threeJS with level of detail, imagery, elevation and connection to OGC web services.
+
+The earth model is wgs 84.
+
+Support for WMS and OGC 3DTiles.
+
+I3S support is in progress.
+
+## Demos
+
+3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
+
+Berlin (3 km²) : https://storage.googleapis.com/jdultra.com/berlin/index.html
+
+Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
+
+Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation/index.html
+
+I3S Points (new york trees) and blue marble (slow imagery service): https://storage.googleapis.com/jdultra.com/i3s/index.html
+
+Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
+
+More controls for selecting and moving tilesets : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
 
 ## API
 
@@ -139,7 +143,7 @@ Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming
 Furthermore, only Box and Sphere bounding volumes are supported (unrefferenced tileset).
 
 I also have a project to convert meshes to 3DTiles. I'm keeping that code private but I'm working on a web-service that I'll try to make free for small meshes.
-Feel free to contact me at emericbeaufays@gmail.com if you want a specific model converted.
+Feel free to contact me at emeric.beaufays@jdultra.com if you want a specific model converted.
 
 ### Atmosphere
 atmosphere is on by default, and there shouldn't be anything to do there.
