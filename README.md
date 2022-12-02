@@ -20,19 +20,19 @@ I3S support is in progress.
 
 ## Demos
 
-3DTiles : https://ebeaufay.github.io/UltraGlobeDemo/
+[3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
-Berlin (3 km²) : https://storage.googleapis.com/jdultra.com/berlin/index.html
+[Berlin (3 km²)](https://www.jdultra.com/berlin/index.html)
 
-Geoid : https://storage.googleapis.com/jdultra.com/geoid/index.html
+[Geoid](https://storage.googleapis.com/jdultra.com/geoid/index.html)
 
-Elevation and WMS imagery : https://storage.googleapis.com/jdultra.com/elevation/index.html
+[Elevation and WMS imagery](https://storage.googleapis.com/jdultra.com/elevation/index.html)
 
-I3S Points (new york trees) and blue marble (slow imagery service): https://storage.googleapis.com/jdultra.com/i3s/index.html
+[I3S Points (new york trees) and blue marble](https://storage.googleapis.com/jdultra.com/i3s/index.html)
 
-Controls (including mobile) : https://storage.googleapis.com/jdultra.com/controllers/index.html
+[Controls (including mobile)](https://storage.googleapis.com/jdultra.com/controllers/index.html)
 
-More controls for selecting and moving tilesets : https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html
+[More controls for selecting and moving 3DTiles tilesets](https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html)
 
 ## API
 
@@ -148,7 +148,3 @@ Feel free to contact me at emeric.beaufays@jdultra.com if you want a specific mo
 ### Atmosphere
 atmosphere is on by default, and there shouldn't be anything to do there.
 
-# NILKINS
-
-This project is being ported to the nilkins engine, a c++ engine with javascript transpilation.
-Write once and compile for web and desktop with optimal performance and a bunch of cool features : https://www.nilkinsengine.com/
