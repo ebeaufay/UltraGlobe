@@ -1,6 +1,6 @@
 
-import {CancellableTextureLoader} from '../loaders/CancellableTextureLoader.js'
-import {ImageryLayer} from "./ImageryLayer.js"
+import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
+import { ImageryLayer } from "./ImageryLayer.js"
 /**
  * A service to retrieve maps from a WMS Service
  */
@@ -20,39 +20,44 @@ class WMSLayer extends ImageryLayer {
      */
     constructor(properties) {
         super(properties);
-        this.url = properties.url;
-        this.layer = properties.layer;
-        this.epsg = properties.epsg;
-        this.version = properties.version;
-        this.format = properties.format? properties.format:"jpeg";
-        this.textureLoader = new CancellableTextureLoader();
+        const self = this;
+        self.url = properties.url;
+        self.layer = properties.layer;
+        self.epsg = properties.epsg;
+        self.version = properties.version;
+        self.format = properties.format ? properties.format : "jpeg";
+        self.textureLoader = new CancellableTextureLoader();
+
+        self.downloads = [];
+
+        
+        
     }
 
-    
+
     getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
-        if(!this.bounds || !this.bounds.intersectsBox(tile.bounds)){
+        if (!this.bounds || !this.bounds.intersectsBox(tile.bounds)) {
             callbackFailure("bounds don't intersect with layer");
         }
         var minY = Math.min(90, Math.max(-90, tile.bounds.min.y * toDegrees));
-            var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
-            var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
-            var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
+        var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
+        var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
+        var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
 
-            var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=" ;
-            switch (this.version){
-                case "1.1.1":request += minX + "," + minY + "," + maxX + "," + maxY+"&SRS=" + this.epsg ; break;
-                default :request += minY + "," + minX + "," + maxY + "," + maxX + "&CRS=" + this.epsg ; break;
-            }
-            request += 
-                "&LAYERS=" + this.layer +
-                "&WIDTH=" + width +
-                "&HEIGHT=" + height +
-                "&VERSION=" + this.version +
-                "&FORMAT=image/"+ this.format;
+        var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=";
+        switch (this.version) {
+            case "1.1.1": request += minX + "," + minY + "," + maxX + "," + maxY + "&SRS=" + this.epsg; break;
+            default: request += minY + "," + minX + "," + maxY + "," + maxX + "&CRS=" + this.epsg; break;
+        }
+        request +=
+            "&LAYERS=" + this.layer +
+            "&WIDTH=" + width +
+            "&HEIGHT=" + height +
+            "&VERSION=" + this.version +
+            "&FORMAT=image/" + this.format;
 
-            
-            
-            return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error)=>callbackFailure(error));
+        
+        return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error) => callbackFailure(error), tile.level);
 
     };
 }

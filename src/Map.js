@@ -52,7 +52,7 @@ class Map {
         this.initPlanet();
         this.initController();
         this.scene.add(this.planet);
-        this.initStats();
+        //this.initStats();
         this.setupRenderTarget();
         this.setupPost();
         this.initLabelRenderer();
@@ -195,13 +195,15 @@ class Map {
 
     initRenderer() {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false, stencil: false, preserveDrawingBuffer: false, powerPreference : "high-performance"});
         //self.renderer.debug.checkShaderErrors = false;
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(window.innerWidth, window.innerHeight);
 
         self.renderer.outputEncoding = THREE.LinearEncoding;
         self.renderer.autoClear = false;
+        self.renderer.toneMapping = THREE.ReinhardToneMapping;
+        self.renderer.toneMappingExposure = 3.5;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
 
@@ -365,7 +367,7 @@ class Map {
                 self.labelRenderer.render(self.scene, self.camera);
             }
 
-            self.stats.update();
+            //self.stats.update();
         }
         animate();
     }

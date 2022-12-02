@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { TileLoader } from '@jdultra/threedtiles/src/tileset/TileLoader';
 import { clearIntervalAsync, setIntervalAsync } from "set-interval-async/dynamic";
 import { OBB } from '@jdultra/threedtiles/src/geometry/obb';
+import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
+import moveUpSVG from "./../images/double-arrow.png";
 
 const cartesianLocation = new THREE.Vector3();
 const orientationHelper = new THREE.Vector3();
@@ -44,12 +46,12 @@ class OGC3DTilesLayer extends Layer {
             url: properties.url,
             geometricErrorMultiplier: !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0,
             loadOutsideView: !!properties.loadOutsideView ? properties.loadOutsideView : false,
-            tileLoader: !!properties.tileLoader ? properties.tileLoader : new TileLoader(
-                !!properties.meshCallback ? properties.meshCallback : mesh => { mesh.material.side = THREE.DoubleSide; }, 500),
-            onLoadCallback: tileset => self.calculateBounds(tileset)
+            tileLoader: !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; }, 200),
+            onLoadCallback: tileset => self.generateControlShapes(tileset)
         });
 
         this.selected = false;
+        this.selectable = !!properties.selectable;
     }
 
     setLLH(llh){
@@ -69,7 +71,7 @@ class OGC3DTilesLayer extends Layer {
         }
         return 0;
     }
-    calculateBounds(tileset) {
+    generateControlShapes(tileset) {
         if (tileset.boundingVolume instanceof OBB) {
             // box
 
@@ -117,12 +119,14 @@ class OGC3DTilesLayer extends Layer {
             this.boundingMesh = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({
                 color: 0xFFB24E,
                 transparent: true,
-                opacity: 0.0,
+                opacity: 0.3,
                 depthWrite: true,
                 side: THREE.DoubleSide,
                 depthTest: true
             }) );
             this.boundingMeshOutline = new THREE.BoxHelper( this.boundingMesh, 0xFFB24E );
+
+
 
 
         } else if (tileset.boundingVolume instanceof THREE.Sphere) {
@@ -134,7 +138,7 @@ class OGC3DTilesLayer extends Layer {
                     {
                         color: 0x04E7FF,
                         transparent: true,
-                        opacity: 0.6,
+                        opacity: 0.3,
                         depthWrite: true,
                         side: THREE.DoubleSide,
                         depthTest: true
@@ -150,6 +154,8 @@ class OGC3DTilesLayer extends Layer {
         this.boundingMesh.layer = this;
         this.update();
     }
+
+    
     setPlanet(planet) {
         this.planet = planet;
         this.update();
@@ -157,6 +163,7 @@ class OGC3DTilesLayer extends Layer {
 
     addToScene(scene, camera) {
         this.scene = scene;
+        this.camera = camera;
         scene.add(this.tileset);
         const self = this;
         self.updateInterval = setIntervalAsync(function () {
@@ -197,6 +204,7 @@ class OGC3DTilesLayer extends Layer {
             this.selectionMesh.scale.set(this.scale, this.scale, this.scale);
             this.selectionMesh.updateMatrix();
             this.selectionMesh.updateMatrixWorld();
+
         }
         //cartesianLocation.multiplyScalar(this.planet.radius+this.location.z)
 
@@ -214,7 +222,7 @@ class OGC3DTilesLayer extends Layer {
     }
 
     select(objects) {
-        if(objects && objects.length && objects[0].layer == this){
+        if(objects && objects.length && objects[0].layer == this && this.selectable){
             this.selected = true;
             this.scene.add(this.selectionMesh);
             this.scene.add(this.boundingMesh);
@@ -223,7 +231,7 @@ class OGC3DTilesLayer extends Layer {
         
     }
     unselect(objects) {
-        if(objects && objects.length && objects[0].layer == this){
+        if(objects && objects.length && objects[0].layer == this && this.selectable){
             this.selected = false;
             this.scene.remove(this.selectionMesh);
             this.scene.remove(this.boundingMesh);

@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "1.2.7",
+    "version": "1.2.8",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "tileset.js",
     "scripts": {
@@ -23,20 +23,20 @@
     "author": "Emeric Beaufays",
     "license": "MIT",
     "dependencies": {
-        "@jdultra/threedtiles": "3.3.1",
+        "@jdultra/threedtiles": "4.0.2",
         "epsg-index": "^1.0.0",
         "gltf-validator": "^2.0.0-dev.3.9",
         "lodash": ">=4.17.20",
         "path-browserify": "^1.0.1",
         "proj4": "^2.4.4",
-        "regenerator-runtime": "^0.13.9"
+        "regenerator-runtime": "^0.13.10"
     },
     "devDependencies": {
-        "@babel/core": "^7.18.9",
-        "@babel/preset-env": "^7.18.9",
+        "@babel/core": "^7.19.6",
+        "@babel/preset-env": "^7.19.4",
         "babel-loader": "^8.2.5",
         "copy-webpack-plugin": "^6.3.2",
-        "core-js": "^3.24.0",
+        "core-js": "^3.26.0",
         "css-loader": "^6.7.1",
         "file-loader": "^6.2.0",
         "html-loader": "^1.3.2",
@@ -45,7 +45,7 @@
         "style-loader": "^3.3.1",
         "webpack": "^5.74.0",
         "webpack-cli": "4.9.1",
-        "webpack-dev-server": "^4.9.3",
+        "webpack-dev-server": "^4.11.1",
         "whatwg-fetch": "^3.5.0"
     }
 }

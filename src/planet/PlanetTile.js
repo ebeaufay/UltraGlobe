@@ -137,14 +137,12 @@ function scheduleLoadLayers(tile) {
     tilesToLoad.push(tile);
 }
 
-function loadLayersLoop() {
-    window.requestIdleCallback(() => {
-        const tile = tilesToLoad.shift();
-        if (!!tile && !tile.disposed) tile._loadLayers(tile);
-        loadLayersLoop();
-    }, { timeout: 100 });
-}
-loadLayersLoop();
+
+
+setInterval(() => {
+    const tile = tilesToLoad.shift();
+    if (!!tile && !tile.disposed) tile._loadLayers(tile);
+}, 1)
 
 
 class PlanetTile extends Mesh {
@@ -212,9 +210,9 @@ class PlanetTile extends Mesh {
                         delete self.layerDataMap[layer.id].loading;
                         self._endLoading(self);
                     }, (error) => {
-                        self.layerDataMap[layer.id].texture = defaultTexture;
-                        self.layerDataMap[layer.id].layer = layer;
-                        delete self.layerDataMap[layer.id].loading;
+                        //self.layerDataMap[layer.id].texture = defaultTexture;
+                        //self.layerDataMap[layer.id].layer = layer;
+                        //delete self.layerDataMap[layer.id].loading;
                     });
                 } else if (layer instanceof ElevationLayer) {
                     self._startLoading(self);
@@ -411,7 +409,7 @@ class PlanetTile extends Mesh {
 
         self.material = new THREE.ShaderMaterial({
             uniforms: {},
-            depthTest:true,
+            depthTest: true,
             depthWrite: true,
             //depthFunc: THREE.LessDepth,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
@@ -466,6 +464,7 @@ class PlanetTile extends Mesh {
     disposeChildren(self) {
         if (self.children.length != 0) {
             self.traverse(function (element) {
+                
                 if (element != self && element.material) {
 
                     // dispose textures
@@ -494,6 +493,9 @@ class PlanetTile extends Mesh {
                     self.layerManager.getLayers().forEach(layer => {
                         layer.removeListener(self);
                     });
+                    element.mapRequests.forEach(e => {
+                        e.abort()
+                    })
                     element.disposed = true;
                     element.material = void 0;
                     element.layerManager = void 0;
