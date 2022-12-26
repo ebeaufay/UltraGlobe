@@ -39,19 +39,62 @@
       -webkit-text-fill-color: rgb(255, 255, 255);
       -webkit-text-stroke: 1px;
     }
+
+    .dropbtn {
+      background-color: #cab854;
+      color: white;
+      padding: 16px;
+      font-size: 16px;
+      border: none;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f1f1f1;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+      z-index: 1;
+    }
+
+    .dropdown-content a {
+      font-size: 20px;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .dropdown:hover .dropbtn {
+      background-color: #ac9d48;
+    }
   </style>
 </head>
 
 <body>
   <div id="screen" oncontextmenu="return false;"></div>
-  
-  <a class="outlinedText" style="left:5%;bottom: 5%;" href="https://worldwind25.arc.nasa.gov">Map service</a>
-  
-  
+
+  <a class="outlinedText" style="left:5%;bottom: 5%;" href="https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/">GEBCO WMS</a>
+
+
   <div class="outlinedText" style="left:0%;bottom: 100px; width:100%;pointer-events: none;">
     Map controls: Left-click pan | Right-click rotation | Mouse-wheel zoom
   </div>
-  
+
+
 </body>
 
 </html>

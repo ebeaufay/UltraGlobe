@@ -41,14 +41,11 @@ class OGC3DTilesLayer extends Layer {
 
         this.zUp = !!properties.zUp ? properties.zUp : false;
 
-
-        this.tileset = new OGC3DTile({
-            url: properties.url,
-            geometricErrorMultiplier: !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0,
-            loadOutsideView: !!properties.loadOutsideView ? properties.loadOutsideView : false,
-            tileLoader: !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; }, 200),
-            onLoadCallback: tileset => self.generateControlShapes(tileset)
-        });
+        this.url = properties.url;
+        this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
+        this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
+        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; }, 200);
+        
 
         this.selected = false;
         this.selectable = !!properties.selectable;
@@ -155,7 +152,16 @@ class OGC3DTilesLayer extends Layer {
         this.update();
     }
 
-    
+    setRenderer(renderer){
+        this.tileset = new OGC3DTile({
+            url: this.url,
+            geometricErrorMultiplier: this.geometricErrorMultiplier,
+            loadOutsideView: this.loadOutsideView,
+            tileLoader: this.tileLoader,
+            onLoadCallback: tileset => self.generateControlShapes(tileset),
+            renderer: renderer
+        });
+    }
     setPlanet(planet) {
         this.planet = planet;
         this.update();

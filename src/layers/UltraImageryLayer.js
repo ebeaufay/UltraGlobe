@@ -1,4 +1,4 @@
-import {CancellableTextureLoader} from '../loaders/CancellableTextureLoader.js'
+import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
 import { ImageryLayer } from './ImageryLayer.js';
 
 /**
@@ -6,7 +6,7 @@ import { ImageryLayer } from './ImageryLayer.js';
  */
 
 const toDegrees = 57.295779513082320876798154814105;
-class UltraImageryLayer extends ImageryLayer{
+class UltraImageryLayer extends ImageryLayer {
 
     /**
      * 
@@ -29,20 +29,20 @@ class UltraImageryLayer extends ImageryLayer{
     }
 
     getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
-        if(!this.bounds || !this.bounds.intersectsBox(tile.bounds)){
+        if (!this.bounds || !this.bounds.intersectsBox(tile.bounds)) {
             callbackFailure(new Error("bounds don't intersect with layer"));
         }
         var minY = Math.min(90, Math.max(-90, tile.bounds.min.y * toDegrees));
-            var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
-            var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
-            var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
+        var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
+        var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
+        var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
 
-            var request = this.url + "/"+this.layer+"?"+
-                "bounds="+minX+","+minY+","+(maxX-minX)+","+(maxY-minY)+
-                "&width="+width+"&height="+height+
-                "&format=jpg";
-            
-            return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error)=>callbackFailure(error));
+        var request = this.url + "/" + this.layer + "?" +
+            "bounds=" + minX + "," + minY + "," + (maxX - minX) + "," + (maxY - minY) +
+            "&width=" + width + "&height=" + height +
+            "&format=jpg";
+
+        return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error) => callbackFailure(error));
 
     };
 }

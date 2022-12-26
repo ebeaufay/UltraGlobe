@@ -12,6 +12,7 @@ import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { TilesetPlacementController } from "./controls/TilesetPlacementController";
 import geoidImage from './images/egm84-15.jpg'
 import earthElevationImage from './images/earth_elevation.jpg'
+import { SingleImageImageryLayer } from "./layers/SingleImageImageryLayer.js";
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
@@ -27,11 +28,7 @@ const domContainer = document.getElementById('screen');
 
 let map = new Map({ divID: 'screen' });
 
-let a = map.planet.llhToCartesian.forward({x:50, y:50, z:0})
-let b = map.planet.llhToCartesian.forward({x:50, y:50, z:100})
 
-console.log(a);
-console.log(b);
 
  /*  
  { position: new THREE.Vector3(3782988.277509606,903028.6900325633,5038544.195198422), quaternion: new THREE.Quaternion(0.1392583650017903,0.5298290432524704,0.7535066067019033,-0.3634777659772099) }
@@ -64,18 +61,25 @@ var earthElevation = new SingleImageElevationLayer({
     min: 0,
     max: 8000
 });
+var imagery = new SingleImageImageryLayer({
+    id: 5,
+    name: "imagery",
+    bounds: [-180, -90, 180, 90],
+    url: earthElevationImage,
+    visible: true
+})
 
 var wmsLayer = new WMSLayer({
     id: 20,
     name: "BlueMarble",
     bounds: [-180, -90, 180, 90],
-    url: "https://worldwind25.arc.nasa.gov/wms",
-    layer: "BlueMarble-200401",
+    //url: "https://worldwind25.arc.nasa.gov/wms",
+    url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
+    layer: "GEBCO_LATEST_SUB_ICE_TOPO",
     epsg: "EPSG:4326",
     version: "1.3.0",
     visible: true
 })
-
 
 var ogc3dTiles = new OGC3DTilesLayer({
     id: 6,
@@ -89,13 +93,14 @@ var ogc3dTiles = new OGC3DTilesLayer({
     height: 170,
     //rotationY: 0.5,
     scale: 1,
-    geometricErrorMultiplier: 0.02,
+    geometricErrorMultiplier: 0.01,
     loadOutsideView: false
 });
 
 map.setLayer(wmsLayer, 0)
-map.setLayer(ogc3dTiles, 1)
+map.setLayer(ogc3dTiles, 10)
 map.setLayer(earthElevation, 9)
+
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {

@@ -11,7 +11,7 @@ import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-import opticalDepth from './images/optical_depth.png';
+import opticalDepth from './images/optical_depth_old.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 
 
@@ -74,6 +74,7 @@ class Map {
 
     _prepareLayer(layer) {
         if (layer instanceof OGC3DTilesLayer) {
+            layer.setRenderer(this.renderer);
             layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
         }

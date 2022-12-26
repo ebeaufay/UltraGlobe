@@ -31,7 +31,7 @@ class LayerManager{
     }
 
     removeLayer(index){
-        if(this.layers[index] && this.layers[index].dispose){
+        if(this.layers[index]){
             if(this.layers[index].dispose){
                 this.layers[index].dispose();
             }

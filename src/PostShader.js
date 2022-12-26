@@ -141,7 +141,7 @@ const PostShader = {
 				float depth = readDepth( tDepth, vUv );
 
 				vec3 rayDirection = normalize(farPlanePosition-nonPostCameraPosition);
-				float atmosphereThickness = getOpticalDepth(planetPosition, nonPostCameraPosition, rayDirection, depth)*2.0;
+				float atmosphereThickness = getOpticalDepth(planetPosition, nonPostCameraPosition, rayDirection, depth)*1.4;
 				
 				vec3 atmosphereColor = mix(vec3(0.1,0.3,1.0), vec3(0.32,0.72,1.0), atmosphereThickness);
 				

@@ -3,6 +3,7 @@ import { ImageLoader } from 'three/src/loaders/ImageLoader.js';
 import { Texture } from 'three/src/textures/Texture.js';
 import { Loader } from 'three/src/loaders/Loader.js';
 
+
 class CancellableTextureLoader extends Loader {
 
     constructor(manager) {

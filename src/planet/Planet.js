@@ -18,6 +18,7 @@ class Planet extends Object3D {
      */
     constructor(properties) {
         super();
+        this.elevationExageration = 1;
         var self = this;
         if (!properties.camera) {
             throw ("A camera is required in order to refine the planet's levels of detail.")
@@ -101,6 +102,11 @@ class Planet extends Object3D {
     }
     resumeRendering(){
         this.pause = false;
+    }
+
+    setElevationExageration(elevationExageration){
+        this.elevationExageration = elevationExageration;
+        
     }
 }
 
