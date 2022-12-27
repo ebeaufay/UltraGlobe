@@ -88,8 +88,8 @@ class ZoomController extends Controller {
         // calculate pointOnGlobe and distToGlobeSurface before zoom
         pointer1 = Math.tan(this.camera.fov * 0.5 * 0.0174533) * this.camera.near * 2;
         pointer2 = pointer1 / this.dom.clientHeight * this.dom.clientWidth;
-        pointer2 = ((this.zoomLocation.x / this.dom.clientWidth) - 0.5) * pointer2;
-        pointer1 = (1 - (this.zoomLocation.y / this.dom.clientHeight) - 0.5) * pointer1;
+        pointer2 = (((this.zoomLocation.x - this.dom.offsetLeft) / this.dom.clientWidth) - 0.5) * pointer2;
+        pointer1 = (1 - ((this.zoomLocation.y - this.dom.offsetTop) / this.dom.clientHeight) - 0.5) * pointer1;
 
         tempPointA.set(pointer2, pointer1, - this.camera.near).normalize().applyEuler(this.camera.rotation).normalize();
 

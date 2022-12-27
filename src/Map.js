@@ -400,7 +400,7 @@ class Map {
 
 
     screenPixelRayCast(x, y, sideEffect) {
-        this.renderer.readRenderTargetPixels(this.depthTarget, x, (this.domContainer.offsetHeight - y), 1, 1, depths);
+        this.renderer.readRenderTargetPixels(this.depthTarget, x-this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y-this.domContainer.offsetTop)), 1, 1, depths);
 
         depth16.set(depths[0], depths[1]);
         let z = depth16.dot(unpacker)
@@ -410,8 +410,8 @@ class Map {
             return;
         }
         z = perspectiveDepthToViewZ(z, this.camera.near, this.camera.far);
-        x = (x / this.domContainer.offsetWidth) * 2 - 1;
-        y = (1 - (y / this.domContainer.offsetHeight)) * 2 - 1;
+        x = ((x-this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
+        y = (1 - ((y-this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
         const clipSpacePosition = new THREE.Vector3(x, y, 0.5);
         mat.copy(this.camera.projectionMatrix).invert();
         clipSpacePosition.applyMatrix4(this.camera.projectionMatrixInverse);
