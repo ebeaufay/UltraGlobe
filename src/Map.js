@@ -272,31 +272,31 @@ class Map {
         self.controller.append(self.rotateController);
         self.controller.append(self.zoomController);
         self.domContainer.addEventListener('mousedown', (e) => {
-            if (!!self.controller) self.controller.event('mousedown', e);
+            if (!!self.controller && !self.pause) self.controller.event('mousedown', e);
         }, false);
         self.domContainer.addEventListener('mouseup', (e) => {
-            if (!!self.controller) self.controller.event('mouseup', e);
+            if (!!self.controller && !self.pause) self.controller.event('mouseup', e);
         }, false);
         self.domContainer.addEventListener('mousemove', (e) => {
-            if (!!self.controller) self.controller.event('mousemove', e);
+            if (!!self.controller && !self.pause) self.controller.event('mousemove', e);
         }, false);
         self.domContainer.addEventListener('wheel', (e) => {
-            if (!!self.controller) self.controller.event('mousewheel', e);
+            if (!!self.controller && !self.pause) self.controller.event('mousewheel', e);
         }, false);
         self.domContainer.addEventListener('touchstart', (e) => {
-            if (!!self.controller) self.controller.event('touchstart', e);
+            if (!!self.controller && !self.pause) self.controller.event('touchstart', e);
         }, false);
         self.domContainer.addEventListener('touchmove', (e) => {
-            if (!!self.controller) self.controller.event('touchmove', e);
+            if (!!self.controller && !self.pause) self.controller.event('touchmove', e);
         }, false);
         self.domContainer.addEventListener('touchcancel', (e) => {
-            if (!!self.controller) self.controller.event('touchcancel', e);
+            if (!!self.controller && !self.pause) self.controller.event('touchcancel', e);
         }, false);
         self.domContainer.addEventListener('touchend', (e) => {
-            if (!!self.controller) self.controller.event('touchend', e);
+            if (!!self.controller && !self.pause) self.controller.event('touchend', e);
         }, false);
         self.domContainer.addEventListener('keyup', (e) => {
-            if (!!self.controller) self.controller.event('keyup', e);
+            if (!!self.controller && !self.pause) self.controller.event('keyup', e);
         }, false);
 
         document.addEventListener("mouseleave", function (event) {
