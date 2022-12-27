@@ -106,7 +106,7 @@ class Map {
 
         if (this.target) this.target.dispose();
 
-        this.target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        this.target = new THREE.WebGLRenderTarget(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.target.texture.format = THREE.RGBAFormat;
         this.target.texture.encoding = THREE.LinearEncoding;
         this.target.texture.minFilter = THREE.LinearFilter;
@@ -121,7 +121,7 @@ class Map {
         // the depth render target is used to render depth to the main texture so that it can read retrieved on the CPU
         if (this.depthTarget) this.depthTarget.dispose();
 
-        this.depthTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        this.depthTarget = new THREE.WebGLRenderTarget(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.depthTarget.texture.format = THREE.RGBAFormat;
         this.depthTarget.texture.minFilter = THREE.NearestFilter;
         this.depthTarget.texture.magFilter = THREE.NearestFilter;
@@ -199,7 +199,7 @@ class Map {
         self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false, stencil: false, preserveDrawingBuffer: false, powerPreference : "high-performance"});
         //self.renderer.debug.checkShaderErrors = false;
         self.renderer.setPixelRatio(window.devicePixelRatio);
-        self.renderer.setSize(window.innerWidth, window.innerHeight);
+        self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
 
         self.renderer.outputEncoding = THREE.LinearEncoding;
         self.renderer.autoClear = false;
@@ -211,22 +211,22 @@ class Map {
         window.addEventListener('resize', onWindowResize);
         function onWindowResize() {
 
-            const aspect = window.innerWidth / window.innerHeight;
+            const aspect = self.domContainer.offsetWidth / self.domContainer.offsetHeight;
             self.camera.aspect = aspect;
             self.camera.updateProjectionMatrix();
 
 
-            self.target.setSize(window.innerWidth, window.innerHeight);
-            self.depthTarget.setSize(window.innerWidth, window.innerHeight);
-            self.renderer.setSize(window.innerWidth, window.innerHeight);
-            self.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            self.target.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+            self.depthTarget.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+            self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
+            self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
         }
-        onWindowResize();
+        setTimeout(onWindowResize, 1000);
     }
 
     initLabelRenderer() {
         this.labelRenderer = new CSS3DRenderer();
-        this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.labelRenderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.labelRenderer.domElement.style.position = 'absolute';
         this.labelRenderer.domElement.style.top = '0px';
         this.labelRenderer.domElement.style.pointerEvents = 'none';
@@ -240,7 +240,7 @@ class Map {
 
 
     initCamera() {
-        const camera = new THREE.PerspectiveCamera(30, window.offsetWidth / window.offsetHeight, 0.01, 40);
+        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 40);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -301,7 +301,7 @@ class Map {
 
         document.addEventListener("mouseleave", function (event) {
 
-            if (event.clientY <= 0 || event.clientX <= 0 || (event.clientX >= window.innerWidth || event.clientY >= window.innerHeight)) {
+            if (event.clientY <= 0 || event.clientX <= 0 || (event.clientX >= self.domContainer.offsetWidth || event.clientY >= self.domContainer.offsetHeight)) {
 
                 self.controller.event('mouseup', { which: "all" });
 
