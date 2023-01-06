@@ -141,11 +141,26 @@ var ogc3dTiles = new OGC3DTilesLayer({
 });
 map.setLayer(ogc3dTiles, 2);
 ````
-Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming eventually, you can follow the progress of the 3DTiles implementation here: https://github.com/ebeaufay/3DTilesViewer
-Furthermore, only Box and Sphere bounding volumes are supported (unrefferenced tileset).
 
-I also have a project to convert meshes to 3DTiles. I'm keeping that code private but I'm working on a web-service that I'll try to make free for small meshes.
-Feel free to contact me at emeric.beaufays@jdultra.com if you want a specific model converted.
+In the case of a tileset that is already georeferenced (region bounding volume) you should omit the properties related to tileset positioning and scaling :
+
+````js
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "path/to/georeferenced/tileset.json",
+    geometricErrorMultiplier: 1.5,
+    loadOutsideView:true
+});
+map.setLayer(ogc3dTiles, 2);
+````
+
+
+Only B3DM tilesets are supported right now (meshes). Point-cloud will be comming eventually, you can follow the progress of the 3DTiles implementation here: https://github.com/ebeaufay/3DTilesViewer
+
+I also have a project to convert meshes to 3DTiles. I'm keeping that code private but I'm working on a web-service that I'll make free for small meshes.
+Feel free to contact me at emeric.beaufays@jdultra.com if you want a specific model converted and check out the demo website : www.jdultra.com.
 
 ### Atmosphere
 atmosphere is on by default, and there shouldn't be anything to do there.
