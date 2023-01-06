@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "tileset.js",
     "scripts": {
@@ -23,7 +23,7 @@
     "author": "Emeric Beaufays",
     "license": "MIT",
     "dependencies": {
-        "@jdultra/threedtiles": "5.1.3",
+        "@jdultra/threedtiles": "5.1.4",
         "epsg-index": "^1.0.0",
         "gltf-validator": "^2.0.0-dev.3.9",
         "lodash": ">=4.17.20",
