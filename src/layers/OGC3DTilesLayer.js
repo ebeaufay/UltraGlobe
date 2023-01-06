@@ -35,16 +35,19 @@ class OGC3DTilesLayer extends Layer {
 
 
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
-        this.longitude = !!properties.longitude ? properties.longitude : 0;
-        this.latitude = !!properties.latitude ? properties.latitude : 0;
-        this.llh = new THREE.Vector3(!!properties.longitude ? properties.longitude : 0, !!properties.longitude ? properties.latitude : 0, !!properties.longitude ? properties.height : 0)
+        this.longitude = properties.longitude;
+        this.latitude = properties.latitude;
+        if(!!properties.longitude && !!properties.latitude){
+            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
+        }
+        
 
         this.zUp = !!properties.zUp ? properties.zUp : false;
 
         this.url = properties.url;
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
-        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; }, 200);
+        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; mesh.material.metalness = 0.0;}, 200);
         
 
         this.selected = false;
@@ -145,7 +148,7 @@ class OGC3DTilesLayer extends Layer {
         } else if (tile.boundingVolume instanceof THREE.Box3) {
             // Region
             // Region not supported
-            //throw Error("Region bounding volume not supported");
+            console.error("Region bounding volume not supported");
             return;
         }
         this.boundingMesh.layer = this;
@@ -153,6 +156,7 @@ class OGC3DTilesLayer extends Layer {
     }
 
     setRenderer(renderer){
+        const self = this;
         this.tileset = new OGC3DTile({
             url: this.url,
             geometricErrorMultiplier: this.geometricErrorMultiplier,
@@ -185,34 +189,36 @@ class OGC3DTilesLayer extends Layer {
         scaleMatrix.multiplyScalar(scaleMatrix);
         
         this.tileset.applyMatrix4(scaleMatrix); */
-        const transform = this.planet.llhToCartesian.forward(this.llh);
-        cartesianLocation.set(transform.x, transform.y, transform.z);
-        //quaternionSelfRotation
-        quaternionToEarthNormalOrientation.setFromUnitVectors(up, orientationHelper.copy(cartesianLocation).normalize());
-        if (this.zUp) {
-            quaternionToEarthNormalOrientation.multiply(quaternionZUPtoYUP);
+        if(this.llh){
+            const transform = this.planet.llhToCartesian.forward(this.llh);
+            cartesianLocation.set(transform.x, transform.y, transform.z);
+            //quaternionSelfRotation
+            quaternionToEarthNormalOrientation.setFromUnitVectors(up, orientationHelper.copy(cartesianLocation).normalize());
+            if (this.zUp) {
+                quaternionToEarthNormalOrientation.multiply(quaternionZUPtoYUP);
+            }
+            quaternionSelfRotation.setFromEuler(this.rotation);
+            this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+            this.tileset.position.copy(cartesianLocation);
+            this.tileset.scale.set(this.scale, this.scale, this.scale);
+            
+    
+            if (this.boundingMesh) {
+                this.boundingMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+                this.boundingMesh.position.copy(cartesianLocation);
+                this.boundingMesh.scale.set(this.scale, this.scale, this.scale);
+                this.boundingMesh.updateMatrix();
+                this.boundingMesh.updateMatrixWorld();
+    
+                this.selectionMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+                this.selectionMesh.position.copy(cartesianLocation);
+                this.selectionMesh.scale.set(this.scale, this.scale, this.scale);
+                this.selectionMesh.updateMatrix();
+                this.selectionMesh.updateMatrixWorld();
+    
+            }
         }
-        quaternionSelfRotation.setFromEuler(this.rotation);
-        this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-        this.tileset.position.copy(cartesianLocation);
-        this.tileset.scale.set(this.scale, this.scale, this.scale);
-        
-
-        if (this.boundingMesh) {
-            this.boundingMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-            this.boundingMesh.position.copy(cartesianLocation);
-            this.boundingMesh.scale.set(this.scale, this.scale, this.scale);
-            this.boundingMesh.updateMatrix();
-            this.boundingMesh.updateMatrixWorld();
-
-            this.selectionMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-            this.selectionMesh.position.copy(cartesianLocation);
-            this.selectionMesh.scale.set(this.scale, this.scale, this.scale);
-            this.selectionMesh.updateMatrix();
-            this.selectionMesh.updateMatrixWorld();
-
-        }
-        //cartesianLocation.multiplyScalar(this.planet.radius+this.location.z)
+    
 
     }
 

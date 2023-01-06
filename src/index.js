@@ -36,7 +36,7 @@ let map = new Map({ divID: 'screen' });
 
 map.camera.position.set(3782988.277509606,903028.6900325633,5038544.195198422);
 map.camera.up.set(0.5632445449715382, 0.1897925769820766, 0.8041979608792276);
-map.camera.setRotationFromQuaternion(new THREE.Quaternion(0.1392583650017903,0.5298290432524704,0.7535066067019033,-0.3634777659772099));
+map.camera.setRotationFromQuaternion(new THREE.Quaternion(0.1392583650017903,0.5298290432524704,0.7535066067019033,-0.3634777659772099)); 
 
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
@@ -58,7 +58,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     layer: "1",
     visible: true,
-    min: 0,
+    min: -500,
     max: 8000
 });
 var imagery = new SingleImageImageryLayer({
