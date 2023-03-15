@@ -78,7 +78,7 @@ var wmsLayer = new WMSLayer({
 })
 
 //add a layer at index 0
-map.setLayer(imageryLayer, 0);
+map.setLayer(wmsLayer, 0);
 ````
 
 Right now, only WMS and a custom imagery service are supported. You may look at the WMSLayer class to create your own layer.
