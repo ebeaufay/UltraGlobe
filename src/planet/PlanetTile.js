@@ -12,7 +12,7 @@ import { VISIBILITY_CHANGE } from '../layers/Layer.js'
 const TILE_SIZE = 32;
 const TILE_IMAGERY_SIZE = 256;
 const TILE_GEOMETRY = generateBaseTile(TILE_SIZE);
-const MAX_LEVEL = 13;
+const MAX_LEVEL = 15;
 const defaultTexture = buildZeroTexture();
 
 const emptyVec4 = new THREE.Vector4(0, 0, 0, 0);
@@ -581,7 +581,7 @@ class PlanetTile extends Mesh {
         const localRadius = nearestSurface.sub(this.planet.center).length();
 
         var log = -(Math.log(distance * 2500 / localRadius) / Math.log(2)) + 16;
-        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.1);
+        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.07);
 
         if (isNaN(metric)) {
             return this.level;

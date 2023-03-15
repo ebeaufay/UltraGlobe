@@ -5,7 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require('terser-webpack-plugin');
 
 const sourceDir = path.resolve(__dirname);
-const DEFAULT_WEBPACK_PORT = 3001;
+const DEFAULT_WEBPACK_PORT = 3003;
 
 module.exports = {
     mode: "development",

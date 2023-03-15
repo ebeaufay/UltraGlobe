@@ -23,6 +23,7 @@ const depth16 = new THREE.Vector2();
 const unpacker = new THREE.Vector2(1, 1 / 256);
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
+const tempVec2 = new THREE.Vector2();
 const loader = new THREE.TextureLoader();
 const degreeToRadians = Math.PI / 180;
 
@@ -196,7 +197,7 @@ class Map {
 
     initRenderer() {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false, stencil: false, preserveDrawingBuffer: false, powerPreference : "high-performance"});
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.debug.checkShaderErrors = false;
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
@@ -338,7 +339,7 @@ class Map {
                 self.renderer.setRenderTarget(self.target);
                 self.renderer.render(self.scene, self.camera);
 
-                
+
                 self.depthPassMaterial.uniforms.tDepth.value = self.target.depthTexture;
 
                 /// post params
@@ -397,10 +398,26 @@ class Map {
             this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
         }
     }
+    setCameraUp() {
+        this.camera.getWorldDirection(A).normalize();
+        B.crossVectors(this.camera.position, A);
+        this.camera.up.crossVectors(A, B).normalize();
+    }
 
+    moveToLonLatHeight(lon, lat, height) {
+        transformWGS84ToCartesian(lon, lat, height, camera.position);
+        moveCameraAboveSurface();
+        resetCameraNearFar();
+        setCameraUp();
+    }
+
+    lookAtLonLatHeight(lon, lat, height) {
+        transformWGS84ToCartesian(lon, lat, height, A);
+        this.camera.lookAt(A);
+    }
 
     screenPixelRayCast(x, y, sideEffect) {
-        this.renderer.readRenderTargetPixels(this.depthTarget, x-this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y-this.domContainer.offsetTop)), 1, 1, depths);
+        this.renderer.readRenderTargetPixels(this.depthTarget, x - this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y - this.domContainer.offsetTop)), 1, 1, depths);
 
         depth16.set(depths[0], depths[1]);
         let z = depth16.dot(unpacker)
@@ -410,8 +427,8 @@ class Map {
             return;
         }
         z = perspectiveDepthToViewZ(z, this.camera.near, this.camera.far);
-        x = ((x-this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
-        y = (1 - ((y-this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
+        x = ((x - this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
+        y = (1 - ((y - this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
         const clipSpacePosition = new THREE.Vector3(x, y, 0.5);
         mat.copy(this.camera.projectionMatrix).invert();
         clipSpacePosition.applyMatrix4(this.camera.projectionMatrixInverse);
@@ -428,7 +445,7 @@ class Map {
 
     moveCamera(location, lookAt) {
 
-        this.camera.position.set(location);
+        this.camera.position.copy(location);
         this.camera.lookAt(lookAt);
         let p1 = new THREE.Vector3();
         let p2 = new THREE.Vector3();
@@ -443,12 +460,12 @@ class Map {
         this.resetCameraNearFar();
     }
 
-    addSelectionListener(calback){
-        if(!this.selectionListeners) this.selectionListeners = [];
+    addSelectionListener(calback) {
+        if (!this.selectionListeners) this.selectionListeners = [];
         this.selectionListeners.push(calback);
     }
-    removeSelectionListener(callback){
-        if(this.selectionListeners) this.selectionListeners.filter(f=>f !== callback);
+    removeSelectionListener(callback) {
+        if (this.selectionListeners) this.selectionListeners.filter(f => f !== callback);
     }
     /**
      * select action at a particular location on this map (normalized between -1 and 1)
@@ -464,7 +481,7 @@ class Map {
             const l = layers[i];
             if (l) {
                 const selectable = l.getSelectableObjects();
-                while(selectable.length) selectableObjects.push(selectable.shift());
+                while (selectable.length) selectableObjects.push(selectable.shift());
             }
         }
 
@@ -472,12 +489,12 @@ class Map {
 
         const selected = [];
         const unselected = [];
-        if(type == 0){
-            select.forEach(object=>{
-                if(!this.selection[object.object.layer.id]){
+        if (type == 0) {
+            select.forEach(object => {
+                if (!this.selection[object.object.layer.id]) {
                     this.selection[object.object.layer.id] = [];
                 }
-                if(!this.selection[object.object.layer.id].includes(object)){
+                if (!this.selection[object.object.layer.id].includes(object)) {
                     this.selection[object.object.layer.id].push(object);
                     selected.push(object.object);
                 }
@@ -486,34 +503,34 @@ class Map {
                 const selectLayer = this.layerManager.getLayerByID(layerID);
                 selectLayer.select(this.selection[layerID]);
             }
-        }else if(type == 1){
-            select.forEach(object=>{
-                if(this.selection[object.object.layer.id] && this.selection[object.object.layer.id].includes(object.object)){
-                    this.selection[object.object.layer.id].filter(o=> o!== object.object);
-                    if(!this.selection[object.object.layer.id].length) delete this.selection[object.object.layer.id];
+        } else if (type == 1) {
+            select.forEach(object => {
+                if (this.selection[object.object.layer.id] && this.selection[object.object.layer.id].includes(object.object)) {
+                    this.selection[object.object.layer.id].filter(o => o !== object.object);
+                    if (!this.selection[object.object.layer.id].length) delete this.selection[object.object.layer.id];
                     unselected.push(object.object);
                     object.object.layer.unselect([object.object])
                 }
             });
-        }else if(type == 2){
+        } else if (type == 2) {
             // unselect everything
             for (const key in this.selection) {
                 const unselectLayer = this.layerManager.getLayerByID(key);
                 unselectLayer.unselect(this.selection[key])
-                while(this.selection[key].length) unselected.push(this.selection[key].shift());
+                while (this.selection[key].length) unselected.push(this.selection[key].shift());
             }
             this.selection = {};
             // select first object
-            if(select.length>0){
+            if (select.length > 0) {
                 const object = select[0].object;
-                if(!this.selection[object.layer.id]){
+                if (!this.selection[object.layer.id]) {
                     this.selection[object.layer.id] = [];
                 }
-                if(!unselected.includes(object)){
+                if (!unselected.includes(object)) {
                     this.selection[object.layer.id].push(object);
                     object.layer.select([object]);
                     selected.push(object);
-                    unselected.filter(o=>o!==object);
+                    unselected.filter(o => o !== object);
                 }
             }
         }
@@ -523,7 +540,7 @@ class Map {
             selected: selected,
             unselected: unselected,
         }
-        if(this.selectionListeners) this.selectionListeners.forEach(callback=>callback(selections))
+        if (this.selectionListeners) this.selectionListeners.forEach(callback => callback(selections))
         return selections;
     }
 }
@@ -533,6 +550,23 @@ function perspectiveDepthToViewZ(invClipZ, near, far) {
     return (near * far) / ((far - near) * invClipZ - far);
 
 
+}
+
+function transformWGS84ToCartesian(lon, lat, h, sfct) {
+    const a = 6378137.0;
+    const e = 0.006694384442042;
+    const N = a / (Math.sqrt(1.0 - (e * Math.pow(Math.sin(lat), 2))));
+    const cosLat = Math.cos(lat);
+    const cosLon = Math.cos(lon);
+    const sinLat = Math.sin(lat);
+    const sinLon = Math.sin(lon);
+    const nPh = (N + h);
+    const x = nPh * cosLat * cosLon;
+    const y = nPh * cosLat * sinLon;
+    const z = (0.993305615557957 * N + h) * sinLat;
+
+    sfct.set(x, y, z);
+    return sfct;
 }
 
 export { Map };

@@ -21,6 +21,13 @@ class Layer {
         this.listeners = {};
     }
 
+    getCenter(sfct){
+        this.bounds.getCenter(sfct);
+        sfct.setComponent(2,0.0);
+    }
+    getRadius(){
+        return this.bounds.min.distanceTo(this.bounds.max);
+    }
     getID() {
         return this.id;
     }

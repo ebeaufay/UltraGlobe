@@ -13,7 +13,7 @@ const up = new THREE.Vector3(0, 1, 0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
 const quaternionZUPtoYUP = new THREE.Quaternion();
-quaternionZUPtoYUP.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0));
+quaternionZUPtoYUP.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0));
 const scale = new THREE.Vector3(1, 1, 1);
 
 class OGC3DTilesLayer extends Layer {
@@ -47,9 +47,13 @@ class OGC3DTilesLayer extends Layer {
         this.url = properties.url;
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
-        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(mesh => { mesh.material.side = THREE.DoubleSide; mesh.material.metalness = 0.0;}, 200);
+        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(200, 
+            mesh => { mesh.material.side = THREE.DoubleSide; mesh.material.metalness = 0.0;},
+            points => {
+            points.material.size = Math.min(1.0, 0.5 * Math.sqrt(points.geometricError));
+            points.material.sizeAttenuation = true;
+        });
         
-
         this.selected = false;
         this.selectable = !!properties.selectable;
     }
@@ -59,7 +63,12 @@ class OGC3DTilesLayer extends Layer {
         this.llh.y = llh.y;
         this.llh.z = llh.z;
     }
-
+    getCenter(sfct){
+        sfct.copy(this.llh);
+    }
+    getRadius(){
+        return this.bounds.min.distanceTo(this.bounds.max);
+    }
     getBaseHeight(){
         const bounds = this.tileset.boundingVolume;
         if(bounds){
@@ -72,6 +81,13 @@ class OGC3DTilesLayer extends Layer {
         return 0;
     }
     generateControlShapes(tileset) {
+        if(tileset.json.boundingVolume.region){
+            
+        }else if(tileset.json.boundingVolume.box){
+
+        }else if(tileset.json.boundingVolume.sphere){
+            
+        }
         if (tileset.boundingVolume instanceof OBB) {
             // box
 
