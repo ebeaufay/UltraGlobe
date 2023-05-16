@@ -13,7 +13,7 @@ Partial I3S support.
 
 ## Demos
 
-[Google Map Tile API] (https://www.jdultra.com/mapTiles/index.html)
+[Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
