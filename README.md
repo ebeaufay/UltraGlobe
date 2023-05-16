@@ -20,6 +20,8 @@ I3S support is in progress.
 
 ## Demos
 
+[Google Map Tile API] (https://www.jdultra.com/mapTiles/index.html)
+
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
 [Berlin (3 km²)](https://www.jdultra.com/berlin/index.html)
