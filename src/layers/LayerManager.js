@@ -1,3 +1,4 @@
+import { RasterLayer } from "./RasterLayer";
 const LAYERS_CHANGED = "layers-changed";
 class LayerManager{
     constructor(){

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { Controller } from './Controller';
-import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async/dynamic';
 
 const angleToRadians = 0.01745329251994329576923690768489;
 class TilesetPlacementController extends Controller {
@@ -16,7 +15,7 @@ class TilesetPlacementController extends Controller {
         const interval = setIntervalAsync(()=>{
             if(this.drop){
                 //this.moveTileset(this.moveLocation);
-                clearIntervalAsync(interval);
+                interval.clearInterval();
                 dropCallback();
             }
             else if(this.moved){
@@ -118,3 +117,25 @@ class TilesetPlacementController extends Controller {
 
     }
 }export { TilesetPlacementController }
+
+function setIntervalAsync(fn, delay) {
+    let timeout;
+
+    const run = async () => {
+        const startTime = Date.now();
+        try {
+            await fn();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            const endTime = Date.now();
+            const elapsedTime = endTime - startTime;
+            const nextDelay = elapsedTime >= delay ? 0 : delay - elapsedTime;
+            timeout = setTimeout(run, nextDelay);
+        }
+    };
+
+    timeout = setTimeout(run, delay);
+
+    return { clearInterval: () => clearTimeout(timeout) };
+}

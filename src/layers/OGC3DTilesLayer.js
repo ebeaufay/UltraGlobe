@@ -1,9 +1,8 @@
 import { Layer } from "./Layer";
-import { OGC3DTile } from "@jdultra/threedtiles/src/tileset/OGC3DTile";
+import { OGC3DTile } from "@jdultra/threedtiles";
 import * as THREE from 'three';
-import { TileLoader } from '@jdultra/threedtiles/src/tileset/TileLoader';
-import { clearIntervalAsync, setIntervalAsync } from "set-interval-async/dynamic";
-import { OBB } from '@jdultra/threedtiles/src/geometry/obb';
+import { TileLoader } from '@jdultra/threedtiles';
+import { OBB } from '@jdultra/threedtiles';
 import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import moveUpSVG from "./../images/double-arrow.png";
 
@@ -24,7 +23,11 @@ class OGC3DTilesLayer extends Layer {
         super(properties);
 
         const self = this;
-
+        self.displayCopyright = properties.displayCopyright;
+        self.displayErrors = properties.displayErrors;
+        self.yUp = properties.yUp;
+        self.proxy = properties.proxy;
+        self.queryParams = properties.queryParams;
         this.scale = !!properties.scale ? properties.scale : 1;
 
         this.rotation = new THREE.Euler(
@@ -48,10 +51,29 @@ class OGC3DTilesLayer extends Layer {
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
         this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(200, 
-            mesh => { mesh.material.side = THREE.DoubleSide; mesh.material.metalness = 0.0;},
+            mesh => { 
+                mesh.material.side = THREE.DoubleSide; 
+                mesh.material.wireframe = true;
+            },
             points => {
             points.material.size = Math.min(1.0, 0.5 * Math.sqrt(points.geometricError));
             points.material.sizeAttenuation = true;
+        });
+        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader({
+            //renderer: renderer,
+            maxCachedItems: 200,
+            meshCallback: mesh => {
+                //// Insert code to be called on every newly decoded mesh e.g.:
+                mesh.material.wireframe = false;
+                mesh.material.side = THREE.DoubleSide;
+                //mesh.material.transparent = true
+                //mesh.material.needsUpdate = true
+                //mesh.material.metalness = 0.0
+            },
+            pointsCallback: points => {
+                points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));
+                points.material.sizeAttenuation = true;
+            }
         });
         
         this.selected = false;
@@ -178,8 +200,13 @@ class OGC3DTilesLayer extends Layer {
             geometricErrorMultiplier: this.geometricErrorMultiplier,
             loadOutsideView: this.loadOutsideView,
             tileLoader: this.tileLoader,
-            onLoadCallback: tileset => self.generateControlShapes(tileset),
-            renderer: renderer
+            //onLoadCallback: tileset => self.generateControlShapes(tileset),
+            renderer: renderer,
+            proxy: self.proxy,
+            queryParams: self.queryParams,
+            yUp:self.yUp,
+            displayErrors: self.displayErrors,
+            displayCopyright: self.displayCopyright
         });
     }
     setPlanet(planet) {
@@ -240,7 +267,7 @@ class OGC3DTilesLayer extends Layer {
 
     dispose() {
         this.tileset.dispose();
-        if (this.updateInterval) clearIntervalAsync(this.updateInterval);
+        if (this.updateInterval) this.updateInterval.clearInterval();
     }
 
     getSelectableObjects(){
@@ -269,3 +296,25 @@ class OGC3DTilesLayer extends Layer {
     }
 }
 export { OGC3DTilesLayer }
+
+function setIntervalAsync(fn, delay) {
+    let timeout;
+
+    const run = async () => {
+        const startTime = Date.now();
+        try {
+            await fn();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            const endTime = Date.now();
+            const elapsedTime = endTime - startTime;
+            const nextDelay = elapsedTime >= delay ? 0 : delay - elapsedTime;
+            timeout = setTimeout(run, nextDelay);
+        }
+    };
+
+    timeout = setTimeout(run, delay);
+
+    return { clearInterval: () => clearTimeout(timeout) };
+}

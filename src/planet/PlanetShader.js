@@ -69,17 +69,22 @@ const PlanetShader = {
 		varying float elevationX;
 
 		void main() {
-			vec4 color = vec4(0.0,0.0,0.0,1.0);`;
+			if(imagery.length()>0){
+				gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.0);
+			}
+		}`;
 		
 
-		for (let i = numImageryLayers - 1; i >= 0; i--) {
-			code += 
-			`if(fragmentImageryUV[`+i+`].x>=0.0 && fragmentImageryUV[`+i+`].x<=1.0 && fragmentImageryUV[`+i+`].y>=0.0 && fragmentImageryUV[`+i+`].y<=1.0){
-				color = mix(color, texture2D(imagery[`+i+`], fragmentImageryUV[`+i+`].xy), transparency[`+i+`]);
-			}
-			gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.01);`;
-		}
-		code+=`}`;
+		// for (let i = numImageryLayers - 1; i >= 0; i--) {
+		// 	code += 
+		// 	`if()`
+		// 	`if(fragmentImageryUV[`+i+`].x>=0.0 && fragmentImageryUV[`+i+`].x<=1.0 && fragmentImageryUV[`+i+`].y>=0.0 && fragmentImageryUV[`+i+`].y<=1.0){
+		// 		color = mix(color, texture2D(imagery[`+i+`], fragmentImageryUV[`+i+`].xy), transparency[`+i+`]);
+		// 	}
+		// 	`;
+		// }
+		// code+=`
+		// gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.01);}`;
 		return code;
 	}
 };

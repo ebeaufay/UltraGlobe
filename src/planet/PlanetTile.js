@@ -315,7 +315,7 @@ class PlanetTile extends Mesh {
 
     update(camera, frustum) {
         const self = this;
-
+        if(self.layerManager.getRasterLayers([]).length == 0) return;
         const metric = self.calculateUpdateMetric(camera, frustum);
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");

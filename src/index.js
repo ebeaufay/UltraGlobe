@@ -57,8 +57,8 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     layer: "1",
     visible: true,
-    min: 0,
-    max: 8000
+    min: -100,
+    max: -100
 });
 var imagery = new SingleImageImageryLayer({
     id: 5,
@@ -96,20 +96,25 @@ var ogc3dTiles = new OGC3DTilesLayer({
     name: "OGC 3DTiles",
     visible: true,
     //url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
-    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    zUp: true,
-    longitude: 13.42,
-    latitude: 52.4895,
-    height: 170,
-    rotationY: 0.72,
-    scale: 1,
-    geometricErrorMultiplier: 0.01,
-    loadOutsideView: false
+    //url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    url: "https://tile.googleapis.com/v1/3dtiles/root.json",
+    queryParams: { key: "AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw" },
+    yUp:true,
+    //zUp: true,
+    //longitude: 13.42,
+    //latitude: 52.4895,
+    //height: 170,
+    //rotationY: 0.72,
+    scale: 1.1,
+    geometricErrorMultiplier: 0.3,
+    loadOutsideView: true,
+    displayErrors: true,
+    displayCopyright: true
 });
 
-map.setLayer(imageryLayer, 0)
+//map.setLayer(imageryLayer, 0)
 map.setLayer(ogc3dTiles, 10)
-map.setLayer(earthElevation, 9)
+//map.setLayer(earthElevation, 9)
 
 
 

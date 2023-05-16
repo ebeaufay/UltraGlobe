@@ -53,7 +53,7 @@ class Map {
         this.initPlanet();
         this.initController();
         this.scene.add(this.planet);
-        this.initStats();
+        //this.initStats();
         this.setupRenderTarget();
         this.setupPost();
         this.initLabelRenderer();
@@ -369,7 +369,7 @@ class Map {
                 self.labelRenderer.render(self.scene, self.camera);
             }
 
-            self.stats.update();
+            //self.stats.update();
         }
         animate();
     }

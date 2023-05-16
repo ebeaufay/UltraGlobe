@@ -1,5 +1,4 @@
 import { Layer } from "../Layer";
-import { clearIntervalAsync, setIntervalAsync } from "set-interval-async/dynamic";
 import { I3SPointNode } from './I3SPointNode';
 
 import * as THREE from 'three';
@@ -47,7 +46,7 @@ class I3SLayer extends Layer {
 
         function addToScene () {
             scene.add(self.root);
-            clearIntervalAsync(self.updateInterval);
+            self.updateInterval.clearInterval();
             self.updateInterval = setIntervalAsync(function () {
                 if (self.root) self.root.update(camera);
             }, 50);
@@ -67,3 +66,25 @@ class I3SLayer extends Layer {
     }
 }
 export { I3SLayer }
+
+function setIntervalAsync(fn, delay) {
+    let timeout;
+
+    const run = async () => {
+        const startTime = Date.now();
+        try {
+            await fn();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            const endTime = Date.now();
+            const elapsedTime = endTime - startTime;
+            const nextDelay = elapsedTime >= delay ? 0 : delay - elapsedTime;
+            timeout = setTimeout(run, nextDelay);
+        }
+    };
+
+    timeout = setTimeout(run, delay);
+
+    return { clearInterval: () => clearTimeout(timeout) };
+}
