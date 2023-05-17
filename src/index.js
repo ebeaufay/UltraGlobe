@@ -98,7 +98,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     //url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
     //url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
     url: "https://tile.googleapis.com/v1/3dtiles/root.json",
-    queryParams: { key: "AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw" },
+    queryParams: { key: "AIzaSyAiFRjZqkEqPVM496eTSSl7EgHqebps1Vg" },
     yUp:true,
     //zUp: true,
     //longitude: 13.42,
