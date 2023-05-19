@@ -13,6 +13,7 @@ import { TilesetPlacementController } from "./controls/TilesetPlacementControlle
 import geoidImage from './images/egm84-15.jpg'
 import earthElevationImage from './images/earth_elevation.jpg'
 import { SingleImageImageryLayer } from "./layers/SingleImageImageryLayer.js";
+import { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer.js";
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
@@ -91,26 +92,37 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
-var ogc3dTiles = new OGC3DTilesLayer({
+/* var ogc3dTiles = new OGC3DTilesLayer({
     id: 6,
     name: "OGC 3DTiles",
     visible: true,
-    //url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
-    //url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
     url: "https://tile.googleapis.com/v1/3dtiles/root.json",
-    queryParams: { key: "AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw" },
-    yUp:true,
-    //zUp: true,
-    //longitude: 13.42,
-    //latitude: 52.4895,
-    //height: 170,
-    //rotationY: 0.72,
-    scale: 1.1,
-    geometricErrorMultiplier: 0.3,
+    queryParams: { key: getDayOfYear()%2==1?"AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw":"AIzaSyCHxPmhNNywr_vSmLCZdMEEF_aU5AQdV3I" },
+    
     loadOutsideView: true,
     displayErrors: true,
     displayCopyright: true
+}); */
+
+var ogc3dTiles = new GoogleMap3DTileLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    
+    apiKey: getDayOfYear()%2==1?"AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw":"AIzaSyCHxPmhNNywr_vSmLCZdMEEF_aU5AQdV3I",
+    
+    loadOutsideView: true,
+    displayCopyright: true
 });
+
+function getDayOfYear() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const day = Math.floor(diff / oneDay);
+    return day;
+}
 
 //map.setLayer(imageryLayer, 0)
 map.setLayer(ogc3dTiles, 10)

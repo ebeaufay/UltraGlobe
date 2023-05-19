@@ -1,22 +1,28 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "1.5.0",
+    "version": "2.0.0",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "tileset.js",
+    "files": [
+        "dist/ultraglobe.min.js",
+        "README.md",
+        "LICENSE"
+    ],
     "scripts": {
-        "build": "webpack",
-        "watch": "webpack --watch",
-        "dev": "webpack-dev-server"
+        "build": "webpack --config webpack.prod.config.js",
+        "watch": "webpack --watch --config webpack.dev.config.js",
+        "dev": "webpack-dev-server --config webpack.dev.config.js"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/ebeaufay/3DTilesViewer"
+        "url": "https://github.com/ebeaufay/ultraglobe"
     },
     "keywords": [
         "OGC",
         "WMS",
         "GLOBE",
         "Tiles",
+        "3DTiles",
         "Three.js",
         "Three"
     ],
