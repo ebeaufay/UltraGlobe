@@ -1,14 +1,7 @@
 # U L T R A G L O B E  :  http://www.jdultra.com/
 
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic2.png" width="600" style="display: block; margin: 0 auto"/>
-</p>
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/Pic1.png" width="600" style="display: block; margin: 0 auto"/>
-</p>
-<p align="center">
-  <img src="https://github.com/ebeaufay/UltraGlobe/blob/master/tiles.jpg" width="600" style="display: block; margin: 0 auto"/>
-</p>
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
 
 Displays the earth in threeJS with level of detail, imagery, elevation and connection to OGC web services.
 
@@ -16,9 +9,11 @@ The earth model is wgs 84.
 
 Support for WMS and OGC 3DTiles.
 
-I3S support is in progress.
+Partial I3S support.
 
 ## Demos
+
+[Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 

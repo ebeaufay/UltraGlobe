@@ -98,7 +98,14 @@ var wmsLayer = new WMSLayer({
     visible: true,
     url: "https://tile.googleapis.com/v1/3dtiles/root.json",
     queryParams: { key: getDayOfYear()%2==1?"AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw":"AIzaSyCHxPmhNNywr_vSmLCZdMEEF_aU5AQdV3I" },
-    
+    yUp:true,
+    //zUp: true,
+    //longitude: 13.42,
+    //latitude: 52.4895,
+    //height: 170,
+    //rotationY: 0.72,
+    scale: 1.1,
+    geometricErrorMultiplier: 0.3,
     loadOutsideView: true,
     displayErrors: true,
     displayCopyright: true
