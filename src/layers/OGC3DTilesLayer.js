@@ -23,6 +23,7 @@ class OGC3DTilesLayer extends Layer {
         super(properties);
 
         const self = this;
+        self.properties = properties;
         self.displayCopyright = properties.displayCopyright;
         self.displayErrors = properties.displayErrors;
         self.yUp = properties.yUp;
@@ -50,31 +51,8 @@ class OGC3DTilesLayer extends Layer {
         this.url = properties.url;
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
-        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader(200, 
-            mesh => { 
-                mesh.material.side = THREE.DoubleSide; 
-                mesh.material.wireframe = true;
-            },
-            points => {
-            points.material.size = Math.min(1.0, 0.5 * Math.sqrt(points.geometricError));
-            points.material.sizeAttenuation = true;
-        });
-        this.tileLoader = !!properties.tileLoader ? properties.tileLoader : new TileLoader({
-            //renderer: renderer,
-            maxCachedItems: 200,
-            meshCallback: mesh => {
-                //// Insert code to be called on every newly decoded mesh e.g.:
-                mesh.material.wireframe = false;
-                mesh.material.side = THREE.DoubleSide;
-                //mesh.material.transparent = true
-                //mesh.material.needsUpdate = true
-                //mesh.material.metalness = 0.0
-            },
-            pointsCallback: points => {
-                points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));
-                points.material.sizeAttenuation = true;
-            }
-        });
+        
+        
         
         this.selected = false;
         this.selectable = !!properties.selectable;
@@ -195,12 +173,24 @@ class OGC3DTilesLayer extends Layer {
 
     setRenderer(renderer){
         const self = this;
+
+        var tileLoader = !!self.properties.tileLoader ? self.properties.tileLoader : new TileLoader({
+            renderer: renderer,
+            maxCachedItems: 200,
+            meshCallback: mesh => {
+                mesh.material.wireframe = false;
+                mesh.material.side = THREE.DoubleSide;
+            },
+            pointsCallback: points => {
+                points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));
+                points.material.sizeAttenuation = true;
+            }
+        });
         this.tileset = new OGC3DTile({
             url: this.url,
             geometricErrorMultiplier: this.geometricErrorMultiplier,
             loadOutsideView: this.loadOutsideView,
-            tileLoader: this.tileLoader,
-            //onLoadCallback: tileset => self.generateControlShapes(tileset),
+            tileLoader: tileLoader,
             renderer: renderer,
             proxy: self.proxy,
             queryParams: self.queryParams,

@@ -86,7 +86,7 @@ module.exports = {
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
+        type: 'asset/inline',
       },
       {
         test: /\.js$/,
@@ -102,7 +102,7 @@ module.exports = {
       },
     ],
   },
-  optimization: {
+  /* optimization: {
     minimizer: [new TerserPlugin({
       parallel: true,
       terserOptions: {
@@ -123,7 +123,7 @@ module.exports = {
       },
       exclude: []
     })]
-  },
+  }, */
   devServer: {
     hot: true,
     open: true,

@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require('terser-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
+//const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const sourceDir = path.resolve(__dirname);
 const DEFAULT_WEBPACK_PORT = 3001;
@@ -27,9 +28,25 @@ module.exports = {
       commonjs2: "three",
       amd: "three",
       root: "THREE",
+      import: "three",
+    },
+    'proj4': {
+      commonjs: "proj4",
+      commonjs2: "proj4",
+      amd: "proj4",
+      root: "proj4",
+      import: "proj4"
+    },
+    'epsg-index': {
+      commonjs: "epsg-index",
+      commonjs2: "epsg-index",
+      amd: "epsg-index",
+      root: "epsg-index",
+      import: "epsg-index"
     },
   },
   plugins: [
+    //new BundleAnalyzerPlugin(),
     new webpack.ProgressPlugin(),
     new HtmlWebpackPlugin({
       template: "index.html",
@@ -94,7 +111,7 @@ module.exports = {
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
+        type: 'asset/inline',
       },
       {
         test: /\.js$/,
@@ -138,7 +155,7 @@ module.exports = {
     port: DEFAULT_WEBPACK_PORT
   },
   resolve: {
-    
+
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {
       "fs": false,

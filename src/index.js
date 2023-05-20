@@ -111,16 +111,16 @@ var wmsLayer = new WMSLayer({
     displayCopyright: true
 }); */
 
-/* var ogc3dTiles = new GoogleMap3DTileLayer({
+ var ogc3dTiles = new GoogleMap3DTileLayer({
     id: 6,
     name: "OGC 3DTiles",
     visible: true,
     
-    apiKey: getDayOfYear()%2==1?"AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw":"AIzaSyCHxPmhNNywr_vSmLCZdMEEF_aU5AQdV3I",
+    apiKey: "AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw",
     
     loadOutsideView: true,
     displayCopyright: true
-}); */
+}); 
 
 function getDayOfYear() {
     const now = new Date();
@@ -132,7 +132,7 @@ function getDayOfYear() {
 }
 
 //map.setLayer(imageryLayer, 0)
-//map.setLayer(ogc3dTiles, 10)
+map.setLayer(ogc3dTiles, 10)
 //map.setLayer(earthElevation, 9)
 
 
