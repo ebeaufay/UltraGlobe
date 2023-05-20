@@ -1,10 +1,10 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "tileset.js",
     "files": [
-        "dist/ultraglobe.min.js",
+        "dist/*",
         "README.md",
         "LICENSE"
     ],
