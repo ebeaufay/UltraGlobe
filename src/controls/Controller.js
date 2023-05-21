@@ -26,7 +26,7 @@ class Controller {
 		}
     }
     _update(){
-        throw "error, this should be implemented in child class";
+        //throw "error, this should be implemented in child class";
     }
     
     append(aController){
@@ -36,4 +36,8 @@ class Controller {
 			this.next = aController;
 		}
 	}
+
+    clear(){
+        this.next = null;
+    }
 } export { Controller }

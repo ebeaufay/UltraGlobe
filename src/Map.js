@@ -13,6 +13,7 @@ import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth_old.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
+import { Controller } from "./controls/Controller.js";
 
 
 // reused variables
@@ -48,12 +49,13 @@ class Map {
         }
         this.camera = !!properties.camera ? properties.camera : this.initCamera();
 
-
+        if(properties.debug){
+            this.initStats();
+        }
 
         this.initPlanet();
         this.initController();
         this.scene.add(this.planet);
-        //this.initStats();
         this.setupRenderTarget();
         this.setupPost();
         this.initLabelRenderer();
@@ -264,14 +266,12 @@ class Map {
 
     initController() {
         const self = this;
-        self.selectController = new SelectController(self.camera, self.domContainer, self);
-        self.panController = new PanController(self.camera, self.domContainer, self);
-        self.rotateController = new RotateController(self.camera, self.domContainer, self);
-        self.zoomController = new ZoomController(self.camera, self.domContainer, self);
-        self.controller = self.selectController;
-        self.controller.append(self.panController);
-        self.controller.append(self.rotateController);
-        self.controller.append(self.zoomController);
+        self.controller = new Controller(self.camera, self.domContainer, self);
+        self.controller.append(new SelectController(self.camera, self.domContainer, self));
+        self.controller.append(new PanController(self.camera, self.domContainer, self));
+        self.controller.append(new RotateController(self.camera, self.domContainer, self));
+        self.controller.append(new ZoomController(self.camera, self.domContainer, self));
+        
         self.domContainer.addEventListener('mousedown', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('mousedown', e);
         }, false);
@@ -372,7 +372,9 @@ class Map {
                 self.labelRenderer.render(self.scene, self.camera);
             }
 
-            //self.stats.update();
+            if(self.stats){
+                self.stats.update();
+            }
         }
         animate();
     }
@@ -386,10 +388,6 @@ class Map {
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
         this.camera.far = Math.max(10000, distanceToHorizon * 1.5);
         this.camera.updateProjectionMatrix();
-
-        console.log("near : "+this.camera.near);
-        console.log("far : "+this.camera.far);
-
     }
     moveCameraAboveSurface() {
         let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
