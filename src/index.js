@@ -34,13 +34,17 @@ let map = new Map({ divID: 'screen' });
    
  //new THREE.Vector3(3785340.637455419,902150.4375344106,5036895.401656743), quaternion: new THREE.Quaternion(0.39140876313901685,0.10700124939413477,-0.352335063581273,0.8433326246133608)
 
-map.camera.position.set(3785340.637455419,902150.4375344106,5036895.401656743);
+/* map.camera.position.set(3785340.637455419,902150.4375344106,5036895.401656743);
 //map.camera.up.set(0.5632445449715382, 0.1897925769820766, 0.8041979608792276);
 map.camera.setRotationFromQuaternion(new THREE.Quaternion(0.39140876313901685,0.10700124939413477,-0.352335063581273,0.8433326246133608)); 
 
 map.moveCameraAboveSurface();
 map.resetCameraNearFar();
-map.setCameraUp();
+map.setCameraUp(); */
+
+
+map.moveAndLookAt({x:13.42, y:52.5, z:300},{x:13.42, y:52.4895, z:170})
+
 
 
 //map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
@@ -58,8 +62,8 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     layer: "1",
     visible: true,
-    min: -100,
-    max: -100
+    min: 0,
+    max: 8000
 });
 var imagery = new SingleImageImageryLayer({
     id: 5,
@@ -69,22 +73,11 @@ var imagery = new SingleImageImageryLayer({
     visible: true
 })
 
-var imageryLayer = new WMSLayer({
-    id: 0,
-    name: "WMS",
-    bounds: [-180, -90, 180, 90],
-    // url: "https://ows.terrestris.de/osm/service",
-    url: "https://ows.terrestris.de/osm-gray/service",
-    layer: "OSM-WMS",
-    epsg: "EPSG:4326",
-    version: "1.1.1",
-    visible: true
-  });
+
 var wmsLayer = new WMSLayer({
     id: 20,
     name: "BlueMarble",
     bounds: [-180, -90, 180, 90],
-    //url: "https://worldwind25.arc.nasa.gov/wms",
     url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
     layer: "GEBCO_LATEST_SUB_ICE_TOPO",
     epsg: "EPSG:4326",
@@ -92,26 +85,24 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
-/* var ogc3dTiles = new OGC3DTilesLayer({
-    id: 6,
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 2,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://tile.googleapis.com/v1/3dtiles/root.json",
-    queryParams: { key: getDayOfYear()%2==1?"AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw":"AIzaSyCHxPmhNNywr_vSmLCZdMEEF_aU5AQdV3I" },
-    yUp:true,
-    //zUp: true,
-    //longitude: 13.42,
-    //latitude: 52.4895,
-    //height: 170,
-    //rotationY: 0.72,
-    scale: 1.1,
-    geometricErrorMultiplier: 0.3,
-    loadOutsideView: true,
-    displayErrors: true,
-    displayCopyright: true
-}); */
+    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    //yUp:true,
+    zUp: true,
+    longitude: 13.42,
+    latitude: 52.4895,
+    height: 170,
+    rotationY: 0.72,
+    scale: 1.0,
+    geometricErrorMultiplier: 0.03,
+    loadOutsideView: false
+}); 
+map.setLayer(ogc3dTiles, 2);
 
- var ogc3dTiles = new GoogleMap3DTileLayer({
+ var googleMaps = new GoogleMap3DTileLayer({
     id: 6,
     name: "OGC 3DTiles",
     visible: true,
@@ -131,9 +122,9 @@ function getDayOfYear() {
     return day;
 }
 
-//map.setLayer(imageryLayer, 0)
+map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 10)
-//map.setLayer(earthElevation, 9)
+map.setLayer(earthElevation, 9)
 
 
 

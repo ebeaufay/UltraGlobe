@@ -379,10 +379,13 @@ class Map {
         B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
         const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
 
-        this.camera.near = Math.max(distToGround * 0.25, 1.25);
+        this.camera.near = Math.max(distToGround * 0.1, 1.25);
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = Math.max(10000, Math.max(distanceToHorizon * 1.5, this.camera.near * 50000));
+        this.camera.far = Math.max(10000, distanceToHorizon * 1.5);
         this.camera.updateProjectionMatrix();
+
+        console.log("near : "+this.camera.near);
+        console.log("far : "+this.camera.far);
 
     }
     moveCameraAboveSurface() {
@@ -404,17 +407,27 @@ class Map {
         this.camera.up.crossVectors(A, B).normalize();
     }
 
-    moveToLonLatHeight(lon, lat, height) {
-        transformWGS84ToCartesian(lon, lat, height, camera.position);
-        moveCameraAboveSurface();
-        resetCameraNearFar();
-        setCameraUp();
+    /**
+     * Moves the camera to a location in lon lat height and looks at another location in lon lat height.
+     * 
+     * @param {Object} cameraPosition an object representing the camera desired location in lon lat height (according to WGS84 coordinates)
+     * @param {Number} cameraPosition.x longitude
+     * @param {Number} cameraPosition.y latitude
+     * @param {Number} cameraPosition.z height
+     * @param {Object} cameraAim an object representing the camera desired target in lon lat height (according to WGS84 coordinates)
+     * @param {Number} cameraAim.x longitude
+     * @param {Number} cameraAim.y latitude
+     * @param {Number} cameraAim.z height
+     */
+    moveAndLookAt(cameraPosition, cameraAim){
+        this.camera.position.copy(this.planet.llhToCartesian.forward(cameraPosition));
+        const target = this.planet.llhToCartesian.forward(cameraAim);
+        this.camera.lookAt(target.x, target.y, target.z);
+        this.moveCameraAboveSurface();
+        this.resetCameraNearFar();
+        this.setCameraUp();
     }
-
-    lookAtLonLatHeight(lon, lat, height) {
-        transformWGS84ToCartesian(lon, lat, height, A);
-        this.camera.lookAt(A);
-    }
+    
 
     screenPixelRayCast(x, y, sideEffect) {
         this.renderer.readRenderTargetPixels(this.depthTarget, x - this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y - this.domContainer.offsetTop)), 1, 1, depths);
@@ -550,23 +563,6 @@ function perspectiveDepthToViewZ(invClipZ, near, far) {
     return (near * far) / ((far - near) * invClipZ - far);
 
 
-}
-
-function transformWGS84ToCartesian(lon, lat, h, sfct) {
-    const a = 6378137.0;
-    const e = 0.006694384442042;
-    const N = a / (Math.sqrt(1.0 - (e * Math.pow(Math.sin(lat), 2))));
-    const cosLat = Math.cos(lat);
-    const cosLon = Math.cos(lon);
-    const sinLat = Math.sin(lat);
-    const sinLon = Math.sin(lon);
-    const nPh = (N + h);
-    const x = nPh * cosLat * cosLon;
-    const y = nPh * cosLat * sinLon;
-    const z = (0.993305615557957 * N + h) * sinLat;
-
-    sfct.set(x, y, z);
-    return sfct;
 }
 
 export { Map };
