@@ -215,6 +215,10 @@ map.removeLayer(imageryLayer);
 #### controls
 The controls are on by default and handle moving around with the mouse or touch.
 
+The Map.controller property gives you access to the root controller object.
+
+If you need to implement custom controls, you can look at the existing implementation in "src/controls/" and also check the Map#initController method.
+
 #### navigation through code
 A utility method in the Map object allows specifying a camera location and target in geodetic coordinates (lon, lat, height).
 
