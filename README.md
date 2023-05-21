@@ -11,6 +11,8 @@ Support for WMS and OGC 3DTiles.
 
 Partial I3S support.
 
+Here's a simple getting started project: [ULTRAGLOBE getting started](https://drive.google.com/file/d/1ECn7C98WRZRlaNhz_CG5sVFWkwG4mvTb/view?usp=share_link)
+
 ## Demos
 
 [Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
@@ -32,6 +34,9 @@ Partial I3S support.
 [Random planet](https://www.jdultra.com/planet/index.html)
 
 ## API
+
+The doc below is slightly out of date and imports are wrong for version 2.x.x
+Check out the getting started project: [ULTRAGLOBE getting started](https://drive.google.com/file/d/1ECn7C98WRZRlaNhz_CG5sVFWkwG4mvTb/view?usp=share_link)
 
 In your HTML, have a div with a specific id.
 
