@@ -252,15 +252,17 @@ for (let layer of layers) {
 ### Coordinate transform utility
 A utility to transform between geodetic coordinates and cartesian coordinates is made available through the map.planet.llhToCartesin object. You can use it to convert easily and accurately between geodetic WGS84 coordinates to cartesian coordinates.
 
-```
+````js
 const geodeticCameraPosition = map.planet.llhToCartesian.inverse(map.camera.position);
 const cartesianCameraPosition = map.planet.llhToCartesian.forward(geodeticCameraPosition);
-```
+````
 
 ### ThreeJS context objects
 Rather than a full fledged geospatial framework. This library is intended as a lightweight library on top of threeJS. Nevertheless, the render pipeline is mildly complex hence the need to manage it in the Map object itself. You can access threejs context objects from the map:
 
+```
 Map#renderer
 Map#labelRenderer
 Map#camera
 Map#scene
+```
