@@ -1,5 +1,5 @@
-[![Version](https://img.shields.io/npm/v/@jdultra/threedtiles?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/threedtiles)
-[![Downloads](https://img.shields.io/npm/dt/@jdultra/threedtiles.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/threedtiles)
+[![Version](https://img.shields.io/npm/v/@jdultra/ultra-globe?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/ultra-globe)
+[![Downloads](https://img.shields.io/npm/dt/@jdultra/ultra-globe.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/ultra-globe)
 
 # U L T R A G L O B E  :  http://www.jdultra.com/
 
