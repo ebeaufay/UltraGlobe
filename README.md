@@ -203,13 +203,14 @@ var googleMaps3DTiles = new GoogleMap3DTileLayer({
 map.setLayer(googleMaps3DTiles, 0);
 ````
 
-Layers can also be removed:
-
 #### I3S
 
 In the same spirit, an I3SLayer is also provided although only points are supported currently
 
 #### Removing layers
+
+Layers can also be removed:
+
 ```
 map.removeLayer(imageryLayer);
 ```
