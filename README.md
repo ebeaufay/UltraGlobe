@@ -216,11 +216,25 @@ map.removeLayer(imageryLayer);
 ### Navigation
 
 #### controls
-The controls are on by default and handle moving around with the mouse or touch.
+The controls are on by default and handle moving around with the mouse or touch:
 
-The Map.controller property gives you access to the root controller object.
+Pan: left mouse button / single touch
+rotate: right mouse button | ctrl+left mouse button / 2 touch move right or left
+zoom: mouse wheel / 2 touch move apart or closer together
 
-If you need to implement custom controls, you can look at the existing implementation in "src/controls/" and also check the Map#initController method.
+The Map.controller property gives you access to the root controller object to add or replace controllers. Controllers are chained together via the append method:
+
+````js
+import { Map, PanController, RotateController, ZoomController } from '@jdultra/ultra-globe/dist/ultraglobe.min.js';
+
+let map = new Map({ divID: 'screen' });
+
+map.controller.clear(); // clear existing controller chain
+
+map.controller.append(new PanController(map.camera, map.domContainer, map));
+map.controller.append(new RotateController(map.camera, map.domContainer, map));
+map.controller.append(new ZoomController(map.camera, map.domContainer, map));
+````
 
 #### navigation through code
 A utility method in the Map object allows specifying a camera location and target in geodetic coordinates (lon, lat, height).
@@ -229,6 +243,14 @@ A utility method in the Map object allows specifying a camera location and targe
 import { Map } from '@jdultra/ultra-globe/dist/ultraglobe.min.js';
 map.moveAndLookAt({x:13.42, y:52.5, z:300},{x:13.42, y:52.4895, z:170})
 
+````
+
+### Coordinate transform utility
+A utility to transform between geodetic coordinates and cartesian coordinates is made available through the map.planet.llhToCartesin object. You can use it to convert easily and accurately between geodetic WGS84 coordinates to cartesian coordinates.
+
+````js
+const geodeticCameraPosition = map.planet.llhToCartesian.inverse(map.camera.position);
+const cartesianCameraPosition = map.planet.llhToCartesian.forward(geodeticCameraPosition);
 ````
 
 ### Layer management
@@ -247,14 +269,6 @@ for (let layer of layers) {
   console.log(layer.getID()+" "+layer.getName());
 }
 
-````
-
-### Coordinate transform utility
-A utility to transform between geodetic coordinates and cartesian coordinates is made available through the map.planet.llhToCartesin object. You can use it to convert easily and accurately between geodetic WGS84 coordinates to cartesian coordinates.
-
-````js
-const geodeticCameraPosition = map.planet.llhToCartesian.inverse(map.camera.position);
-const cartesianCameraPosition = map.planet.llhToCartesian.forward(geodeticCameraPosition);
 ````
 
 ### screen pixel raycast
