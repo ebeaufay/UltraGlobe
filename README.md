@@ -220,7 +220,9 @@ map.removeLayer(imageryLayer);
 The controls are on by default and handle moving around with the mouse or touch:
 
 Pan: left mouse button / single touch
+
 rotate: right mouse button | ctrl+left mouse button / 2 touch move right or left
+
 zoom: mouse wheel / 2 touch move apart or closer together
 
 The Map.controller property gives you access to the root controller object to add or replace controllers. Controllers are chained together via the append method:
