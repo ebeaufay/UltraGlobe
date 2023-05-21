@@ -1,7 +1,6 @@
 import { Layer } from "../Layer";
 import { I3SPointNode } from './I3SPointNode';
 
-import * as THREE from 'three';
 
 //const TRANSFORM = require('transform-coordinates')
 import * as TRANSFORM from '../../transform/Transformer.js';

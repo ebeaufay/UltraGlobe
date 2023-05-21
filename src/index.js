@@ -60,7 +60,7 @@ var earthElevation = new SingleImageElevationLayer({
     name: "singleImageEarthElevation",
     bounds: [-180, -90, 180, 90],
     url: earthElevationImage,
-    layer: "1",
+    //layer: "1",
     visible: true,
     min: 0,
     max: 8000

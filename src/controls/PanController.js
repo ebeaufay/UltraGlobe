@@ -68,7 +68,7 @@ class PanController extends Controller {
     }
     
     mouseDown(e) {
-        if (e.which == 1 || e.which == "all") {
+        if ((e.which == 1 && !e.ctrlKey) || e.which == "all") {
             this.isMouseDown = true;
             this.mouseDownLocation = [e.x, e.y];
             this.mouseLatest = [e.x, e.y];
@@ -76,7 +76,7 @@ class PanController extends Controller {
         }
     }
     mouseUp(e) {
-        if (e.which == 1 || e.which == "all") {
+        if ((e.which == 1) || e.which == "all") {
             this.isMouseDown = false;
         }
     }

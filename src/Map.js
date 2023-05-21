@@ -296,6 +296,9 @@ class Map {
         self.domContainer.addEventListener('touchend', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('touchend', e);
         }, false);
+        self.domContainer.addEventListener('keydown', (e) => {
+            if (!!self.controller && !self.pause) self.controller.event('keydown', e);
+        }, false);
         self.domContainer.addEventListener('keyup', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('keyup', e);
         }, false);

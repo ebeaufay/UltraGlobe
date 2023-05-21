@@ -27,11 +27,13 @@ class RotateController extends Controller {
 			case "touchmove": self.touchMove(e); break;
 			case "touchend": self.touchEnd(); break;
 			case "touchcancel": self.touchEnd(); break;
+			case "keydown": self.keyDown(); break;
+			case "keyup": self.keyUp(); break;
 		}
 		super._handleEvent(eventName, e)
 
 	}
-
+	
 	touchStart(e) {
 		if (e.touches.length == 2) {
 			this.touchIDs.push(e.touches[0].identifier);
@@ -60,7 +62,7 @@ class RotateController extends Controller {
 	}
 
 	mouseDown(e) {
-		if (e.which == 3) {
+		if (e.which == 3 || (e.which ==1 && e.ctrlKey)) {
 			this.isMouseDown = true;
 			this.mouseDownLocation = [e.x, e.y];
 			this.mouseLatest = [e.x, e.y];
@@ -69,7 +71,7 @@ class RotateController extends Controller {
 
 	}
 	mouseUp(e) {
-		if (e.which == 3 || e.which == "all") { this.isMouseDown = false; }
+		this.isMouseDown = false;
 	}
 	mouseMove(e) {
 		if (!!this.isMouseDown && !!this.mouseRayCast) {
