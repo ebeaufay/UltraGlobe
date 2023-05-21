@@ -257,6 +257,18 @@ const geodeticCameraPosition = map.planet.llhToCartesian.inverse(map.camera.posi
 const cartesianCameraPosition = map.planet.llhToCartesian.forward(geodeticCameraPosition);
 ````
 
+### screen pixel raycast
+
+convert a location on screen to cartesians coordinates through raycasting on the depth buffer.
+
+````js
+self.domContainer.addEventListener('mouseup', (e) => {
+  let sideEffect = new THREE.Vector3();          
+  map.screenPixelRayCast(e.x, e.y, sideEffect)
+  console.log(sideEffect);
+}, false);
+````
+
 ### ThreeJS context objects
 Rather than a full fledged geospatial framework. This library is intended as a lightweight library on top of threeJS. Nevertheless, the render pipeline is mildly complex hence the need to manage it in the Map object itself. You can access threejs context objects from the map:
 
