@@ -13,4 +13,7 @@ export { ImageryLayer } from "./layers/ImageryLayer";
 export { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer";
 export { ElevationLayer } from "./layers/ElevationLayer";
 export { MapNavigator } from "./MapNavigator";
+export { PanController } from "./controls/PanController";
+export { RotateController } from "./controls/RotateController";
+export { ZoomController } from "./controls/ZoomController";
 export * as GeoUtils from "./GeoUtils";
