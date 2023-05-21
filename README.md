@@ -1,3 +1,6 @@
+[![Version](https://img.shields.io/npm/v/@jdultra/threedtiles?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/threedtiles)
+[![Downloads](https://img.shields.io/npm/dt/@jdultra/threedtiles.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/threedtiles)
+
 # U L T R A G L O B E  :  http://www.jdultra.com/
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
