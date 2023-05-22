@@ -393,7 +393,7 @@ class Map {
 
         this.camera.near = 1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = Math.max(10000, distanceToHorizon * 10);
+        this.camera.far = Math.max(1000000, distanceToHorizon * 10);
         this.camera.updateProjectionMatrix();
         this.resetLogDepthBuffer();
     }
