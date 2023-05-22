@@ -42,8 +42,8 @@ map.moveCameraAboveSurface();
 map.resetCameraNearFar();
 map.setCameraUp(); */
 
-
-map.moveAndLookAt({x:13.42, y:52.5, z:90000},{x:13.42, y:52.5, z:170})
+0.8990759032023482
+map.moveAndLookAt({x:-0.0062266679680371226496, y:51.513254715534870343, z:900},{x:-0.0062266679680371226496, y:51.513254715534870343, z:170})
 
 
 
@@ -62,7 +62,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     //layer: "1",
     visible: true,
-    min: -100,
+    min: -150,
     max: 8000
 });
 var imagery = new SingleImageImageryLayer({
@@ -85,33 +85,33 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
+
 var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    //yUp:true,
-    zUp: true,
-    longitude: 13.42,
-    latitude: 52.4895,
-    height: 170,
-    rotationY: 0.72,
-    scale: 1.0,
-    geometricErrorMultiplier: 0.03,
+    url: "http://localhost:8080/tileset.json",
+    //zUp: true,
+    //longitude: 13.42,
+    //latitude: 52.4895,
+    //height: 170,
+    //rotationY: 0.72,
+    //scale: 1.0,
+    geometricErrorMultiplier: 1.0,
     loadOutsideView: false
 }); 
 map.setLayer(ogc3dTiles, 2);
 
- var googleMaps = new GoogleMap3DTileLayer({
+ /* var googleMaps = new GoogleMap3DTileLayer({
     id: 6,
     name: "OGC 3DTiles",
     visible: true,
     
-    apiKey: "AIzaSyDYPWkPgNsShrxmY3PtQvMo_QA7u6FDiIw",
+    apiKey: "",
     
     loadOutsideView: true,
     displayCopyright: true
-}); 
+});  */
 
 function getDayOfYear() {
     const now = new Date();
