@@ -7,6 +7,12 @@ const PlanetShader = {
 
 	vertexShader: (numImageryLayers, tileSize) =>/* glsl */`
 	
+	precision highp float;
+	precision highp int;
+
+	#include <common>
+	#include <logdepthbuf_pars_vertex>
+
 	uniform vec3 planetPosition;
 	uniform vec4 bounds;
 	uniform vec4 imageryBounds[`+ numImageryLayers + `];
@@ -58,10 +64,18 @@ const PlanetShader = {
 		vPosition*=h;
 		
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
+		#include <logdepthbuf_vertex>
 	}`,
 
 	fragmentShader: (numImageryLayers) => {
 		let code = /* glsl */`
+
+		#include <common>
+		#include <logdepthbuf_pars_fragment>
+
+		precision highp float;
+		precision highp int;
+
 		varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 		uniform sampler2D imagery[`+ numImageryLayers + `];
 		uniform float transparency[`+ numImageryLayers + `];
@@ -72,6 +86,7 @@ const PlanetShader = {
 			if(imagery.length()>0){
 				gl_FragColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.0);
 			}
+			#include <logdepthbuf_fragment>
 		}`;
 		
 

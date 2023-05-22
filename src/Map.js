@@ -48,6 +48,7 @@ class Map {
             throw "cannot create Map without a domContainer or divID"
         }
         this.camera = !!properties.camera ? properties.camera : this.initCamera();
+        this.resetLogDepthBuffer();
 
         if(properties.debug){
             this.initStats();
@@ -156,7 +157,7 @@ class Map {
                 up: { value: new THREE.Vector3(0, 0, 0) },
                 right: { value: new THREE.Vector3(0, 0, 0) },
                 heightAboveSeaLevel: { value: 0 },
-                opticalDepth: { value: null }
+                opticalDepth: { value: null },
             }
         });
 
@@ -184,7 +185,7 @@ class Map {
             uniforms: {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
-                tDepth: { value: null }
+                tDepth: { value: null },
             }
         });
         const postPlane = new THREE.PlaneGeometry(2, 2);
@@ -199,7 +200,7 @@ class Map {
 
     initRenderer() {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: false, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.debug.checkShaderErrors = false;
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
@@ -243,14 +244,16 @@ class Map {
 
 
     initCamera() {
-        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 40);
+        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
         camera.updateProjectionMatrix();
-
+        
         return camera;
     }
+
+    
 
     initPlanet() {
 
@@ -361,8 +364,12 @@ class Map {
                 self.postMaterial.uniforms.up.value = self.camera.up.normalize();
                 self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
                 self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-
+                
                 self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - 6356752.3142;
+                
+                
+                self.depthPassMaterial.uniforms.cameraNear.value = self.camera.near;
+                self.depthPassMaterial.uniforms.cameraFar.value = self.camera.far;
 
                 self.renderer.setRenderTarget(self.depthTarget);
                 self.renderer.render(self.depthScene, self.postCamera);
@@ -384,10 +391,15 @@ class Map {
         B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
         const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
 
-        this.camera.near = Math.max(distToGround * 0.1, 1.25);
+        this.camera.near = 1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = Math.max(10000, distanceToHorizon * 1.5);
+        this.camera.far = Math.max(10000, distanceToHorizon * 10);
         this.camera.updateProjectionMatrix();
+        this.resetLogDepthBuffer();
+    }
+
+    resetLogDepthBuffer(){
+        this.logDepthBufFC = 2.0 / ( Math.log( this.camera.far + 1.0 ) / Math.log(2.0) );
     }
     moveCameraAboveSurface() {
         let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
@@ -440,16 +452,18 @@ class Map {
             sideEffect.copy(this.camera.position);
             return;
         }
-        z = perspectiveDepthToViewZ(z, this.camera.near, this.camera.far);
+        z = Math.pow(2.0, z / (this.logDepthBufFC*0.5))-1;
         x = ((x - this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
         y = (1 - ((y - this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
-        const clipSpacePosition = new THREE.Vector3(x, y, 0.5);
-        mat.copy(this.camera.projectionMatrix).invert();
+        const clipSpacePosition = new THREE.Vector4(x, y, 0.0, 1.0);
         clipSpacePosition.applyMatrix4(this.camera.projectionMatrixInverse);
-        clipSpacePosition.multiplyScalar(z / clipSpacePosition.z);
-        clipSpacePosition.applyMatrix4(this.camera.matrixWorld);
-
-        sideEffect.set(clipSpacePosition.x, clipSpacePosition.y, clipSpacePosition.z);
+        const viewPosition = new THREE.Vector3(clipSpacePosition.x/clipSpacePosition.w, clipSpacePosition.y/clipSpacePosition.w, clipSpacePosition.z/clipSpacePosition.w);
+        
+        viewPosition.normalize();
+        viewPosition.multiplyScalar(z);
+        viewPosition.applyMatrix4(this.camera.matrixWorld);
+        sideEffect.set(viewPosition.x, viewPosition.y, viewPosition.z);
+        
     }
     checkCameraCollision() {
         this.planet.heightAboveElevation();

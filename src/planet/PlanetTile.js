@@ -422,7 +422,6 @@ class PlanetTile extends Mesh {
             uniforms: {},
             depthTest: true,
             depthWrite: true,
-            //depthFunc: THREE.LessDepth,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
             fragmentShader: PlanetShader.fragmentShader(numLayers)
         });
@@ -468,7 +467,6 @@ class PlanetTile extends Mesh {
         self.material.uniforms.planetPosition = { type: "v3", value: self.planet.center };
         self.material.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         self.material.uniforms.c = { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
-
     }
 
 

@@ -43,7 +43,7 @@ map.resetCameraNearFar();
 map.setCameraUp(); */
 
 
-map.moveAndLookAt({x:13.42, y:52.5, z:300},{x:13.42, y:52.4895, z:170})
+map.moveAndLookAt({x:13.42, y:52.5, z:90000},{x:13.42, y:52.5, z:170})
 
 
 
@@ -62,7 +62,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     //layer: "1",
     visible: true,
-    min: 0,
+    min: -100,
     max: 8000
 });
 var imagery = new SingleImageImageryLayer({

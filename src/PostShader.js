@@ -32,7 +32,8 @@ const PostShader = {
 	fragmentShader: () => {
 		let code = /* glsl */`
 		#include <packing>
-
+		#include <common>
+		#include <logdepthbuf_pars_fragment>
 			varying vec2 vUv;
 			uniform sampler2D tDiffuse;
 			uniform sampler2D tDepth;
@@ -52,12 +53,20 @@ const PostShader = {
 			
 			float atmosphereRadius = 1.02;
 
-			float readDepth( sampler2D depthSampler, vec2 coord ) {
+			/* float readDepth( sampler2D depthSampler, vec2 coord ) {
 				float fragCoordZ = texture2D( depthSampler, coord ).x;
 				float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
 				return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
-			}
+			} */
 
+			float readDepth( sampler2D depthSampler, vec2 coord ) {
+				vec4 fragCoord = texture2D( depthSampler, coord );
+			
+				float logDepthBufFC = 2.0 / ( log( cameraFar + 1.0 ) / log(2.0) );
+				float invViewZ = exp2(fragCoord.x / (logDepthBufFC * 0.5)) - 1.0;
+				//return invViewZ;
+				return viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar );
+			  }
 
 			/**
 			 * Returns the intersection distances of a ray and a sphere (2 values)
@@ -165,10 +174,23 @@ const PostShader = {
 
 	depthPassFragmentShader: () => {
 		let code = /* glsl */`
-		#include <packing>
+  		#include <packing>
+		  #include <common>
+		  #include <logdepthbuf_pars_fragment>
 
+		    uniform float cameraNear;
+			uniform float cameraFar;
 			varying vec2 vUv;
 			uniform sampler2D tDepth;
+			
+			float readDepth( sampler2D depthSampler, vec2 coord ) {
+				float depth = texture2D( depthSampler, coord ).x;
+			
+				float logDepthBufFC = 2.0 / ( log( cameraFar + 1.0 ) / log(2.0) );
+				float invViewZ = exp2(depth / (logDepthBufFC * 0.5)) - 1.0;
+				return invViewZ;
+				//return (viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar )*2.0)-1.0;
+			  }
 
 			vec2 PackDepth16( float depth ) {
     			float depthVal = depth * 0.9999847412109375;
