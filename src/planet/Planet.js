@@ -43,11 +43,11 @@ class Planet extends Object3D {
 
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0
+            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows
         }));
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0
+            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows
         }));
 
         self.matrixAutoUpdate = false;

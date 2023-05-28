@@ -14,6 +14,8 @@ import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth_old.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
+import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
+import {getSunPosition, sunDistance} from "./Sun";
 
 
 // reused variables
@@ -24,10 +26,13 @@ const depth16 = new THREE.Vector2();
 const unpacker = new THREE.Vector2(1, 1 / 256);
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
-const tempVec2 = new THREE.Vector2();
+const shadowTarget = new THREE.Vector3();
+const sunToTarget = new THREE.Vector3();
+const cameraRight = new THREE.Vector3();
+const cameraUp = new THREE.Vector3();
+const up = new THREE.Vector3(0,1,0);
 const loader = new THREE.TextureLoader();
 const degreeToRadians = Math.PI / 180;
-
 
 class Map {
 
@@ -39,7 +44,8 @@ class Map {
      */
     constructor(properties) {
         this.layerManager = new LayerManager();
-        this.scene = !!properties.scene ? properties.scene : this.initScene();
+        this.debug = properties.debug;
+        this.scene = !!properties.scene ? properties.scene : this.initScene(properties.shadows);
         if (!!properties.domContainer) {
             this.domContainer = properties.domContainer;
         } else if (!!properties.divID) {
@@ -50,17 +56,18 @@ class Map {
         this.camera = !!properties.camera ? properties.camera : this.initCamera();
         this.resetLogDepthBuffer();
 
-        if(properties.debug){
+        if (properties.debug) {
             this.initStats();
         }
-
-        this.initPlanet();
+        this.shadows = properties.shadows;
+        
+        this.initPlanet(properties.shadows);
         this.initController();
         this.scene.add(this.planet);
         this.setupRenderTarget();
         this.setupPost();
         this.initLabelRenderer();
-        this.initRenderer();
+        this.initRenderer(properties.shadows);
 
         this.startAnimation();
         this.mapNavigator = new MapNavigator(this);
@@ -71,6 +78,19 @@ class Map {
 
     }
 
+    setDate(date){
+        if(this.shadows){
+            this.sun.position.copy(getSunPosition(date));
+        }
+        
+        //shpere to delete
+        /* const m = new THREE.Mesh(new THREE.SphereGeometry(), new THREE.MeshLambertMaterial());
+            m.castShadow = true;
+            m.receiveShadow = true;
+            m.position.copy(this.sun.position);
+            m.scale.set(sunDistance*0.9,sunDistance*0.9,sunDistance*0.9)
+            this.scene.add(m);  */
+    }
     setLayer(layer, index) {
         this._prepareLayer(layer)
         this.layerManager.setLayer(layer, index);
@@ -99,10 +119,40 @@ class Map {
     getLayers() {
         return this.layerManager.getLayers();
     }
-    initScene() {
+    initScene(shadows) {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
+
+
+        if (shadows) {
+
+            
+            this.sun = new THREE.DirectionalLight(0xffFFFF, 1.0);
+            //this.sun.position.copy(getSunPosition(new Date()));
+            this.sun.castShadow = true;
+
+            this.sun.shadow.blurSamples = 8
+            this.sun.shadow.bias = - 0.0005;
+            this.sun.shadow.mapSize.width = 2048;
+            this.sun.shadow.mapSize.height = 2048;
+            this.sun.shadow.radius =2;
+            this.sun.needsUpdate = true;
+
+            scene.add(this.sun)
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.2));
+
+            if(this.debug){
+                this.lightShadowMapViewer = new ShadowMapViewer(this.sun);
+                this.lightShadowMapViewer.position.x = 10;
+                this.lightShadowMapViewer.position.y = 110;
+                this.lightShadowMapViewer.size.width = 400;
+                this.lightShadowMapViewer.size.height = 400;
+                this.lightShadowMapViewer.update();
+            }
+            
+        } else {
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
+        }
         return scene;
     }
 
@@ -112,7 +162,7 @@ class Map {
 
         this.target = new THREE.WebGLRenderTarget(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.target.texture.format = THREE.RGBAFormat;
-        this.target.texture.encoding = THREE.LinearEncoding;
+        this.target.texture.colorSpace = THREE.SRGBColorSpace;
         this.target.texture.minFilter = THREE.LinearFilter;
         this.target.texture.magFilter = THREE.LinearFilter;
         this.target.texture.generateMipmaps = false;
@@ -198,17 +248,30 @@ class Map {
         this.depthScene.add(depthPostQuad);
     }
 
-    initRenderer() {
+    initRenderer(shadows) {
         let self = this;
         self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.debug.checkShaderErrors = false;
+        if (shadows) {
+            self.renderer.shadowMap.enabled = true;
+            self.renderer.shadowMap.type = THREE.PCFShadowMap;
+        }
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
 
-        self.renderer.outputEncoding = THREE.LinearEncoding;
+        self.renderer.outputColorSpace = THREE.SRGBColorSpace;
         self.renderer.autoClear = false;
-        self.renderer.toneMapping = THREE.ReinhardToneMapping;
-        self.renderer.toneMappingExposure = 3.5;
+        THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace(
+            'vec3 CustomToneMapping( vec3 color ) { return color; }',
+            `#define Uncharted2Helper( x ) max( ( ( x * ( 0.15 * x + 0.10 * 0.50 ) + 0.20 * 0.02 ) / ( x * ( 0.15 * x + 0.50 ) + 0.20 * 0.30 ) ) - 0.02 / 0.30, vec3( 0.0 ) )
+            float toneMappingWhitePoint = 1.0;
+            vec3 CustomToneMapping( vec3 color ) {
+                color *= toneMappingExposure;
+                return saturate( Uncharted2Helper( color ) / Uncharted2Helper( vec3( toneMappingWhitePoint ) ) );
+            }`
+        );
+        self.renderer.toneMapping = THREE.CustomToneMapping ;
+        self.renderer.toneMappingExposure = 1;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
 
@@ -249,18 +312,18 @@ class Map {
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
         camera.updateProjectionMatrix();
-        
+
         return camera;
     }
 
-    
 
-    initPlanet() {
+
+    initPlanet(shadows) {
 
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-
+            shadows: shadows,
             layerManager: this.layerManager
         });
         this.resetCameraNearFar();
@@ -274,7 +337,7 @@ class Map {
         self.controller.append(new PanController(self.camera, self.domContainer, self));
         self.controller.append(new RotateController(self.camera, self.domContainer, self));
         self.controller.append(new ZoomController(self.camera, self.domContainer, self));
-        
+
         self.domContainer.addEventListener('mousedown', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('mousedown', e);
         }, false);
@@ -333,7 +396,37 @@ class Map {
 
         function animate() {
             requestAnimationFrame(animate);
+            if (self.shadows) {
+                
+                self.screenPixelRayCast(self.domContainer.offsetWidth*(0.5),self.domContainer.offsetHeight*(1.0),shadowTarget);
+                A.copy(self.sun.position).normalize();
+                const targetToSunDistance = sunDistance - A.dot(shadowTarget)
+                
+                let sunForward = self.sun.position.clone().negate();
+                sunToTarget.subVectors(shadowTarget, self.sun.shadow.camera.position);
+                
 
+                cameraRight.crossVectors(self.sun.shadow.camera.up, sunForward).normalize();
+                cameraUp.crossVectors(sunForward, cameraRight).normalize();
+                
+                let rightDistance = cameraRight.dot(sunToTarget);
+                let upDistance = cameraUp.dot(sunToTarget);
+
+
+                let frustumHalfSize = self.camera.position.distanceTo(shadowTarget);
+                const nearFarHalfSize = Math.max(frustumHalfSize,600)
+                frustumHalfSize = Math.max(Math.floor(frustumHalfSize/50)*50, 400);
+                self.sun.shadow.camera.left = -rightDistance - frustumHalfSize;
+                self.sun.shadow.camera.right = -rightDistance + frustumHalfSize;
+                self.sun.shadow.camera.bottom = upDistance - frustumHalfSize;
+                self.sun.shadow.camera.top = upDistance + frustumHalfSize;
+                
+                self.sun.shadow.camera.near = targetToSunDistance-frustumHalfSize;
+                self.sun.shadow.camera.far = targetToSunDistance+frustumHalfSize;
+                
+                self.sun.shadow.camera.updateProjectionMatrix();
+
+            }
             if (!self.pause) {
                 self.controller.update();
 
@@ -364,10 +457,10 @@ class Map {
                 self.postMaterial.uniforms.up.value = self.camera.up.normalize();
                 self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
                 self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-                
+
                 self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - 6356752.3142;
-                
-                
+
+
                 self.depthPassMaterial.uniforms.cameraNear.value = self.camera.near;
                 self.depthPassMaterial.uniforms.cameraFar.value = self.camera.far;
 
@@ -377,10 +470,15 @@ class Map {
                 self.renderer.setRenderTarget(null);
                 self.renderer.render(self.postScene, self.postCamera);
                 self.labelRenderer.render(self.scene, self.camera);
+
+
             }
 
-            if(self.stats){
+            if (self.stats) {
                 self.stats.update();
+            }
+            if (self.lightShadowMapViewer) {
+                self.lightShadowMapViewer.render(self.renderer);
             }
         }
         animate();
@@ -389,27 +487,28 @@ class Map {
     resetCameraNearFar() {
         const geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
         B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
-        const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+        //const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
 
         this.camera.near = 1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
         this.camera.far = Math.max(3000000, distanceToHorizon * 10);
+        //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this.resetLogDepthBuffer();
     }
 
-    resetLogDepthBuffer(){
-        this.logDepthBufFC = 2.0 / ( Math.log( this.camera.far + 1.0 ) / Math.log(2.0) );
+    resetLogDepthBuffer() {
+        this.logDepthBufFC = 2.0 / (Math.log(this.camera.far + 1.0) / Math.log(2.0));
+
     }
     moveCameraAboveSurface() {
         let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
-        //A.copy(this.camera.position).sub(this.planet.center);
-        //A.normalize();
+        
         B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
-        const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-        if (distToGround < 10) {
-            geodeticCameraPosition.z += (10 - distToGround);
+        this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+        if (this.distToGround < 10) {
+            geodeticCameraPosition.z += (10 - this.distToGround);
             geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
             this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
         }
@@ -432,7 +531,7 @@ class Map {
      * @param {Number} cameraAim.y latitude
      * @param {Number} cameraAim.z height
      */
-    moveAndLookAt(cameraPosition, cameraAim){
+    moveAndLookAt(cameraPosition, cameraAim) {
         this.camera.position.copy(this.planet.llhToCartesian.forward(cameraPosition));
         const target = this.planet.llhToCartesian.forward(cameraAim);
         this.camera.lookAt(target.x, target.y, target.z);
@@ -440,7 +539,7 @@ class Map {
         this.resetCameraNearFar();
         this.setCameraUp();
     }
-    
+
 
     screenPixelRayCast(x, y, sideEffect) {
         this.renderer.readRenderTargetPixels(this.depthTarget, x - this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y - this.domContainer.offsetTop)), 1, 1, depths);
@@ -452,18 +551,18 @@ class Map {
             sideEffect.copy(this.camera.position);
             return;
         }
-        z = Math.pow(2.0, z / (this.logDepthBufFC*0.5))-1;
+        z = Math.pow(2.0, z / (this.logDepthBufFC * 0.5)) - 1;
         x = ((x - this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
         y = (1 - ((y - this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
         const clipSpacePosition = new THREE.Vector4(x, y, 0.0, 1.0);
         clipSpacePosition.applyMatrix4(this.camera.projectionMatrixInverse);
-        const viewPosition = new THREE.Vector3(clipSpacePosition.x/clipSpacePosition.w, clipSpacePosition.y/clipSpacePosition.w, clipSpacePosition.z/clipSpacePosition.w);
-        
+        const viewPosition = new THREE.Vector3(clipSpacePosition.x / clipSpacePosition.w, clipSpacePosition.y / clipSpacePosition.w, clipSpacePosition.z / clipSpacePosition.w);
+
         viewPosition.normalize();
         viewPosition.multiplyScalar(z);
         viewPosition.applyMatrix4(this.camera.matrixWorld);
         sideEffect.set(viewPosition.x, viewPosition.y, viewPosition.z);
-        
+
     }
     checkCameraCollision() {
         this.planet.heightAboveElevation();

@@ -1,7 +1,6 @@
 class Controller {
     constructor(camera, domElement, map){
         this.next = null;
-
         this.dom = domElement;
 		this.planet = map.planet;
 		this.map = map;
@@ -26,7 +25,8 @@ class Controller {
 		}
     }
     _update(){
-        //throw "error, this should be implemented in child class";
+        
+        
     }
     
     append(aController){

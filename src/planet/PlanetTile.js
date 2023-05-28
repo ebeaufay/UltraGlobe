@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { PlanetShader } from './PlanetShader.js';
+import { PlanetShader } from './PlanetShader2.js';
 import { Mesh } from 'three/src/objects/Mesh';
 import { Vector4 } from 'three';
 import { RasterLayer } from '../layers/RasterLayer.js';
 import { ImageryLayer } from '../layers/ImageryLayer.js';
 import { ElevationLayer } from '../layers/ElevationLayer.js';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js'
-import { VISIBILITY_CHANGE } from '../layers/Layer.js'
+import { VISIBILITY_CHANGE } from '../layers/Layer.js';
+import CustomShaderMaterial from 'three-custom-shader-material/vanilla';
 
 
 const TILE_SIZE = 32;
@@ -130,12 +131,12 @@ const tilesToLoad = [];
 function scheduleLoadLayers(tile) {
     const length = tilesToLoad.length;
     for (let index = 0; index < tilesToLoad.length; index++) {
-        if(tilesToLoad[index].priority > tile.priority){
+        if (tilesToLoad[index].priority > tile.priority) {
             tilesToLoad.splice(index, 0, tile);
             return;
         }
     }
-    if(tilesToLoad.length == length){
+    if (tilesToLoad.length == length) {
         tilesToLoad.push(tile);
     }
 }
@@ -144,11 +145,11 @@ function scheduleLoadLayers(tile) {
 
 setInterval(() => {
     const start = now();
-    while(tilesToLoad.length>0 && now()-start<5){
+    while (tilesToLoad.length > 0 && now() - start < 5) {
         const tile = tilesToLoad.shift();
         if (!!tile && !tile.disposed) tile._loadLayers(tile);
     }
-    
+
 }, 10)
 
 function now() {
@@ -165,12 +166,16 @@ class PlanetTile extends Mesh {
      *  planet: Planet, 
      *  level: Integer, 
      *  parentLayerDataMap: intenal,
-     *  childType: 0 BottomLeft, 1 BottomRight, 2 TopLeft, 3 TopRight
+     *  childType: 0 BottomLeft, 1 BottomRight, 2 TopLeft, 3 TopRight,
+     *  shadows: truthy/falsy
      * }
      */
     constructor(properties) {
+        let geometry;
+
         super(TILE_GEOMETRY, defaultMaterial);
         const self = this;
+
         self.frustumCulled = false; // frustum culling is handled separately (mesh is displaced in shader)
         self.bounds = properties.bounds; // Lon Lat bounds
         self.planet = properties.planet; // The parent planet (circular dependency... gives access to global planet properties and methods like tree traversal)
@@ -186,6 +191,14 @@ class PlanetTile extends Mesh {
 
         self.priority = self.level;
         self.mapRequests = []; // collects texture requests in order to abort them when needed
+
+        if (properties.shadows) {
+            self.shadows = properties.shadows;
+            self.castShadow = true
+            self.receiveShadow = true;
+            self.material.shadowSide = THREE.FrontSide;
+            //mesh.material.flatShading = true;
+        }
         /////// prevent loading too many levels at the poles
         if (self.bounds.max.y == Math.PI / 2 || self.bounds.min.y == -Math.PI / 2) {
             self.maxLevel = 4;
@@ -209,6 +222,7 @@ class PlanetTile extends Mesh {
 
     }
 
+    
     _loadLayers(self) {
         self.layerManager.getLayers().forEach(layer => {
             if (!self.layerDataMap[layer.id]) {
@@ -315,7 +329,7 @@ class PlanetTile extends Mesh {
 
     update(camera, frustum) {
         const self = this;
-        if(self.layerManager.getRasterLayers([]).length == 0) return;
+        if (self.layerManager.getRasterLayers([]).length == 0) return;
         const metric = self.calculateUpdateMetric(camera, frustum);
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");
@@ -363,25 +377,25 @@ class PlanetTile extends Mesh {
                 self.add(new PlanetTile(
                     {
                         bounds: new THREE.Box2(self.bounds.min, boundsCenter),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
                     }
                 ));
                 self.add(new PlanetTile(
                     {
                         bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
                     }
                 ));
                 self.add(new PlanetTile(
                     {
                         bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
                     }
                 ));
                 self.add(new PlanetTile(
                     {
                         bounds: new THREE.Box2(boundsCenter, self.bounds.max),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1
+                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
                     }
                 ));
 
@@ -418,17 +432,19 @@ class PlanetTile extends Mesh {
 
         numLayers = Math.max(numLayers, 1);
 
-        self.material = new THREE.ShaderMaterial({
+        self.material = new CustomShaderMaterial({
             uniforms: {},
+            baseMaterial: THREE.MeshStandardMaterial,
             depthTest: true,
             depthWrite: true,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
-            fragmentShader: PlanetShader.fragmentShader(numLayers)
+            fragmentShader: PlanetShader.fragmentShader(numLayers),
+            
         });
 
         self.fillShaderUniforms(self);
-        self.material.side = THREE.DoubleSide;
-        self.material.visible = false;
+        self.material.side = THREE.FrontSide;
+        self.material.visible = true;
         self.material.wireframe = false;
     }
 
@@ -473,7 +489,7 @@ class PlanetTile extends Mesh {
     disposeChildren(self) {
         if (self.children.length != 0) {
             self.traverse(function (element) {
-                
+
                 if (element != self && element.material) {
 
                     // dispose textures

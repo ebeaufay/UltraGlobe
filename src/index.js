@@ -27,10 +27,47 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen' });
+let map = new Map({ divID: 'screen', shadows:false, debug: false });
+//map.setDate(new Date(2023,5, 21, 8, 0,0,0));
 
 
+//axes
+/* const materialX = new THREE.LineBasicMaterial({
+	color: 0xff0000
+});
+const pointsX = [];
+pointsX.push( new THREE.Vector3( 0, 0, 0 ) );
+pointsX.push( new THREE.Vector3( 10000000000, 0, 0 ) );
 
+const geometryX = new THREE.BufferGeometry().setFromPoints( pointsX );
+
+const lineX = new THREE.Line( geometryX, materialX );
+map.scene.add( lineX );
+
+const materialY = new THREE.LineBasicMaterial({
+	color: 0x00ff00
+});
+const pointsY = [];
+pointsY.push( new THREE.Vector3( 0, 0, 0 ) );
+pointsY.push( new THREE.Vector3( 0, 10000000000, 0 ) );
+
+const geometryY = new THREE.BufferGeometry().setFromPoints( pointsY );
+
+const lineY = new THREE.Line( geometryY, materialY );
+map.scene.add( lineY );
+
+
+const materialZ = new THREE.LineBasicMaterial({
+	color: 0x0000ff
+});
+const pointsZ = [];
+pointsZ.push( new THREE.Vector3( 0, 0, 0 ) );
+pointsZ.push( new THREE.Vector3( 0, 0, 10000000000 ) );
+
+const geometryZ = new THREE.BufferGeometry().setFromPoints( pointsZ );
+
+const lineZ = new THREE.Line( geometryZ, materialZ );
+map.scene.add( lineZ ); */
    
  //new THREE.Vector3(3785340.637455419,902150.4375344106,5036895.401656743), quaternion: new THREE.Quaternion(0.39140876313901685,0.10700124939413477,-0.352335063581273,0.8433326246133608)
 
@@ -42,8 +79,8 @@ map.moveCameraAboveSurface();
 map.resetCameraNearFar();
 map.setCameraUp(); */
 
-0.8990759032023482
-map.moveAndLookAt({x:-0.0062266679680371226496, y:51.513254715534870343, z:900},{x:-0.0062266679680371226496, y:51.513254715534870343, z:170})
+//map.moveAndLookAt({x:-0.0062266679680371226496, y:51.513254715534870343, z:900},{x:-0.0062266679680371226496, y:51.513254715534870343, z:170})
+map.moveAndLookAt({ x: 13.42, y: 52.480, z: 300 }, { x: 13.42, y: 52.4895, z: 170 })
 
 
 
@@ -90,16 +127,17 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
-    url: "http://localhost:8080/tileset.json",
-    //zUp: true,
-    //longitude: 13.42,
-    //latitude: 52.4895,
-    //height: 170,
-    //rotationY: 0.72,
-    //scale: 1.0,
-    geometricErrorMultiplier: 1.0,
-    loadOutsideView: false
-}); 
+    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    //yUp:true,
+    zUp: true,
+    longitude: 13.42,
+    latitude: 52.4895,
+    height: 170,
+    rotationY: 0.72,
+    scale: 1.0,
+    geometricErrorMultiplier: 0.01,
+    loadOutsideView: true
+});
 map.setLayer(ogc3dTiles, 2);
 
  /* var googleMaps = new GoogleMap3DTileLayer({
@@ -113,14 +151,7 @@ map.setLayer(ogc3dTiles, 2);
     displayCopyright: true
 });  */
 
-function getDayOfYear() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    const day = Math.floor(diff / oneDay);
-    return day;
-}
+
 
 map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 10)
