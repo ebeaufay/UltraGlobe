@@ -128,7 +128,7 @@ class Map {
 
             
             this.sun = new THREE.DirectionalLight(0xffFFFF, 1.0);
-            //this.sun.position.copy(getSunPosition(new Date()));
+            this.sun.position.copy(getSunPosition(new Date()));
             this.sun.castShadow = true;
 
             this.sun.shadow.blurSamples = 8
