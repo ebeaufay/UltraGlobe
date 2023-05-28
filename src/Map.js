@@ -80,7 +80,9 @@ class Map {
 
     setDate(date){
         if(this.shadows){
-            this.sun.position.copy(getSunPosition(date));
+            const self = this;
+            const newSunPosition = getSunPosition(date);
+            requestAnimationFrame(()=>self.sun.position.copy(newSunPosition));
         }
         
         //shpere to delete
