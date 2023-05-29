@@ -418,7 +418,6 @@ class Map {
 
                 let frustumHalfSize = Math.pow(self.camera.position.distanceTo(shadowTarget)*1.5,0.9);
                 frustumHalfSize = Math.max(Math.floor(frustumHalfSize/30)*30, 400);
-                console.log(self.distToGround, frustumHalfSize);
                 self.sun.shadow.camera.left = -rightDistance - frustumHalfSize;
                 self.sun.shadow.camera.right = -rightDistance + frustumHalfSize;
                 self.sun.shadow.camera.bottom = upDistance - frustumHalfSize;

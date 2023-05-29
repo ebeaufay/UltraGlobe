@@ -179,11 +179,18 @@ class OGC3DTilesLayer extends Layer {
             maxCachedItems: 200,
             meshCallback: mesh => {
                 //mesh.material = new THREE.MeshLambertMaterial();
+                if(mesh.material.isMeshBasicMaterial){
+                    const newMat = new THREE.MeshStandardMaterial();
+                    newMat.map = mesh.material.map;
+                    mesh.material = newMat;
+                }
                 mesh.material.map.colorSpace = THREE.LinearSRGBColorSpace;
                 mesh.material.wireframe = false;
                 mesh.material.side = THREE.DoubleSide;
                 mesh.castShadow = true
                 mesh.receiveShadow = true;
+                mesh.parent.castShadow = true
+                mesh.parent.receiveShadow = true;
                 if (!mesh.geometry.getAttribute('normal')) {
                     mesh.geometry.computeVertexNormals();
                 }

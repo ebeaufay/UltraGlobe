@@ -29,10 +29,10 @@ const domContainer = document.getElementById('screen');
 
 let map = new Map({ divID: 'screen', shadows:false, debug: false });
 let d = new Date();;
-/* setInterval(()=>{
-    d.setSeconds(d.getSeconds()+1);
+ /* setInterval(()=>{
+    d.setSeconds(d.getSeconds()+1000);
     map.setDate(d);
-}, 100) */
+}, 1000)  */
 map.setDate(new Date(2023,5, 21, 8, 0,0,0));
 
 
@@ -143,25 +143,23 @@ var ogc3dTiles = new OGC3DTilesLayer({
     geometricErrorMultiplier: 0.01,
     loadOutsideView: true
 });
-map.setLayer(ogc3dTiles, 2);
 
- /* var googleMaps = new GoogleMap3DTileLayer({
-    id: 6,
-    name: "OGC 3DTiles",
+var googleMaps3DTiles = new GoogleMap3DTileLayer({
+    id: 3,
+    name: "Google Maps 3D Tiles",
     visible: true,
-    
-    apiKey: "",
-    
+    apiKey: "AIzaSyA_xpmBb5akvnt7fefODX39XDS45riGbIw",
     loadOutsideView: true,
-    displayCopyright: true
-});  */
+    displayCopyright: true,
+}); 
 
 
 
-map.setLayer(wmsLayer, 0)
-map.setLayer(ogc3dTiles, 10)
-map.setLayer(earthElevation, 9)
 
+//map.setLayer(wmsLayer, 0)
+//map.setLayer(ogc3dTiles, 1)
+//map.setLayer(earthElevation, 2)
+map.setLayer(googleMaps3DTiles, 3);
 
 
 
