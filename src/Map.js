@@ -15,7 +15,7 @@ import opticalDepth from './images/optical_depth_old.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
 import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
-import {getSunPosition, sunDistance} from "./Sun";
+import {getSunPosition} from "./Sun";
 
 
 // reused variables
@@ -80,9 +80,7 @@ class Map {
 
     setDate(date){
         if(this.shadows){
-            const self = this;
-            const newSunPosition = getSunPosition(date);
-            requestAnimationFrame(()=>self.sun.position.copy(newSunPosition));
+            this.newSunPosition = getSunPosition(date);
         }
         
         //shpere to delete
@@ -134,10 +132,10 @@ class Map {
             this.sun.castShadow = true;
 
             this.sun.shadow.blurSamples = 8
-            this.sun.shadow.bias = - 0.0005;
+            this.sun.shadow.bias = -0.0005;
             this.sun.shadow.mapSize.width = 2048;
             this.sun.shadow.mapSize.height = 2048;
-            this.sun.shadow.radius =2;
+            this.sun.shadow.radius =0;
             this.sun.needsUpdate = true;
 
             scene.add(this.sun)
@@ -256,7 +254,7 @@ class Map {
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
-            self.renderer.shadowMap.type = THREE.PCFShadowMap;
+            self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         }
         self.renderer.setPixelRatio(window.devicePixelRatio);
         self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
@@ -399,25 +397,28 @@ class Map {
         function animate() {
             requestAnimationFrame(animate);
             if (self.shadows) {
+                if(self.newSunPosition){
+                    self.sun.shadow.camera.position.copy(self.newSunPosition);
+                    self.sun.position.copy(self.newSunPosition);
+                    self.newSunPosition = undefined;
+                }
+                self.screenPixelRayCast(self.domContainer.offsetWidth*(0.5),self.domContainer.offsetHeight*(0.8),shadowTarget);
+                //A.copy(self.sun.position).normalize();
+                const targetToSunDistance = 1 - self.sun.position.dot(shadowTarget)
                 
-                self.screenPixelRayCast(self.domContainer.offsetWidth*(0.5),self.domContainer.offsetHeight*(1.0),shadowTarget);
-                A.copy(self.sun.position).normalize();
-                const targetToSunDistance = sunDistance - A.dot(shadowTarget)
-                
-                let sunForward = self.sun.position.clone().negate();
                 sunToTarget.subVectors(shadowTarget, self.sun.shadow.camera.position);
                 
 
-                cameraRight.crossVectors(self.sun.shadow.camera.up, sunForward).normalize();
-                cameraUp.crossVectors(sunForward, cameraRight).normalize();
+                cameraRight.crossVectors(self.sun.position, self.sun.shadow.camera.up).normalize();
+                cameraUp.crossVectors(cameraRight, self.sun.position).normalize();
                 
                 let rightDistance = cameraRight.dot(sunToTarget);
                 let upDistance = cameraUp.dot(sunToTarget);
 
 
-                let frustumHalfSize = self.camera.position.distanceTo(shadowTarget);
-                const nearFarHalfSize = Math.max(frustumHalfSize,600)
-                frustumHalfSize = Math.max(Math.floor(frustumHalfSize/50)*50, 400);
+                let frustumHalfSize = Math.pow(self.camera.position.distanceTo(shadowTarget)*1.5,0.9);
+                frustumHalfSize = Math.max(Math.floor(frustumHalfSize/30)*30, 400);
+                console.log(self.distToGround, frustumHalfSize);
                 self.sun.shadow.camera.left = -rightDistance - frustumHalfSize;
                 self.sun.shadow.camera.right = -rightDistance + frustumHalfSize;
                 self.sun.shadow.camera.bottom = upDistance - frustumHalfSize;

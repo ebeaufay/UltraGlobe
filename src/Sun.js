@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 const degreesToRadians = 0.01745329251994329576923690768489;
 const radiansToDegrees = 57.295779513082320876798154814105;
-const sunDistance = 7e6;
 
 // Calculate position of the Sun
 let calculateSunPosition = function (date) {
@@ -20,10 +19,10 @@ let calculateSunPosition = function (date) {
   const ECEFy = -x * Math.sin(radGst) + y * Math.cos(radGst);
   const ECEFz = z;  // no change to the z-coordinate
   
-  return new THREE.Vector3(ECEFx, ECEFy, ECEFz).multiplyScalar(sunDistance);
+  return new THREE.Vector3(ECEFx, ECEFy, ECEFz).normalize();
 }
 
 function getSunPosition(date) {
   return calculateSunPosition(date)
 }
-export { getSunPosition, sunDistance }
+export { getSunPosition }
