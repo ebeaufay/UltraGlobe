@@ -18,6 +18,7 @@ class Planet extends Object3D {
      */
     constructor(properties) {
         super();
+        this.frustumCulled = false;
         this.elevationExageration = 1;
         var self = this;
         if (!properties.camera) {
@@ -106,7 +107,6 @@ class Planet extends Object3D {
 
     setElevationExageration(elevationExageration){
         this.elevationExageration = elevationExageration;
-        
     }
 }
 

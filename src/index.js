@@ -144,22 +144,22 @@ var ogc3dTiles = new OGC3DTilesLayer({
     loadOutsideView: true
 });
 
-var googleMaps3DTiles = new GoogleMap3DTileLayer({
+/* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
     apiKey: "AIzaSyA_xpmBb5akvnt7fefODX39XDS45riGbIw",
     loadOutsideView: true,
     displayCopyright: true,
-}); 
+});  */
 
 
 
 
-//map.setLayer(wmsLayer, 0)
-//map.setLayer(ogc3dTiles, 1)
-//map.setLayer(earthElevation, 2)
-map.setLayer(googleMaps3DTiles, 3);
+map.setLayer(wmsLayer, 0)
+map.setLayer(ogc3dTiles, 1)
+map.setLayer(earthElevation, 2)
+//map.setLayer(googleMaps3DTiles, 3);
 
 
 

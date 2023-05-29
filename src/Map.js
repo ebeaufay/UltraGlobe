@@ -333,7 +333,7 @@ class Map {
     initController() {
         const self = this;
         self.controller = new Controller(self.camera, self.domContainer, self);
-        self.controller.append(new SelectController(self.camera, self.domContainer, self));
+        //self.controller.append(new SelectController(self.camera, self.domContainer, self));
         self.controller.append(new PanController(self.camera, self.domContainer, self));
         self.controller.append(new RotateController(self.camera, self.domContainer, self));
         self.controller.append(new ZoomController(self.camera, self.domContainer, self));
@@ -433,9 +433,9 @@ class Map {
                 self.controller.update();
 
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                //self.planet.cull(frustum);
+                
 
-                self.camera.updateMatrixWorld();
+                //self.camera.updateMatrixWorld();
 
                 self.renderer.setRenderTarget(self.target);
                 self.renderer.render(self.scene, self.camera);
@@ -519,6 +519,7 @@ class Map {
         this.camera.getWorldDirection(A).normalize();
         B.crossVectors(this.camera.position, A);
         this.camera.up.crossVectors(A, B).normalize();
+        
     }
 
     /**
@@ -534,12 +535,21 @@ class Map {
      * @param {Number} cameraAim.z height
      */
     moveAndLookAt(cameraPosition, cameraAim) {
+        
         this.camera.position.copy(this.planet.llhToCartesian.forward(cameraPosition));
         const target = this.planet.llhToCartesian.forward(cameraAim);
+        this.camera.up.copy(this.camera.position).normalize()
         this.camera.lookAt(target.x, target.y, target.z);
         this.moveCameraAboveSurface();
         this.resetCameraNearFar();
         this.setCameraUp();
+        //this.camera.up.set(Math.random(), Math.random(), Math.random())
+        
+
+        //this.planet.update();
+        //this.camera.up.copy(this.camera.position).normalize();
+        //this.camera.updateProjectionMatrix();
+        //this.controller._update();
     }
 
 
