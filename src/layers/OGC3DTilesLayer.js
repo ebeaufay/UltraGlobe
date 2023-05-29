@@ -197,7 +197,7 @@ class OGC3DTilesLayer extends Layer {
                     mesh.geometry.computeVertexNormals();
                 }
                 mesh.material.shadowSide = THREE.BackSide;
-                mesh.material.flatShading = true;
+                mesh.material.flatShading = self.properties.flatShading;
             },
             pointsCallback: points => {
                 points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));

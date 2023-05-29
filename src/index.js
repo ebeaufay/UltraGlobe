@@ -141,7 +141,8 @@ var ogc3dTiles = new OGC3DTilesLayer({
     rotationY: 0.72,
     scale: 1.0,
     geometricErrorMultiplier: 0.01,
-    loadOutsideView: true
+    loadOutsideView: true,
+    flatShading: false
 });
 
 /* var googleMaps3DTiles = new GoogleMap3DTileLayer({
@@ -151,6 +152,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     apiKey: "",
     loadOutsideView: true,
     displayCopyright: true,
+    flatShading: false
 });  */
 
 
