@@ -184,7 +184,9 @@ class OGC3DTilesLayer extends Layer {
                     newMat.map = mesh.material.map;
                     mesh.material = newMat;
                 }
-                mesh.material.map.colorSpace = THREE.LinearSRGBColorSpace;
+                if(mesh.material.map){
+                    mesh.material.map.colorSpace = THREE.LinearSRGBColorSpace;
+                }
                 mesh.material.wireframe = false;
                 mesh.material.side = THREE.DoubleSide;
                 mesh.castShadow = true

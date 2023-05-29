@@ -16,4 +16,5 @@ export { MapNavigator } from "./MapNavigator";
 export { PanController } from "./controls/PanController";
 export { RotateController } from "./controls/RotateController";
 export { ZoomController } from "./controls/ZoomController";
+export {transform} from "./transform/Transformer";
 export * as GeoUtils from "./GeoUtils";
