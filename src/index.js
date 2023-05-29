@@ -27,7 +27,7 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen', shadows:false, debug: false });
+let map = new Map({ divID: 'screen', shadows:true, debug: false });
 let d = new Date();;
  /* setInterval(()=>{
     d.setSeconds(d.getSeconds()+1000);
@@ -148,7 +148,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "AIzaSyA_xpmBb5akvnt7fefODX39XDS45riGbIw",
+    apiKey: "",
     loadOutsideView: true,
     displayCopyright: true,
 });  */

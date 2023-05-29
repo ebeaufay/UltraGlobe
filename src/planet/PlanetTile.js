@@ -329,7 +329,11 @@ class PlanetTile extends Mesh {
 
     update(camera, frustum) {
         const self = this;
-        if (self.layerManager.getRasterLayers([]).length == 0) return;
+        if (self.layerManager.getRasterLayers([]).length == 0) {
+            self.material.transparent = true;
+            return;
+        }
+        self.material.transparent = false;
         const metric = self.calculateUpdateMetric(camera, frustum);
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");
@@ -437,6 +441,7 @@ class PlanetTile extends Mesh {
             baseMaterial: THREE.MeshStandardMaterial,
             depthTest: true,
             depthWrite: true,
+            transparent: true,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
             fragmentShader: PlanetShader.fragmentShader(numLayers),
             

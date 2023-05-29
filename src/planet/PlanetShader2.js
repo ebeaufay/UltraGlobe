@@ -95,6 +95,8 @@ const PlanetShader = {
 		void main() {
 			if(imagery.length()>0){
 				csm_DiffuseColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.0);
+			}else{
+				csm_DiffuseColor = vec4(0.0,0.0,0.0,0.0);
 			}
 		}`;
 		
