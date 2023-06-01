@@ -6,6 +6,7 @@
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
 
+
 Displays the earth with level of detail, imagery, elevation and connection to OGC web services.
 
 The earth model is wgs 84.
@@ -29,6 +30,8 @@ npm run dev
 ## Demos
 
 [Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
+
+[Walk on the bright side](https://www.jdultra.com/sunny/index.html)
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
