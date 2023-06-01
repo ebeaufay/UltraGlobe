@@ -83,7 +83,7 @@ class ZoomController extends Controller {
     }
 
     zoomAction() {
-
+        if(!this.zoomLocation) return;
         this.map.screenPixelRayCast(this.zoomLocation.x, this.zoomLocation.y, this.mouseRayCast);
         // calculate pointOnGlobe and distToGlobeSurface before zoom
         pointer1 = Math.tan(this.camera.fov * 0.5 * 0.0174533) * this.camera.near * 2;

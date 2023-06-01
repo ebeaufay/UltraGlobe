@@ -21,7 +21,11 @@ class GoogleMap3DTileLayer extends OGC3DTilesLayer {
         properties.url= "https://tile.googleapis.com/v1/3dtiles/root.json";
         properties.yUp = true;
         properties.queryParams =  { key: properties.apiKey };
-        if (!properties.geometricErrorMultiplier) properties.geometricErrorMultiplier = 0.3;
+        if (!properties.geometricErrorMultiplier) properties.geometricErrorMultiplier = isMobileDevice()?0.2:0.5;
         super(properties);
     }
 }export {GoogleMap3DTileLayer};
+
+function isMobileDevice() {
+    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};

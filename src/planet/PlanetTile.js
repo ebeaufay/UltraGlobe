@@ -334,7 +334,7 @@ class PlanetTile extends Mesh {
             return;
         }
         self.material.transparent = false;
-        const metric = self.calculateUpdateMetric(camera, frustum);
+        let metric = self.calculateUpdateMetric(camera, frustum);
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");
         }
@@ -599,7 +599,7 @@ class PlanetTile extends Mesh {
 
         const localRadius = nearestSurface.sub(this.planet.center).length();
 
-        var log = -(Math.log(distance * 2500 / localRadius) / Math.log(2)) + 16;
+        var log = -(Math.log(distance * (isMobileDevice()?25000:2500) / localRadius) / Math.log(2)) + 16;
         const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.07);
 
         if (isNaN(metric)) {
@@ -686,8 +686,6 @@ class PlanetTile extends Mesh {
             return !!this.elevationArray ? this.billinearInterpolationOnElevationArray(lon, lat) : 0;
         }
 
-
-
     }
 
     transformWGS84ToCartesian(lon, lat, h, sfct) {
@@ -721,5 +719,9 @@ class PlanetTile extends Mesh {
         this.children.forEach(child=>child.cull(frustum));
     }*/
 }
+
+function isMobileDevice() {
+    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};
 
 export { PlanetTile };

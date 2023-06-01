@@ -27,7 +27,7 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen', shadows:true, debug: false });
+let map = new Map({ divID: 'screen', shadows:true, debug: true });
 let d = new Date();;
  /* setInterval(()=>{
     d.setSeconds(d.getSeconds()+1000);
@@ -140,7 +140,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     height: 170,
     rotationY: 0.72,
     scale: 1.0,
-    geometricErrorMultiplier: 0.01,
+    geometricErrorMultiplier: 0.001,
     loadOutsideView: true,
     flatShading: false
 });
@@ -160,7 +160,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 1)
-map.setLayer(earthElevation, 2)
+//map.setLayer(earthElevation, 2)
 //map.setLayer(googleMaps3DTiles, 3);
 
 
@@ -176,6 +176,13 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
+setTimeout(() => {
+    map.pauseRendering();
+    setTimeout(() => {
+        map.resumeRendering();
+    }, 2000);
+}, 2000);
+
 
 //// move tilesets
 /* map.addSelectionListener(selections=>{
@@ -188,3 +195,6 @@ document.addEventListener('keyup', (e) => {
         map.controller = tilesetPlacementController;
     }
 }) */
+function isMobileDevice() {
+    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};

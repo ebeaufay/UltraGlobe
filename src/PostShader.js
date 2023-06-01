@@ -197,10 +197,17 @@ const PostShader = {
     			vec3 encode = fract( depthVal * vec3(1.0, 256.0, 65536.0) );
     			return encode.xy - encode.yz / 256.0 + 0.001953125;
 			}
+			vec3 PackDepth24(float depth) {
+				float depthVal = depth * 0.9999847412109375;
+				vec3 encode = fract(depthVal * vec3(1.0, 256.0, 65536.0));
+				encode.xy -= encode.yz / 256.0;
+				encode.z *= 256.0;
+				return encode;
+			}
 
 			void main() {
-				gl_FragColor.xy = PackDepth16(texture2D( tDepth, vUv ).x);
-				gl_FragColor.zw = vec2(1.0);
+				gl_FragColor.xyz = PackDepth24(texture2D(tDepth, vUv).x);
+				gl_FragColor.w = 1.0;
 			}`;
 		return code;
 	}

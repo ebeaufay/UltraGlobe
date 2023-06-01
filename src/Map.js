@@ -15,22 +15,22 @@ import opticalDepth from './images/optical_depth_old.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
 import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
-import {getSunPosition} from "./Sun";
+import { getSunPosition } from "./Sun";
 
 
 // reused variables
 const frustum = new THREE.Frustum();
 const mat = new THREE.Matrix4();
 const depths = new Uint8Array(4);
-const depth16 = new THREE.Vector2();
-const unpacker = new THREE.Vector2(1, 1 / 256);
+const depth24 = new THREE.Vector3();
+const unpacker = new THREE.Vector3(1, 1 / 256, 1 / (256 * 256));
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
 const shadowTarget = new THREE.Vector3();
 const sunToTarget = new THREE.Vector3();
 const cameraRight = new THREE.Vector3();
 const cameraUp = new THREE.Vector3();
-const up = new THREE.Vector3(0,1,0);
+const up = new THREE.Vector3(0, 1, 0);
 const loader = new THREE.TextureLoader();
 const degreeToRadians = Math.PI / 180;
 
@@ -60,7 +60,7 @@ class Map {
             this.initStats();
         }
         this.shadows = properties.shadows;
-        
+
         this.initPlanet(properties.shadows);
         this.initController();
         this.scene.add(this.planet);
@@ -78,11 +78,11 @@ class Map {
 
     }
 
-    setDate(date){
-        if(this.shadows){
+    setDate(date) {
+        if (this.shadows) {
             this.newSunPosition = getSunPosition(date);
         }
-        
+
         //shpere to delete
         /* const m = new THREE.Mesh(new THREE.SphereGeometry(), new THREE.MeshLambertMaterial());
             m.castShadow = true;
@@ -126,30 +126,32 @@ class Map {
 
         if (shadows) {
 
-            
+
             this.sun = new THREE.DirectionalLight(0xffFFFF, 1.0);
             this.sun.position.copy(getSunPosition(new Date()));
             this.sun.castShadow = true;
 
-            this.sun.shadow.blurSamples = 8
+
             this.sun.shadow.bias = -0.0005;
+
+            this.sun.shadow.blurSamples = 8
             this.sun.shadow.mapSize.width = 2048;
             this.sun.shadow.mapSize.height = 2048;
-            this.sun.shadow.radius =0;
+
             this.sun.needsUpdate = true;
 
             scene.add(this.sun)
             scene.add(new THREE.AmbientLight(0xFFFFFF, 0.2));
 
-            if(this.debug){
+            if (this.debug) {
                 this.lightShadowMapViewer = new ShadowMapViewer(this.sun);
                 this.lightShadowMapViewer.position.x = 10;
                 this.lightShadowMapViewer.position.y = 110;
-                this.lightShadowMapViewer.size.width = 400;
-                this.lightShadowMapViewer.size.height = 400;
+                this.lightShadowMapViewer.size.width = 100;
+                this.lightShadowMapViewer.size.height = 100;
                 this.lightShadowMapViewer.update();
             }
-            
+
         } else {
             scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
         }
@@ -254,9 +256,15 @@ class Map {
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
-            self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            if (isMobileDevice()) {
+                self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            } else {
+                self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+
         }
-        self.renderer.setPixelRatio(window.devicePixelRatio);
+
+        self.renderer.setPixelRatio(1)
         self.renderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
 
         self.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -270,7 +278,7 @@ class Map {
                 return saturate( Uncharted2Helper( color ) / Uncharted2Helper( vec3( toneMappingWhitePoint ) ) );
             }`
         );
-        self.renderer.toneMapping = THREE.CustomToneMapping ;
+        self.renderer.toneMapping = THREE.CustomToneMapping;
         self.renderer.toneMappingExposure = 1;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
@@ -397,35 +405,35 @@ class Map {
         function animate() {
             requestAnimationFrame(animate);
             if (self.shadows) {
-                if(self.newSunPosition){
+                if (self.newSunPosition) {
                     self.sun.shadow.camera.position.copy(self.newSunPosition);
                     self.sun.position.copy(self.newSunPosition);
                     self.newSunPosition = undefined;
                 }
-                self.screenPixelRayCast(self.domContainer.offsetWidth*(0.5),self.domContainer.offsetHeight*(0.8),shadowTarget);
+                self.screenPixelRayCast(self.domContainer.offsetWidth * (0.5), self.domContainer.offsetHeight * (0.8), shadowTarget);
                 //A.copy(self.sun.position).normalize();
                 const targetToSunDistance = 1 - self.sun.position.dot(shadowTarget)
-                
+
                 sunToTarget.subVectors(shadowTarget, self.sun.shadow.camera.position);
-                
+
 
                 cameraRight.crossVectors(self.sun.position, self.sun.shadow.camera.up).normalize();
                 cameraUp.crossVectors(cameraRight, self.sun.position).normalize();
-                
+
                 let rightDistance = cameraRight.dot(sunToTarget);
                 let upDistance = cameraUp.dot(sunToTarget);
 
 
-                let frustumHalfSize = Math.pow(self.camera.position.distanceTo(shadowTarget)*1.5,0.9);
-                frustumHalfSize = Math.max(Math.floor(frustumHalfSize/30)*30, 400);
+                let frustumHalfSize = Math.pow(self.camera.position.distanceTo(shadowTarget) * 1.5, 0.9);
+                frustumHalfSize = Math.max(Math.floor(frustumHalfSize / 30) * 30, 400);
                 self.sun.shadow.camera.left = -rightDistance - frustumHalfSize;
                 self.sun.shadow.camera.right = -rightDistance + frustumHalfSize;
                 self.sun.shadow.camera.bottom = upDistance - frustumHalfSize;
                 self.sun.shadow.camera.top = upDistance + frustumHalfSize;
-                
-                self.sun.shadow.camera.near = targetToSunDistance-frustumHalfSize;
-                self.sun.shadow.camera.far = targetToSunDistance+frustumHalfSize;
-                
+
+                self.sun.shadow.camera.near = targetToSunDistance - frustumHalfSize;
+                self.sun.shadow.camera.far = targetToSunDistance + frustumHalfSize;
+
                 self.sun.shadow.camera.updateProjectionMatrix();
 
             }
@@ -433,7 +441,7 @@ class Map {
                 self.controller.update();
 
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                
+
 
                 //self.camera.updateMatrixWorld();
 
@@ -480,7 +488,7 @@ class Map {
                 self.stats.update();
             }
             if (self.lightShadowMapViewer) {
-                self.lightShadowMapViewer.render(self.renderer);
+                //self.lightShadowMapViewer.render(self.renderer);
             }
         }
         animate();
@@ -505,7 +513,7 @@ class Map {
     }
     moveCameraAboveSurface() {
         let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
-        
+
         B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
         this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
@@ -519,7 +527,7 @@ class Map {
         this.camera.getWorldDirection(A).normalize();
         B.crossVectors(this.camera.position, A);
         this.camera.up.crossVectors(A, B).normalize();
-        
+
     }
 
     /**
@@ -535,7 +543,7 @@ class Map {
      * @param {Number} cameraAim.z height
      */
     moveAndLookAt(cameraPosition, cameraAim) {
-        
+
         this.camera.position.copy(this.planet.llhToCartesian.forward(cameraPosition));
         const target = this.planet.llhToCartesian.forward(cameraAim);
         this.camera.up.copy(this.camera.position).normalize()
@@ -544,7 +552,7 @@ class Map {
         this.resetCameraNearFar();
         this.setCameraUp();
         //this.camera.up.set(Math.random(), Math.random(), Math.random())
-        
+
 
         //this.planet.update();
         //this.camera.up.copy(this.camera.position).normalize();
@@ -556,8 +564,8 @@ class Map {
     screenPixelRayCast(x, y, sideEffect) {
         this.renderer.readRenderTargetPixels(this.depthTarget, x - this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y - this.domContainer.offsetTop)), 1, 1, depths);
 
-        depth16.set(depths[0], depths[1]);
-        let z = depth16.dot(unpacker)
+        depth24.set(depths[0], depths[1], depths[2]);
+        let z = depth24.dot(unpacker)
         z = (z * 0.00390630960555428397039749752041);
         if (z == 1) {
             sideEffect.copy(this.camera.position);
@@ -690,5 +698,8 @@ function perspectiveDepthToViewZ(invClipZ, near, far) {
 
 
 }
+function isMobileDevice() {
+    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};
 
 export { Map };
