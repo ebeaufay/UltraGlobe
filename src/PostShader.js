@@ -6,6 +6,8 @@
 const PostShader = {
 
 	vertexShader: () =>/* glsl */`
+	precision highp float;
+	precision highp int;
 
 	varying vec2 vUv;
 	varying vec3 farPlanePosition;
@@ -31,6 +33,9 @@ const PostShader = {
 
 	fragmentShader: () => {
 		let code = /* glsl */`
+		precision highp float;
+		precision highp int;
+
 		#include <packing>
 		#include <common>
 		#include <logdepthbuf_pars_fragment>
@@ -174,6 +179,10 @@ const PostShader = {
 
 	depthPassFragmentShader: () => {
 		let code = /* glsl */`
+
+		precision highp float;
+		precision highp int;
+		
   		#include <packing>
 		  #include <common>
 		  #include <logdepthbuf_pars_fragment>
