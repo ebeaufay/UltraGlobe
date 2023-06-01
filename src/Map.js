@@ -501,7 +501,7 @@ class Map {
 
         this.camera.near = 1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = Math.max(3000000, distanceToHorizon * 10);
+        this.camera.far = distanceToHorizon * 2;
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this.resetLogDepthBuffer();
