@@ -19,6 +19,8 @@ const PostShader = {
 	uniform float cameraNear;
 	uniform float cameraFar;
 
+	
+
 	void main() {
 		vUv = uv;
 		float x = (uv.x-0.5)*2.0;
@@ -55,21 +57,13 @@ const PostShader = {
 			uniform vec3 up;
 			uniform vec3 right;
 			varying vec3 farPlanePosition;
+			uniform float ldf;
 			
 			float atmosphereRadius = 1.02;
 
-			/* float readDepth( sampler2D depthSampler, vec2 coord ) {
-				float fragCoordZ = texture2D( depthSampler, coord ).x;
-				float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
-				return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
-			} */
-
 			float readDepth( sampler2D depthSampler, vec2 coord ) {
 				vec4 fragCoord = texture2D( depthSampler, coord );
-			
-				float logDepthBufFC = 2.0 / ( log( cameraFar + 1.0 ) / log(2.0) );
-				float invViewZ = exp2(fragCoord.x / (logDepthBufFC * 0.5)) - 1.0;
-				//return invViewZ;
+				float invViewZ = exp2(fragCoord.x / (ldf * 0.5)) - 1.0;
 				return viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar );
 			  }
 
@@ -101,45 +95,46 @@ const PostShader = {
 				vec3 sphereToRayOrigin = normalize(sphereOrigin - rayOrigin);
 				
 				float opticalDepthY = heightAboveSeaLevel/(radius*(atmosphereRadius-1.0));
-				if(opticalDepthY<=1.0){
+				if(opticalDepthY<=1.0){// camera inside atmosphere
 					float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 					//return opticalDepthX;
 					//return opticalDepthX;
-					if(depth<0.99){
+					if(depth<0.99){ // ray touches earth
 						float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
 						vec3 impact = rayOrigin + (rayDirection*depthInMeters);
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						//return impactOpticalDepthY;
 						return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.01;
-					}else{
+					}else{ // ray to space
 						return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
 					}
+					
 				}
-				else{
+				else{ //camera outside atmosphere
 					vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
 					if(intersection.x > 0.0){
+						
 						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
 						opticalDepthY = 1.0;
 						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
 						float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
-						//return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
-						if(depth<0.9){
+						if(depth<0.99){ //ray touches earth
 							float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
 							vec3 impact = rayOrigin + (rayDirection*depthInMeters);
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
 							return (texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x - texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.01;
-						}else{
+						}else{//ray enters atmosphere and exits to space 
 							return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
 						}
-					}else{
+					}else{ // ray stays in space
 						return 0.0;
 					}
 				}
 				float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 				return opticalDepthX;
 				//return opticalDepthX;
-				if(depth<0.95){
+				if(depth<1.0){
 					float depthInMeters = depth * (cameraFar - cameraNear) + cameraNear;
 					vec3 impact = rayOrigin + (rayDirection*depthInMeters);
 					float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
@@ -191,15 +186,14 @@ const PostShader = {
 			uniform float cameraFar;
 			varying vec2 vUv;
 			uniform sampler2D tDepth;
-			
+			uniform float ldf;
+
 			float readDepth( sampler2D depthSampler, vec2 coord ) {
-				float depth = texture2D( depthSampler, coord ).x;
-			
-				float logDepthBufFC = 2.0 / ( log( cameraFar + 1.0 ) / log(2.0) );
-				float invViewZ = exp2(depth / (logDepthBufFC * 0.5)) - 1.0;
-				return invViewZ;
-				//return (viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar )*2.0)-1.0;
+				float depth = texture2D(depthSampler, coord).x;
+    			float viewSpaceZ = -(exp2(depth * 2.0) - 1.0) / ldf;
+    			return -viewSpaceZ;
 			  }
+			
 
 			vec2 PackDepth16( float depth ) {
     			float depthVal = depth * 0.9999847412109375;
@@ -208,10 +202,9 @@ const PostShader = {
 			}
 			vec3 PackDepth24(float depth) {
 				float depthVal = depth * 0.9999847412109375;
-				vec3 encode = fract(depthVal * vec3(1.0, 256.0, 65536.0));
-				encode.xy -= encode.yz / 256.0;
-				encode.z *= 256.0;
-				return encode;
+				vec4 encode = fract(depthVal * vec4(1.0, 256.0, 65536.0, 16777216.0));
+				return encode.xyz - encode.yzw / 256.0 + 0.001953125;
+				
 			}
 
 			void main() {

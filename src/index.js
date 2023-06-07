@@ -27,7 +27,7 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen', shadows:true, debug: true });
+let map = new Map({ divID: 'screen', shadows:false, debug: true });
 let d = new Date();;
  /* setInterval(()=>{
     d.setSeconds(d.getSeconds()+1000);
@@ -160,7 +160,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 1)
-map.setLayer(earthElevation, 2)
+//map.setLayer(earthElevation, 2)
 //map.setLayer(googleMaps3DTiles, 3);
 
 
