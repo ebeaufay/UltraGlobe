@@ -31,7 +31,7 @@ npm run dev
 
 [Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
 
-[Walk on the bright side](https://www.jdultra.com/sunny/index.html)
+[Shadow analysis](https://www.jdultra.com/sunny/index.html)
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
