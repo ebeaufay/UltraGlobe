@@ -27,7 +27,7 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen', shadows:false, debug: true });
+let map = new Map({ divID: 'screen', shadows:true, debug: true });
 let d = new Date();;
  /* setInterval(()=>{
     d.setSeconds(d.getSeconds()+1000);

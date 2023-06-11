@@ -142,7 +142,7 @@ class Map {
             this.sun.needsUpdate = true;
 
             scene.add(this.sun)
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.2));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.1));
 
             if (this.debug) {
                 this.lightShadowMapViewer = new ShadowMapViewer(this.sun);
@@ -196,7 +196,7 @@ class Map {
         this.postCamera = new THREE.OrthographicCamera(- 1, 1, 1, - 1, 0, 1);
         this.postMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
-            fragmentShader: PostShader.fragmentShader(),
+            fragmentShader: self.shadows?PostShader.fragmentShaderShadows():PostShader.fragmentShader(),
             uniforms: {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
@@ -212,7 +212,10 @@ class Map {
                 right: { value: new THREE.Vector3(0, 0, 0) },
                 heightAboveSeaLevel: { value: 0 },
                 opticalDepth: { value: null },
-                ldf: {value: 0}
+                ldf: {value: 0},
+                sunLocation: { value: new THREE.Vector3(0, 0, 0) },
+                projMatrixInv: {value: new THREE.Matrix4()},
+                viewMatrixInv: {value: new THREE.Matrix4()}
             }
         });
 
@@ -443,7 +446,7 @@ class Map {
             }
             if (!self.pause) {
                 self.controller.update();
-
+                //self.controller.update();
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
 
 
@@ -466,7 +469,12 @@ class Map {
                 self.postMaterial.uniforms.planetPosition.value = self.planet.position;
                 self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
                 self.postMaterial.uniforms.ldf.value = self.logDepthBufFC;
-
+                if(self.shadows) {
+                    self.postMaterial.uniforms.sunLocation.value.copy(self.sun.position);
+                    //self.postMaterial.uniforms.sunLocation.value.multiplyScalar(999999999);
+                    self.postMaterial.uniforms.projMatrixInv.value.copy(self.camera.projectionMatrixInverse);
+                    self.postMaterial.uniforms.viewMatrixInv.value.copy(self.camera.matrixWorld);
+                }
 
                 self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
                 self.postMaterial.uniforms.up.value = self.camera.up.normalize();
