@@ -33,7 +33,7 @@ let d = new Date();
     d.setSeconds(d.getSeconds()+1000);
     map.setDate(d);
 }, 1000)  */
-map.setDate(new Date(2023,5, 21, 0, 0,0,0));
+map.setDate(new Date(2023,5, 21, 2, 0,0,0));
 
 
 //axes

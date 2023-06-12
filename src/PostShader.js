@@ -374,8 +374,9 @@ const PostShader = {
 				
 				float s = max(0.001,dot(cameraSun, rayDirection));
 				float atm = pow(1.0-atmosphereThickness*0.5,1.6);
-				vec3 sunColor = mix(vec3(0.0,0.0,0.0),vec3(1.0,0.7,0.5), pow(s,650.0*atm));
-				sunColor = mix(sunColor,vec3(1.0,1.0,0.5), pow(s,4000.0*atm));
+				vec3 sunColor = mix(vec3(0.0,0.0,0.0),vec3(0.25,0.5,0.75), pow(s,400.0*atm));
+				sunColor = mix(sunColor,vec3(1.0,0.7,0.5), pow(s,1600.0*atm));
+				sunColor = mix(sunColor,vec3(1.0,1.0,0.5), pow(s,6000.0*atm));
 				//atmosphereColor*=s;
 				diffuse = atmosphereColor*atmosphereThickness*shade+diffuse+sunColor*atmosphereThickness*atmosphereMeasures.z;
 				//diffuse = atmosphereColor*atmosphereThickness+diffuse;
