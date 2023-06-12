@@ -282,7 +282,7 @@ const PostShader = {
 
 			}
 
-			vec2 atmosphereCalc(
+			vec3 atmosphereCalc(
 				in vec3 sphereOrigin,
 				in vec3 rayOrigin, in vec3 rayDirection,
 				in float depth, in vec3 impact, in vec3 sunVector
@@ -300,9 +300,9 @@ const PostShader = {
 						
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						
-						return vec2(
+						return vec3(
 							pow((texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x),1.0)*0.1,
-							shade
+							shade,0.0
 						);
 					}else{ // sky
 						
@@ -311,7 +311,7 @@ const PostShader = {
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
 						vec3 rayMidPoint = mix(rayOrigin, rayExitOnAtmosphereSurface, 0.5);
 						float shade = max(0.01, dot(normalize(rayMidPoint), sunVector));
-						return vec2(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*2.0,shade);
+						return vec3(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*2.0,shade,1.0);
 					}
 				}
 				
@@ -327,22 +327,22 @@ const PostShader = {
 						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
 						float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 						
-						if(depth<0.99){
+						if(depth<0.99){ // hit ground
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
-							return vec2(
+							return vec3(
 								pow((texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x),1.0)*0.1,
-								shade
+								shade, 0.0
 							);
-						}else{
+						}else{ // to Space
 
-							return vec2(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*2.0,shade);
+							return vec3(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*2.0,shade,1.0);
 						}
 					}else{
-						return vec2(0.0,0.0);
+						return vec3(0.0,0.0,0.0);
 					}
 				}
-				return vec2(1.0,1.0);
+				return vec3(1.0,1.0,1.0);
 				
 			}
 			vec3 getWorldPosition(float depth, vec2 coord){
@@ -364,15 +364,20 @@ const PostShader = {
 				float depth = readDepth( tDepth, vUv );
 				vec3 impact = getWorldPosition(depth, vUv);
 				vec3 rayDirection = normalize(farPlanePosition-nonPostCameraPosition);
+				vec3 cameraSun = normalize(sunLocation*999999999999.0 - nonPostCameraPosition);
 				//rayDirection = vec3(rayDirection.x, rayDirection.z, -rayDirection.y);
-				vec2 atmosphereMeasures = atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector);
-				//float atmosphereThickness = getOpticalDepth(planetPosition, nonPostCameraPosition, rayDirection, depth)*1.4;
+				vec3 atmosphereMeasures = atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector);
 				float atmosphereThickness = atmosphereMeasures.x;
 				float shade = atmosphereMeasures.y;
 				vec3 atmosphereColor = mix(vec3(0.1,0.4,1.0), vec3(0.32,0.52,1.0), pow(shade,0.5));
 
-				//atmosphereColor = mix(vec3(1.0,0.1,0.32),atmosphereColor, pow(shade,0.5));
-				diffuse = atmosphereColor*atmosphereThickness*shade+diffuse;
+				
+				float s = max(0.001,dot(cameraSun, rayDirection));
+				float atm = pow(1.0-atmosphereThickness*0.5,1.6);
+				vec3 sunColor = mix(vec3(0.0,0.0,0.0),vec3(1.0,0.7,0.5), pow(s,50.0*atm));
+				sunColor = mix(sunColor,vec3(1.0,1.0,0.0), pow(s,500.0*atm));
+				//atmosphereColor*=s;
+				diffuse = atmosphereColor*atmosphereThickness*shade+diffuse+sunColor*atmosphereThickness*atmosphereMeasures.z;
 				//diffuse = atmosphereColor*atmosphereThickness+diffuse;
 				
 
