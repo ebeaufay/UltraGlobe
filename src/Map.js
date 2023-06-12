@@ -142,7 +142,7 @@ class Map {
             this.sun.needsUpdate = true;
 
             scene.add(this.sun)
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.1));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
 
             if (this.debug) {
                 this.lightShadowMapViewer = new ShadowMapViewer(this.sun);

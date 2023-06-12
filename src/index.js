@@ -33,7 +33,7 @@ let d = new Date();
     d.setSeconds(d.getSeconds()+1000);
     map.setDate(d);
 }, 1000)  */
-map.setDate(new Date(2023,5, 21, 22, 0,0,0));
+map.setDate(new Date(2023,5, 21, 0, 0,0,0));
 
 
 //axes
@@ -116,7 +116,7 @@ var imagery = new SingleImageImageryLayer({
 })
 
 
-var wmsLayer = new WMSLayer({
+/* var wmsLayer = new WMSLayer({
     id: 20,
     name: "BlueMarble",
     bounds: [-180, -90, 180, 90],
@@ -124,6 +124,17 @@ var wmsLayer = new WMSLayer({
     layer: "GEBCO_LATEST_SUB_ICE_TOPO",
     epsg: "EPSG:4326",
     version: "1.3.0",
+    visible: true
+}) */
+
+var wmsLayer = new WMSLayer({
+    id: 20,
+    name: "BlueMarble",
+    bounds: [-180, -90, 180, 90],
+    url: "https://tiles.maps.eox.at/",
+    layer: "bluemarble",
+    epsg: "EPSG:4326",
+    version: "1.1.1",
     visible: true
 })
 

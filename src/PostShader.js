@@ -301,7 +301,7 @@ const PostShader = {
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						
 						return vec3(
-							pow((texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x),1.0)*0.1,
+							(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1,
 							shade,0.0
 						);
 					}else{ // sky
@@ -331,7 +331,7 @@ const PostShader = {
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
 							return vec3(
-								pow((texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x),1.0)*0.1,
+								(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1,
 								shade, 0.0
 							);
 						}else{ // to Space
@@ -374,7 +374,7 @@ const PostShader = {
 				
 				float s = max(0.001,dot(cameraSun, rayDirection));
 				float atm = pow(1.0-atmosphereThickness*0.5,1.6);
-				vec3 sunColor = mix(vec3(0.0,0.0,0.0),vec3(1.0,0.7,0.5), pow(s,1500.0*atm));
+				vec3 sunColor = mix(vec3(0.0,0.0,0.0),vec3(1.0,0.7,0.5), pow(s,650.0*atm));
 				sunColor = mix(sunColor,vec3(1.0,1.0,0.5), pow(s,4000.0*atm));
 				//atmosphereColor*=s;
 				diffuse = atmosphereColor*atmosphereThickness*shade+diffuse+sunColor*atmosphereThickness*atmosphereMeasures.z;
