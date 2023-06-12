@@ -96,7 +96,7 @@ class Planet extends Object3D {
         if (elevation === false) {
             return 0;
         }
-        return elevation;
+        return elevation*this.elevationExageration;
     }
     pauseRendering(){
         this.pause = true;
@@ -107,6 +107,7 @@ class Planet extends Object3D {
 
     setElevationExageration(elevationExageration){
         this.elevationExageration = elevationExageration;
+        this.children.forEach(planetTile=>planetTile.setElevationExageration());
     }
 }
 

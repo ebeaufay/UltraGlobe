@@ -171,8 +171,9 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 1)
-//map.setLayer(earthElevation, 2)
+map.setLayer(earthElevation, 2)
 //map.setLayer(googleMaps3DTiles, 3);
+
 
 
 

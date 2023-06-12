@@ -437,7 +437,9 @@ class PlanetTile extends Mesh {
         numLayers = Math.max(numLayers, 1);
 
         self.material = new CustomShaderMaterial({
-            uniforms: {},
+            uniforms: {
+                elevationExageration : { value: self.planet.elevationExageration }
+            },
             baseMaterial: THREE.MeshStandardMaterial,
             depthTest: true,
             depthWrite: true,
@@ -452,7 +454,12 @@ class PlanetTile extends Mesh {
         self.material.visible = true;
         self.material.wireframe = false;
     }
-
+    setElevationExageration(){
+        if(this.material && this.material.uniforms && this.material.uniforms.elevationExageration){
+            this.material.uniforms.elevationExageration.value = this.planet.elevationExageration;
+        }
+        this.children.forEach(planetTile=> planetTile.setElevationExageration());
+    }
     fillShaderUniforms(self) {
 
         let imagery = [];

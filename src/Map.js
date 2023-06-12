@@ -622,7 +622,10 @@ class Map {
         this.moveCameraAboveSurface();
         this.resetCameraNearFar();
     }
-
+    setElevationExageration(elevationExageration){
+        this.elevationExageration = elevationExageration;
+        this.planet.setElevationExageration(this.elevationExageration);
+    }
     addSelectionListener(calback) {
         if (!this.selectionListeners) this.selectionListeners = [];
         this.selectionListeners.push(calback);
@@ -714,6 +717,7 @@ function perspectiveDepthToViewZ(invClipZ, near, far) {
 
 
 }
+
 function isMobileDevice() {
     return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
 };

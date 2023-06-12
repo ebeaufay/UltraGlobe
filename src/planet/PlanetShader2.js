@@ -14,6 +14,7 @@ const PlanetShader = {
 	uniform vec4 bounds;
 	uniform vec4 imageryBounds[`+ numImageryLayers + `];
 	uniform sampler2D elevation;
+	uniform float elevationExageration;
 
 	varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 
@@ -58,9 +59,9 @@ const PlanetShader = {
 		float texelHeight = 1.0/`+(tileSize)+`.0;
 		float texelWithDeg = width/`+(tileSize)+`.0;
 		float texelHeightDeg = height/`+(tileSize)+`.0;
-		float terrainElevation = texture2D(elevation, texUV.xy).r;
-		float heightA = texture2D(elevation, texUV.xy+vec2(texUV.x<0.5?texelWidth:-texelWidth, 0.0)).r;
-		float heightB = texture2D(elevation, texUV.xy+vec2(0.0, texUV.y<0.5?texelHeight:-texelHeight)).r;
+		float terrainElevation = texture2D(elevation, texUV.xy).r*elevationExageration;
+		float heightA = texture2D(elevation, texUV.xy+vec2(texUV.x<0.5?texelWidth:-texelWidth, 0.0)).r*elevationExageration;
+		float heightB = texture2D(elevation, texUV.xy+vec2(0.0, texUV.y<0.5?texelHeight:-texelHeight)).r*elevationExageration;
 		
 		vPosition = transformWGS84ToCartesian(lon, lat, terrainElevation);
 		vec3 positionA = transformWGS84ToCartesian(lon+(texUV.x<0.5?texelWithDeg:-texelWithDeg), lat, heightA);
