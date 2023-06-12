@@ -28,12 +28,12 @@ document.addEventListener('keyup', (e) => {
 const domContainer = document.getElementById('screen');
 
 let map = new Map({ divID: 'screen', shadows:true, debug: true });
-let d = new Date();;
+let d = new Date();
  /* setInterval(()=>{
     d.setSeconds(d.getSeconds()+1000);
     map.setDate(d);
 }, 1000)  */
-map.setDate(new Date(2023,5, 21, 8, 0,0,0));
+map.setDate(new Date(2023,5, 21, 22, 0,0,0));
 
 
 //axes
