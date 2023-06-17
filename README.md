@@ -69,6 +69,25 @@ let map = new Map({ divID: 'screen' });
 
 At this point, you'll only see a black planet with atmosphere as no data has yet been loaded.
 
+### Shadows
+You can enable shadows and set a time:
+
+```js
+let map = new Map({ divID: 'screen', shadows:true });
+map.setDate(new Date(2023,5, 21, 8, 0,0,0));
+```
+
+The time will be relative to the local time-zone.
+
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/97eb24ee-2171-4ba6-a7a8-f2aa38c7d4c3)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/28c005f1-a990-4532-99af-a2ea76e86e47)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/5ea31579-b03e-4ff0-9aa7-50877b550f9c)
+
+
+
+
+
+
+
+
 ### Loading data
 
 Loading data is done through a layering system. Each data type has it's own layer type
