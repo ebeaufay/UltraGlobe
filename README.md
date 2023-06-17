@@ -78,14 +78,9 @@ map.setDate(new Date(2023,5, 21, 8, 0,0,0));
 ```
 
 The time will be relative to the local time-zone.
+OGC3DTiles tilesets, including google map tiles, will automatically cast shadows.
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/97eb24ee-2171-4ba6-a7a8-f2aa38c7d4c3)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/28c005f1-a990-4532-99af-a2ea76e86e47)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/5ea31579-b03e-4ff0-9aa7-50877b550f9c)
-
-
-
-
-
-
 
 
 ### Loading data
