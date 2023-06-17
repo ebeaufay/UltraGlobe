@@ -131,7 +131,7 @@ var imagery = new SingleImageImageryLayer({
 //add a layer at index 0
 map.setLayer(imagery, 0);
 ````
-the imagery os expected in "equidistant cylindrical" projection.
+the imagery is expected in "equidistant cylindrical" projection (EPSG:4326).
 
 #### Elevation
 
