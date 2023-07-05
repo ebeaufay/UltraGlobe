@@ -294,7 +294,7 @@ const PostShader = {
 				if(opticalDepthY<=1.0){ //inside atmosphere
 					float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 					
-					if(depth<0.9999){ // ground
+					if(depth<0.99){ // ground
 						
 						float shade = max(0.01, (dot(normalize(impact), sunVector)+dot(normalize(rayOrigin), sunVector))*0.5);
 						

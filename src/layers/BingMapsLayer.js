@@ -7,7 +7,7 @@ import { ImageryLayer } from "./ImageryLayer.js"
 
 const toDegrees = 57.295779513082320876798154814105;
 
-const BingMapsImagerySets = {
+const BingMapsImagerySet = {
     aerial: "Aerial",
     aerialWithLabels: "AerialWithLabelsOnDemand",
     birdseye: "Birdseye",
@@ -51,23 +51,35 @@ class BingMapsLayer extends ImageryLayer {
     }
 
     getMap(tile, callbackSuccess, callbackFailure) {
-        if (this.urls.length == 0 || !this.bounds || !this.bounds.intersectsBox(tile.bounds)) {
-            callbackFailure();
-            return;
-        }
-        let lat = (tile.bounds.min.y + (tile.bounds.max.y - tile.bounds.min.y) * 0.5) / Math.PI * 180;
-        let lon = (tile.bounds.min.x + (tile.bounds.max.x - tile.bounds.min.x) * 0.5) / Math.PI * 180;
+        
+        return new Promise((resolve, reject) => {
+            const intervalId = setInterval(() => {
+                if (this.urls.length > 0) {
+                    clearInterval(intervalId);
+                    let level = tile.level+1;
+                    let xyMin = [];
+                    let xyMax = [];
+                    do{
+                        level -=1;
+                        latlonToPixelXY(tile.bounds.min.y, tile.bounds.min.x, tile.level, xyMin);
+                        latlonToPixelXY(tile.bounds.max.y, tile.bounds.max.x, tile.level, xyMax);
+                    }while(xyMax[0]-xyMin[0]>256 || xyMin[1]-xyMax[1]>512);
 
-        let xy = [];
-        latlonToPixelXY(lat, lon, tile.level, xy);
-        pixelXYToTileXY(xy)
-        const quadKey = tileXYToQuadKey(xy, tile.level);
-
-        const url = this.urls[this.currentURL].replace("{quadkey}", quadKey);
-        this.currentURL = (this.currentURL + 1) % this.urls.length;
-
-        return this.textureLoader.load(url, (texture) => callbackSuccess(texture), null, () => callbackFailure());
-    };
+                    
+                    pixelXYToTileXY(xyMin);
+                    pixelXYToTileXY(xyMax);
+                    const quadKeyMIN = tileXYToQuadKey(xyMin, level);
+                    const quadKeyMax = tileXYToQuadKey(xyMax, level);
+                    
+    
+                    const url = this.urls[this.currentURL].replace("{quadkey}", quadKeyMIN);
+                    this.currentURL = (this.currentURL + 1) % this.urls.length;
+    
+                    resolve(this.textureLoader.load(url, (texture) => callbackSuccess(texture), null, () => callbackFailure()));
+                }
+            }, 10);
+        });
+    }
 
 
 }
@@ -75,9 +87,9 @@ class BingMapsLayer extends ImageryLayer {
 function latlonToPixelXY(latitude, longitude, levelOfDetail, xy) {
     //latitude = Math.min(Math.max(latitude, MinLatitude), MaxLatitude);
     //longitude = Math.min(Math.max(longitude, MinLongitude), MaxLongitude);
-
-    const x = (longitude + 180) / 360;
-    const sinLatitude = Math.sin(latitude * Math.PI / 180);
+    
+    const x = (longitude + Math.PI) / (2*Math.PI);
+    const sinLatitude = Math.sin(latitude);
     const y = 0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI);
 
     const mapSize = 256 << levelOfDetail;
@@ -106,4 +118,15 @@ function tileXYToQuadKey(xy, levelOfDetail) {
     }
     return quadKey;
 }
-export { BingMapsLayer, BingMapsImagerySets };
+function BingMapsReprojectionGLSL(){ return `
+vec2 lonlatToPixelXY (float lon, float lat, int bingLOD) {
+
+    float x = (lon + 3.1415926535897932384626433832795) / 6.283185307179586476925286766559;
+    float sinLatitude = sin(lat);
+    float y = 0.5 - log((1.0 + sinLatitude) / (1.0 - sinLatitude)) / (4.0 * 3.1415926535897932384626433832795);
+
+    const mapSize = float(256 << bingLOD);
+    return vec2(min(max(x * mapSize + 0.5, 0.0), mapSize - 1.0), min(max(y * mapSize + 0.5, 0.0), mapSize - 1.0));
+}
+`;} 
+export { BingMapsLayer, BingMapsImagerySet, BingMapsReprojectionGLSL };

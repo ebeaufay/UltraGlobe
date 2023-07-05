@@ -229,9 +229,11 @@ class PlanetTile extends Mesh {
                 if (layer instanceof ImageryLayer) {
                     self._startLoading(self);
                     self.layerDataMap[layer.id] = {};
-                    self._loadImagery(self, layer, (texture) => {
+                    self._loadImagery(self, layer, (texture,projection, uvBounds) => {
                         self.layerDataMap[layer.id].texture = texture;
                         self.layerDataMap[layer.id].layer = layer;
+                        if(projection) self.layerDataMap[layer.id].projection = projection;
+                        if(uvBounds) self.layerDataMap[layer.id].uvBounds = uvBounds;
                         delete self.layerDataMap[layer.id].loading;
                         self._endLoading(self);
                     }, (error) => {
@@ -310,7 +312,7 @@ class PlanetTile extends Mesh {
          */
     _loadImagery(self, layer, callbackSuccess, callbackFailure) {
         self.mapRequests.push(
-            layer.getMap(self, (texture) => {
+            layer.getMap(self, (texture, projection, uvBounds) => {
                 if (!!self.disposed) {
                     texture.dispose();
                     return;
@@ -320,7 +322,7 @@ class PlanetTile extends Mesh {
                 texture.magFilter = THREE.LinearFilter;
                 texture.minFilter = THREE.LinearFilter;
 
-                if (!!callbackSuccess) callbackSuccess(texture);
+                if (!!callbackSuccess) callbackSuccess(texture,projection, uvBounds);
 
             }, error => callbackFailure(error), TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE)
         );
@@ -445,8 +447,7 @@ class PlanetTile extends Mesh {
             depthWrite: true,
             transparent: true,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
-            fragmentShader: PlanetShader.fragmentShader(numLayers),
-            
+            fragmentShader: PlanetShader.fragmentShader(numLayers)
         });
 
         self.fillShaderUniforms(self);
@@ -464,6 +465,8 @@ class PlanetTile extends Mesh {
 
         let imagery = [];
         let imageryBounds = [];
+        let imageryUVBounds = [];
+        let imageryProjections = [];
         let imageryTransparency = [];
         let elevation = defaultTexture;
         let elevationEncountered = false;
@@ -474,6 +477,11 @@ class PlanetTile extends Mesh {
                     imagery.push(layerData.texture);
                     imageryBounds.push(new Vector4(layer.bounds.min.x, layer.bounds.min.y, layer.bounds.max.x, layer.bounds.max.y));
                     imageryTransparency.push(layer.visible ? 1 : 0);
+                    if(layerData.projection)imageryProjections.push(layerData.projection);
+                    else imageryProjections.push(0);
+
+                    if(layerData.uvBounds)imageryUVBounds.push(new Vector4(layerData.uvBounds[0], layerData.uvBounds[1], layerData.uvBounds[2], layerData.uvBounds[3]));
+                    else imageryUVBounds.push(new Vector4(0,1,0,1));
                 } else if (!elevationEncountered && !!layerData.layer && layer instanceof ElevationLayer && layer.visible) {
                     elevation = layerData.texture;
                     elevationEncountered = true;
@@ -491,6 +499,8 @@ class PlanetTile extends Mesh {
         self.material.uniforms.imagery = { type: "tv", value: imagery };
         self.material.uniforms.imageryBounds = { type: "v4v", value: imageryBounds };
         self.material.uniforms.imageryTransparency = { type: "fv", value: imageryTransparency };
+        self.material.uniforms.imageryUVBounds = { type: "v4v", value: imageryUVBounds };
+        self.material.uniforms.imageryProjections = { type: "iv", value: imageryProjections };
         self.material.uniforms.elevation = { type: "t", value: elevation };
         self.material.uniforms.planetPosition = { type: "v3", value: self.planet.center };
         self.material.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
@@ -531,7 +541,11 @@ class PlanetTile extends Mesh {
                         layer.removeListener(self);
                     });
                     element.mapRequests.forEach(e => {
-                        e.abort()
+                        if(e instanceof Promise){
+                            e.then(r=>r.abort());
+                        }else{
+                            e.abort()
+                        }
                     })
                     element.disposed = true;
                     element.material = void 0;

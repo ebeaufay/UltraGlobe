@@ -13,6 +13,8 @@ const PlanetShader = {
 	uniform vec3 planetPosition;
 	uniform vec4 bounds;
 	uniform vec4 imageryBounds[`+ numImageryLayers + `];
+	uniform vec4 imageryUVBounds[`+ numImageryLayers + `];
+	uniform int imageryProjections[`+ numImageryLayers + `];
 	uniform sampler2D elevation;
 	uniform float elevationExageration;
 
@@ -90,6 +92,8 @@ const PlanetShader = {
 		varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 		uniform sampler2D imagery[`+ numImageryLayers + `];
 		uniform float transparency[`+ numImageryLayers + `];
+		uniform vec4 imageryUVBounds[`+ numImageryLayers + `];
+		uniform int imageryProjections[`+ numImageryLayers + `];
 		
 		varying float elevationX;
 

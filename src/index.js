@@ -33,7 +33,7 @@ let d = new Date();
     d.setSeconds(d.getSeconds()+1000);
     map.setDate(d);
 }, 1000)  */
-map.setDate(new Date(2023,5, 21, 2, 0,0,0));
+map.setDate(new Date(2023,5, 21, 8, 0,0,0));
 
 
 //axes
@@ -104,7 +104,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     //layer: "1",
     visible: true,
-    min: -150,
+    min: 0,
     max: 8000
 });
 var imagery = new SingleImageImageryLayer({
@@ -137,7 +137,13 @@ var wmsLayer = new WMSLayer({
     version: "1.1.1",
     visible: true
 })
-
+var bingMaps = new BingMapsLayer({
+    id: 21,
+    name: "BingAerial",
+    imagerySet : BingMapsImagerySet.aerial,
+    key:"AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS",
+    visible: true
+})
 
 var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
