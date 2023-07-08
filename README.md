@@ -29,9 +29,9 @@ npm run dev
 
 ## Demos
 
-[Google Map Tile API](https://www.jdultra.com/mapTiles/index.html)
+[Google Map Tile API](https://www.jdultra.com/mapTiles/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
 
-[Shadow analysis](https://www.jdultra.com/sunny/index.html)
+[Shadow analysis](https://www.jdultra.com/sunny/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
