@@ -228,7 +228,7 @@ In the same spirit, an I3SLayer is also provided although only points are suppor
 #### Shader Color Layer
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/af7d20d9-b6a8-4de0-a724-23846ad3108f)
-Shader color layers allow adding an overlay with a color that's computed in the shader based on lon lat height position.
+Shader color layers allow adding an overlay with a color that's computed in the shader based on lon lat height position and the terrain normal.
 
 A sample "JetElevation" layer is provided that can be added like so:
 
