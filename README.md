@@ -253,7 +253,7 @@ var shaderLayer = new ShaderColorLayer({
     maxHeight: 8000,
     transparency:0.5,
     shader:`
-      vec3 getShaderLayerColor(float lon, float lat, float height){
+      vec3 getShaderLayerColor(float lon, float lat, float height, vec3 terrainNormal){
         // compute color here
       }
     `
