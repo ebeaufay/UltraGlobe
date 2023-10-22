@@ -225,6 +225,45 @@ map.setLayer(googleMaps3DTiles, 0);
 
 In the same spirit, an I3SLayer is also provided although only points are supported currently
 
+#### Shader Color Layer
+
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/af7d20d9-b6a8-4de0-a724-23846ad3108f)
+Shader color layers allow adding an overlay with a color that's computed in the shader based on lon lat height position.
+
+A sample "JetElevation" layer is provided that can be added like so:
+
+```
+var shaderLayer = new JetElevation({
+    id: 22,
+    name: "jet",
+    visible: true,
+    minHeight: 0,
+    maxHeight: 8000,
+    transparency:0.5
+})
+map.setLayer(shaderLayer, 3)
+```
+you can also use the ShaderColorLayer directly and pass your shader code:
+```
+var shaderLayer = new ShaderColorLayer({
+    id: 22,
+    name: "shaderLayer",
+    visible: true,
+    minHeight: 0,
+    maxHeight: 8000,
+    transparency:0.5,
+    shader:`
+      vec3 getShaderLayerColor(float lon, float lat, float height){
+        // compute color here
+      }
+    `
+})
+map.setLayer(shaderLayer, 3)
+```
+
+Only a single visible layer is visualized at a time so there may be several loaded ShaderColorLayers 
+but only the last visible layer will be displayed.
+
 #### Removing layers
 
 Layers can also be removed:
