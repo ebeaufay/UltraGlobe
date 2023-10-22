@@ -18,7 +18,7 @@ class JetElevation extends ShaderColorLayer{
         let min = Number.isInteger(properties.minHeight) ? properties.minHeight.toFixed(1) : String(properties.minHeight);
         let range = Number.isInteger(properties.maxHeight-properties.minHeight) ? (properties.maxHeight-properties.minHeight).toFixed(1) : String(properties.maxHeight-properties.minHeight);
         properties.shader = `
-            vec3 getShaderLayerColor(float lon, float lat, float height){
+            vec3 getShaderLayerColor(float lon, float lat, float height, vec3 normal){
                 float normalizedHeight = (height - `+min+`) / `+range+`; // Normalize to [0, 1]
     
                 float r = clamp(1.5 - abs(normalizedHeight * 4.0 - 3.0), 0.0, 1.0);

@@ -23,6 +23,7 @@ const PlanetShader = {
 	varying float elevationX;
 	varying float lon;
 	varying float lat;
+	varying vec3 v_normal;
 
 	float a = 6378137.0;
     float e = 0.006694384442042;
@@ -79,6 +80,7 @@ const PlanetShader = {
 		vec3 bitangent = texUV.y<0.5?positionB - vPosition:vPosition-positionB;
 			
 		csm_Normal = normalize(cross(tangent, bitangent));
+		v_normal = vec3(csm_Normal);
 		
 		
 	}`,
@@ -100,6 +102,7 @@ const PlanetShader = {
 		varying float lon;
 		varying float lat;
 		varying float elevationX;
+		varying vec3 v_normal;
 		`;
 		if (shaderColorLayerCode) {
 			code += shaderColorLayerCode;
@@ -114,7 +117,7 @@ const PlanetShader = {
 		`;
 		if (shaderColorLayerCode) {
 			code+= `
-				vec3 shaderLayerColor = getShaderLayerColor(lon, lat, elevationX);
+				vec3 shaderLayerColor = getShaderLayerColor(lon, lat, elevationX, v_normal);
 				csm_DiffuseColor = mix(csm_DiffuseColor, vec4(shaderLayerColor,0.0), 1.0-`+shaderLayerTransparency.toFixed(3)+`);
 			`
 		}
