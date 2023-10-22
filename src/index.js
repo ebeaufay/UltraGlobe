@@ -14,6 +14,8 @@ import geoidImage from './images/egm84-15.jpg'
 import earthElevationImage from './images/earth_elevation.jpg'
 import { SingleImageImageryLayer } from "./layers/SingleImageImageryLayer.js";
 import { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer.js";
+import { PerlinElevationLayer } from "./layers/PerlinElevationLayer.js";
+import { JetElevation } from "./layers/JetElevation.js";
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
@@ -85,7 +87,7 @@ map.resetCameraNearFar();
 map.setCameraUp(); */
 
 //map.moveAndLookAt({x:-0.0062266679680371226496, y:51.513254715534870343, z:900},{x:-0.0062266679680371226496, y:51.513254715534870343, z:170})
-map.moveAndLookAt({ x: 13.42, y: 52.480, z: 300 }, { x: 13.42, y: 52.4895, z: 170 })
+map.moveAndLookAt({ x: 0.0, y: -0.00001, z: 300 }, { x: 0, y: 0, z: 170 })
 
 
 
@@ -137,6 +139,15 @@ var wmsLayer = new WMSLayer({
     version: "1.1.1",
     visible: true
 })
+
+var shaderLayer = new JetElevation({
+    id: 22,
+    name: "jet",
+    visible: true,
+    minHeight: 0,
+    maxHeight: 8000,
+    transparency:0.5
+})
 var bingMaps = new BingMapsLayer({
     id: 21,
     name: "BingAerial",
@@ -149,19 +160,29 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    //yUp:true,
-    zUp: true,
-    longitude: 13.42,
-    latitude: 52.4895,
-    height: 170,
-    rotationY: 0.72,
+    url: "http://localhost:8080/georef_tileset.json",
+    //yUp:false,
+    longitude:0,
+    latitude:0,
+    height:100,
+    //centerModel:true,
+    
+    rotationX: -1.57,
+    //rotationY: 180,
+    //rotationZ: 180,
     scale: 1.0,
-    geometricErrorMultiplier: 0.001,
-    loadOutsideView: true,
+    geometricErrorMultiplier: 1,
+    loadOutsideView: false,
     flatShading: false
 });
+ogc3dTiles.update();
 
+var perlinElevation = new PerlinElevationLayer({
+    id:43,
+    name:"perlin elevation",
+    visible: true,
+    bounds: [-180, -90, 180, 90]
+});
 /* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
@@ -177,7 +198,9 @@ var ogc3dTiles = new OGC3DTilesLayer({
 
 map.setLayer(wmsLayer, 0)
 map.setLayer(ogc3dTiles, 1)
+// map.setLayer(perlinElevation, 2)
 map.setLayer(earthElevation, 2)
+map.setLayer(shaderLayer, 3)
 //map.setLayer(googleMaps3DTiles, 3);
 
 

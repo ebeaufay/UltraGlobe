@@ -4,6 +4,7 @@ import { Mesh } from 'three/src/objects/Mesh';
 import { Vector4 } from 'three';
 import { RasterLayer } from '../layers/RasterLayer.js';
 import { ImageryLayer } from '../layers/ImageryLayer.js';
+import { ShaderColorLayer } from '../layers/ShaderColorLayer.js';
 import { ElevationLayer } from '../layers/ElevationLayer.js';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js'
 import { VISIBILITY_CHANGE } from '../layers/Layer.js';
@@ -428,6 +429,8 @@ class PlanetTile extends Mesh {
      */
     buildMaterial(self) {
         let numLayers = 0;
+        let shaderColorLayerCode;
+        let ShaderColorLayerTransparency = 0;
         for (const id in self.layerDataMap) {
             if (self.layerDataMap.hasOwnProperty(id)) {
                 if (self.layerDataMap[id].layer instanceof ImageryLayer) {
@@ -435,6 +438,13 @@ class PlanetTile extends Mesh {
                 }
             }
         }
+        self.layerManager.getShaderColorLayers([]).forEach(function(layer) {
+            if (layer instanceof ShaderColorLayer && layer.visible) {
+                shaderColorLayerCode = layer.shader;
+                ShaderColorLayerTransparency = layer.transparency;
+            }
+          });
+        
 
         numLayers = Math.max(numLayers, 1);
 
@@ -447,7 +457,7 @@ class PlanetTile extends Mesh {
             depthWrite: true,
             transparent: true,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
-            fragmentShader: PlanetShader.fragmentShader(numLayers)
+            fragmentShader: PlanetShader.fragmentShader(numLayers, shaderColorLayerCode, ShaderColorLayerTransparency)
         });
 
         self.fillShaderUniforms(self);
@@ -476,7 +486,7 @@ class PlanetTile extends Mesh {
                 if (!!layerData && layer instanceof ImageryLayer && !!layer.visible) {
                     imagery.push(layerData.texture);
                     imageryBounds.push(new Vector4(layer.bounds.min.x, layer.bounds.min.y, layer.bounds.max.x, layer.bounds.max.y));
-                    imageryTransparency.push(layer.visible ? 1 : 0);
+                    imageryTransparency.push(layer.visible ? layer.transparency : 1);
                     if(layerData.projection)imageryProjections.push(layerData.projection);
                     else imageryProjections.push(0);
 

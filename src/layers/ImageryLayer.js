@@ -9,6 +9,7 @@ class ImageryLayer extends RasterLayer{
      */
     constructor(properties) {
         super(properties);
+        this.transparency = properties.transparency?properties.transparency:0;
     }
 
     

@@ -21,6 +21,8 @@ const PlanetShader = {
 	varying vec2 fragmentImageryUV[`+ numImageryLayers + `];
 
 	varying float elevationX;
+	varying float lon;
+	varying float lat;
 
 	float a = 6378137.0;
     float e = 0.006694384442042;
@@ -40,8 +42,8 @@ const PlanetShader = {
 	void main() {
 		vec3 vPosition = vec3(position);
         
-		float lon = vPosition.x * (bounds[2] - bounds[0]) + bounds[0];
-		float lat = vPosition.z * (bounds[3] - bounds[1]) + bounds[1];
+		lon = vPosition.x * (bounds[2] - bounds[0]) + bounds[0];
+		lat = vPosition.z * (bounds[3] - bounds[1]) + bounds[1];
 		float h = vPosition.y;
 
 		float width = bounds[2] - bounds[0];
@@ -55,12 +57,12 @@ const PlanetShader = {
 			}
 		}
 		vec2 elevationUV = vec2(((lon - bounds[0]) / width), ((lat - bounds[1]) /height));
-		vec2 texUV = vec2((elevationUV.x*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0, (elevationUV.y*`+(tileSize-1)+`.0+0.5)/`+tileSize+`.0);
+		vec2 texUV = vec2((elevationUV.x*`+ (tileSize - 1) + `.0+0.5)/` + tileSize + `.0, (elevationUV.y*` + (tileSize - 1) + `.0+0.5)/` + tileSize + `.0);
 		
-		float texelWidth = 1.0/`+(tileSize)+`.0;
-		float texelHeight = 1.0/`+(tileSize)+`.0;
-		float texelWithDeg = width/`+(tileSize)+`.0;
-		float texelHeightDeg = height/`+(tileSize)+`.0;
+		float texelWidth = 1.0/`+ (tileSize) + `.0;
+		float texelHeight = 1.0/`+ (tileSize) + `.0;
+		float texelWithDeg = width/`+ (tileSize) + `.0;
+		float texelHeightDeg = height/`+ (tileSize) + `.0;
 		float terrainElevation = texture2D(elevation, texUV.xy).r*elevationExageration;
 		float heightA = texture2D(elevation, texUV.xy+vec2(texUV.x<0.5?texelWidth:-texelWidth, 0.0)).r*elevationExageration;
 		float heightB = texture2D(elevation, texUV.xy+vec2(0.0, texUV.y<0.5?texelHeight:-texelHeight)).r*elevationExageration;
@@ -74,14 +76,14 @@ const PlanetShader = {
 		csm_Position = vPosition*h;
 
 		vec3 tangent = texUV.x<0.5?positionA - vPosition:vPosition-positionA;
-			vec3 bitangent = texUV.y<0.5?positionB - vPosition:vPosition-positionB;
+		vec3 bitangent = texUV.y<0.5?positionB - vPosition:vPosition-positionB;
 			
-			csm_Normal = normalize(cross(tangent, bitangent));
+		csm_Normal = normalize(cross(tangent, bitangent));
 		
 		
 	}`,
 
-	fragmentShader: (numImageryLayers) => {
+	fragmentShader: (numImageryLayers, shaderColorLayerCode, shaderLayerTransparency) => {
 		let code = /* glsl */`
 
 		
@@ -95,16 +97,29 @@ const PlanetShader = {
 		uniform vec4 imageryUVBounds[`+ numImageryLayers + `];
 		uniform int imageryProjections[`+ numImageryLayers + `];
 		
+		varying float lon;
+		varying float lat;
 		varying float elevationX;
+		`;
+		if (shaderColorLayerCode) {
+			code += shaderColorLayerCode;
+		}
 
-		void main() {
+		code += `void main() {
 			if(imagery.length()>0){
 				csm_DiffuseColor = vec4(texture2D(imagery[0], fragmentImageryUV[0].xy).xyz,0.0);
 			}else{
 				csm_DiffuseColor = vec4(0.0,0.0,0.0,0.0);
 			}
-		}`;
-		
+		`;
+		if (shaderColorLayerCode) {
+			code+= `
+				vec3 shaderLayerColor = getShaderLayerColor(lon, lat, elevationX);
+				csm_DiffuseColor = mix(csm_DiffuseColor, vec4(shaderLayerColor,0.0), 1.0-`+shaderLayerTransparency.toFixed(3)+`);
+			`
+		}
+		code += `}`;
+
 
 		// for (let i = numImageryLayers - 1; i >= 0; i--) {
 		// 	code += 

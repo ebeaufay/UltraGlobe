@@ -41,8 +41,9 @@ class OGC3DTilesLayer extends Layer {
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.longitude = properties.longitude;
         this.latitude = properties.latitude;
-        if(!!properties.longitude && !!properties.latitude){
-            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
+        if(properties.longitude !== 'undefined' && properties.latitude !== 'undefined'){
+            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0);
+            this.centerModel = true;
         }
         
 
@@ -212,10 +213,13 @@ class OGC3DTilesLayer extends Layer {
             renderer: renderer,
             proxy: self.proxy,
             queryParams: self.queryParams,
-            yUp:self.yUp,
             displayErrors: self.displayErrors,
-            displayCopyright: self.displayCopyright
+            displayCopyright: self.displayCopyright,
+            centerModel: self.centerModel
         });
+        if(self.yUp){
+            this.tileset.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI * -0.5)
+        }
     }
     setPlanet(planet) {
         this.planet = planet;
@@ -240,6 +244,9 @@ class OGC3DTilesLayer extends Layer {
         scaleMatrix.multiplyScalar(scaleMatrix);
         
         this.tileset.applyMatrix4(scaleMatrix); */
+        if(!this.planet){
+            return;
+        }
         if(this.llh){
             const transform = this.planet.llhToCartesian.forward(this.llh);
             cartesianLocation.set(transform.x, transform.y, transform.z);

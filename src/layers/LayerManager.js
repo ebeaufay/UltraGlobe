@@ -1,4 +1,5 @@
 import { RasterLayer } from "./RasterLayer";
+import { ShaderColorLayer } from "./ShaderColorLayer";
 const LAYERS_CHANGED = "layers-changed";
 class LayerManager{
     constructor(){
@@ -53,6 +54,15 @@ class LayerManager{
     getRasterLayers(sideEffect){
         this.layers.forEach(element => {
             if(element instanceof RasterLayer){
+                sideEffect.push(element);
+            }
+        });
+        return sideEffect;
+    }
+
+    getShaderColorLayers(sideEffect){
+        this.layers.forEach(element => {
+            if(element instanceof ShaderColorLayer){
                 sideEffect.push(element);
             }
         });
