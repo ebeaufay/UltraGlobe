@@ -96,7 +96,7 @@ import { Map, WMSLayer } from '@jdultra/ultra-globe/dist/ultraglobe.min.js';
 
 let map = new Map({ divID: 'screen' });
 
-var wmsLayer = new C({
+var wmsLayer = new WMSLayer({
     id: 0,
     name: "WMS",
     bounds: [-180, -90, 180, 90],
