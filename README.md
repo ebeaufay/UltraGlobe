@@ -47,7 +47,7 @@ npm run dev
 
 [More controls for selecting and moving 3DTiles tilesets](https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html)
 
-[Random planet](https://www.jdultra.com/planet/index.html)
+[Random planet](https://www.jdultra.com/random/index.html)
 
 ## API
 
