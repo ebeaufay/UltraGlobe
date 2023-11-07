@@ -1,8 +1,8 @@
 import { Layer } from "./Layer";
-import { OGC3DTile } from "@jdultra/threedtiles";
+import { OGC3DTile } from "@jdultra/threedtiles/dist/threedtiles.min_old";
 import * as THREE from 'three';
-import { TileLoader } from '@jdultra/threedtiles';
-import { OBB } from '@jdultra/threedtiles';
+import { TileLoader } from '@jdultra/threedtiles/dist/threedtiles.min_old';
+import { OBB } from '@jdultra/threedtiles/dist/threedtiles.min_old';
 import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import moveUpSVG from "./../images/double-arrow.png";
 
@@ -11,22 +11,19 @@ const orientationHelper = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
-const quaternionZUPtoYUP = new THREE.Quaternion();
-quaternionZUPtoYUP.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0));
-const scale = new THREE.Vector3(1, 1, 1);
 
 class OGC3DTilesLayer extends Layer {
     constructor(properties) {
+        
         if (!properties) {
             throw "Bad instanciation, OGC3DTilesLayer requires properties."
         }
         super(properties);
-
+        this.isOGC3DTilesLayer = true;
         const self = this;
         self.properties = properties;
         self.displayCopyright = properties.displayCopyright;
         self.displayErrors = properties.displayErrors;
-        self.yUp = properties.yUp;
         self.proxy = properties.proxy;
         self.queryParams = properties.queryParams;
         this.scale = !!properties.scale ? properties.scale : 1;
@@ -41,14 +38,16 @@ class OGC3DTilesLayer extends Layer {
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.longitude = properties.longitude;
         this.latitude = properties.latitude;
-        if(properties.longitude !== 'undefined' && properties.latitude !== 'undefined'){
+        if(!!properties.longitude && !!properties.latitude){
+            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
+        }
+        /**if(properties.longitude !== 'undefined' && properties.latitude !== 'undefined'){
             this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0);
             this.centerModel = true;
-        }
+        }*/
         
 
-        this.zUp = !!properties.zUp ? properties.zUp : false;
-
+        
         this.url = properties.url;
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
@@ -217,9 +216,7 @@ class OGC3DTilesLayer extends Layer {
             displayCopyright: self.displayCopyright,
             centerModel: self.centerModel
         });
-        if(self.yUp){
-            this.tileset.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI * -0.5)
-        }
+        
     }
     setPlanet(planet) {
         this.planet = planet;
@@ -239,11 +236,7 @@ class OGC3DTilesLayer extends Layer {
     }
 
     update() {
-        /* this.tileset.translateOnAxis(cartesianLocation, this.planet.radius+this.location.z)
-        scaleMatrix.makeScale(2000, 2000, 2000)
-        scaleMatrix.multiplyScalar(scaleMatrix);
         
-        this.tileset.applyMatrix4(scaleMatrix); */
         if(!this.planet){
             return;
         }
@@ -252,9 +245,6 @@ class OGC3DTilesLayer extends Layer {
             cartesianLocation.set(transform.x, transform.y, transform.z);
             //quaternionSelfRotation
             quaternionToEarthNormalOrientation.setFromUnitVectors(up, orientationHelper.copy(cartesianLocation).normalize());
-            if (this.zUp) {
-                quaternionToEarthNormalOrientation.multiply(quaternionZUPtoYUP);
-            }
             quaternionSelfRotation.setFromEuler(this.rotation);
             this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
             this.tileset.position.copy(cartesianLocation);

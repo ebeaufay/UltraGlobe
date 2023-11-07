@@ -1,21 +1,21 @@
 import "regenerator-runtime/runtime.js";
 import * as THREE from 'three';
 import { Map } from './Map.js';
-import { UltraElevationLayer } from './layers/UltraElevationLayer';
-import { UltraImageryLayer } from './layers/UltraImageryLayer';
-import { SingleImageElevationLayer } from './layers/SingleImageElevationLayer';
-import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
-import { WMSLayer } from './layers/WMSLayer.js';
-import { SimpleElevationLayer } from './layers/SimpleElevationLayer.js';
-import { BingMapsImagerySet, BingMapsLayer } from './layers/BingMapsLayer';
-import { I3SLayer } from "./layers/i3s/I3SLayer.js";
-import { TilesetPlacementController } from "./controls/TilesetPlacementController";
-import geoidImage from './images/egm84-15.jpg'
-import earthElevationImage from './images/earth_elevation.jpg'
-import { SingleImageImageryLayer } from "./layers/SingleImageImageryLayer.js";
-import { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer.js";
 import { PerlinElevationLayer } from "./layers/PerlinElevationLayer.js";
 import { JetElevation } from "./layers/JetElevation.js";
+import { SingleImageElevationLayer } from "./layers/SingleImageElevationLayer.js";
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer.js';
+import { GoogleMap3DTileLayer } from './layers/GoogleMap3DTileLayer.js';
+import { PerlinTerrainColorShader } from './layers/PerlinTerrainColorShader.js'
+import { HoveringVehicle } from "./vehicles/HoveringVehicle.js";
+import { ThirdPersonCameraController } from "./controls/ThirdPersonCameraController.js";
+import { VerletSystem } from "./physics/VerletSystem.js";
+
+import earthElevationImage from "./images/earth_elevation2.jpg"
+import { Vector3 } from "three";
+const clock = new THREE.Clock();
+const gltfLoader = new GLTFLoader();
 
 document.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
@@ -29,77 +29,166 @@ document.addEventListener('keyup', (e) => {
 
 const domContainer = document.getElementById('screen');
 
-let map = new Map({ divID: 'screen', shadows:true, debug: true });
-let d = new Date();
- /* setInterval(()=>{
-    d.setSeconds(d.getSeconds()+1000);
-    map.setDate(d);
-}, 1000)  */
-map.setDate(new Date(2023,5, 21, 8, 0,0,0));
-
-
-//axes
-/* const materialX = new THREE.LineBasicMaterial({
-	color: 0xff0000
+var perlinElevation = new PerlinElevationLayer({
+    id: 43,
+    name: "perlin elevation",
+    visible: true,
+    bounds: [-180, -90, 180, 90]
 });
-const pointsX = [];
-pointsX.push( new THREE.Vector3( 0, 0, 0 ) );
-pointsX.push( new THREE.Vector3( 10000000000, 0, 0 ) );
 
-const geometryX = new THREE.BufferGeometry().setFromPoints( pointsX );
-
-const lineX = new THREE.Line( geometryX, materialX );
-map.scene.add( lineX );
-
-const materialY = new THREE.LineBasicMaterial({
-	color: 0x00ff00
-});
-const pointsY = [];
-pointsY.push( new THREE.Vector3( 0, 0, 0 ) );
-pointsY.push( new THREE.Vector3( 0, 10000000000, 0 ) );
-
-const geometryY = new THREE.BufferGeometry().setFromPoints( pointsY );
-
-const lineY = new THREE.Line( geometryY, materialY );
-map.scene.add( lineY );
-
-
-const materialZ = new THREE.LineBasicMaterial({
-	color: 0x0000ff
-});
-const pointsZ = [];
-pointsZ.push( new THREE.Vector3( 0, 0, 0 ) );
-pointsZ.push( new THREE.Vector3( 0, 0, 10000000000 ) );
-
-const geometryZ = new THREE.BufferGeometry().setFromPoints( pointsZ );
-
-const lineZ = new THREE.Line( geometryZ, materialZ );
-map.scene.add( lineZ ); */
-   
- //new THREE.Vector3(3785340.637455419,902150.4375344106,5036895.401656743), quaternion: new THREE.Quaternion(0.39140876313901685,0.10700124939413477,-0.352335063581273,0.8433326246133608)
-
-/* map.camera.position.set(3785340.637455419,902150.4375344106,5036895.401656743);
-//map.camera.up.set(0.5632445449715382, 0.1897925769820766, 0.8041979608792276);
-map.camera.setRotationFromQuaternion(new THREE.Quaternion(0.39140876313901685,0.10700124939413477,-0.352335063581273,0.8433326246133608)); 
-
-map.moveCameraAboveSurface();
-map.resetCameraNearFar();
-map.setCameraUp(); */
-
-//map.moveAndLookAt({x:-0.0062266679680371226496, y:51.513254715534870343, z:900},{x:-0.0062266679680371226496, y:51.513254715534870343, z:170})
-map.moveAndLookAt({ x: 0.0, y: -0.00001, z: 300 }, { x: 0, y: 0, z: 170 })
+/*var googleMaps3DTiles = new GoogleMap3DTileLayer({
+    id: 3,
+    name: "Google Maps 3D Tiles",
+    visible: true,
+    apiKey: "AIzaSyAiepQhdJkeTFehCE24j5qogKr_Lt5BXKo",
+    loadOutsideView: true,
+    displayCopyright: true,
+    flatShading: false
+});*/
+var shaderLayer = new PerlinTerrainColorShader({
+    id: 22,
+    name: "randomGroundColor",
+    visible: true,
+    minHeight: perlinElevation.min,
+    maxHeight: perlinElevation.max,
+    transparency: 0.0
+})
+/*var earthElevation = new SingleImageElevationLayer({
+    id: 9,
+    name: "singleImageEarthElevation",
+    bounds: [-180, -90, 180, 90],
+    url: earthElevationImage,
+    //layer: "1",
+    visible: true,
+    min: -11000,
+    max: 8800
+});*/
 
 
+/*var ogc3dTiles = new OGC3DTilesLayer({
+    id: "jhvbg",
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
+    longitude: 100.5877,
+    latitude: 14.3692,
+    height: 16,
+    //rotationY: 0.5,
+    rotationX: -1.57,
+    scale: 10000.0,
+    geometricErrorMultiplier: 1,
+    loadOutsideView: true,
+    flatShading: true
+});*/
 
-//map.mapNavigator.moveToGeodeticSinusoidal(new THREE.Vector3(0.9,0.2,100000), map.camera.quaternion, 5000, true)
-/* map.mapNavigator.moveToCartesianSinusoidal(
-    new THREE.Vector3(5328337.770919393,-616702.0204824861,3666880.272101925),
-    new THREE.Quaternion(0.6035951782272387,0.47730443539347106,-0.07332093800495981,0.6344110472119955),
-    5000,
- true
-);  */
+perlinElevation.getElevation({ min: { x: -Math.PI, y: -Math.PI * 0.5 }, max: { x: Math.PI, y: Math.PI * 0.5 } }, 1024, 512, 7).then(elevationArray => {
+    var globalElevationMap = new THREE.DataTexture(Float32Array.from(elevationArray), 1024, 512, THREE.RedFormat, THREE.FloatType);
+    globalElevationMap.needsUpdate = true;
+    globalElevationMap.magFilter = THREE.LinearFilter;
+    globalElevationMap.minFilter = THREE.LinearFilter;
+    globalElevationMap.wrapS = THREE.ClampToEdgeWrapping;
+    globalElevationMap.wrapT = THREE.ClampToEdgeWrapping;
+    setupMap(globalElevationMap);
+})
 
-var earthElevation = new SingleImageElevationLayer({
+
+
+function setupMap(globalElevationMap) {
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: generateLiquidColor(),
+        atmosphere: generateAtmosphereColor(),
+        sun: generateSunColor(),
+        globalElevation: globalElevationMap,
+    });
+
+    /*const axesHelper = new THREE.AxesHelper(50000000);
+    map.scene.add(axesHelper);*/
+    /* let d = new Date();
+        setInterval(() => {
+            d.setSeconds(d.getSeconds() + 1);
+            map.setDate(d);
+        }, 10) */
+    map.setDate(new Date(2023, 5, 21, 16, 0, 0, 0));
+
+    map.moveAndLookAt({ x: 0.0, y: 0.0000, z: 10000000 }, { x: 0, y: 1, z: 170 });
+
+    map.setLayer(perlinElevation, 0);
+    map.setLayer(shaderLayer, 1);
+    //map.setLayer(googleMaps3DTiles, 2);
+    //map.setLayer(ogc3dTiles, 3);
+
+
+    /* document.addEventListener('keyup', (e) => {
+        if (e.key === 't') {
+            let position = new THREE.Vector3();
+            map.screenPixelRayCast(map.domContainer.offsetWidth * (0.5), map.domContainer.offsetHeight * (0.5), position);
+
+            let l = position.length();
+            position.normalize().multiplyScalar(l + 50);
+
+            
+            gltfLoader.load("http://localhost:8081/little_hover_tank.glb", gltf => {
+                gltf.scene.position.copy(position);
+                position.multiplyScalar(1.1);
+                gltf.scene.scale.set(1.0, 1.0, 1.0);
+                gltf.scene.lookAt(position);
+                gltf.scene.rotateX(Math.PI / 2);
+                gltf.scene.traverse(node => {
+                    if (node.isMesh) node.castShadow = true;
+                });
+
+
+                map.scene.add(gltf.scene);
+                let hoveringVehicle = new HoveringVehicle({
+                    object3D: gltf.scene,
+                    planet: map.planet,
+                    hoverHeight: 1,
+                });
+                setInterval(() => {
+                    hoveringVehicle.update(clock.getDelta())
+                }, 1);
+
+                map.controller = new ThirdPersonCameraController(map.camera, map.domContainer, map, gltf.scene, 10, 30)
+
+                document.addEventListener('keyup', (e) => {
+                    switch (e.key) {
+                        case 'ArrowUp': hoveringVehicle.moveForward = false;
+                            break;
+                        case 'ArrowDown': hoveringVehicle.moveBackward = false;
+                            break;
+                        case 'ArrowLeft': hoveringVehicle.moveLeft = false;
+                            break;
+                        case 'ArrowRight': hoveringVehicle.moveRight = false;
+                            break;
+                    }
+                });
+                document.addEventListener('keydown', (e) => {
+                    switch (e.key) {
+                        case 'ArrowUp': hoveringVehicle.moveForward = true;
+                            break;
+                        case 'ArrowDown': hoveringVehicle.moveBackward = true;
+                            break;
+                        case 'ArrowLeft': hoveringVehicle.moveLeft = true;
+                            break;
+                        case 'ArrowRight': hoveringVehicle.moveRight = true;
+                            break;
+                    }
+                })
+            })
+        }
+    }); */
+}
+
+
+
+
+
+
+/* var earthElevation = new SingleImageElevationLayer({
     id: 9,
     name: "singleImageEarthElevation",
     bounds: [-180, -90, 180, 90],
@@ -118,17 +207,6 @@ var imagery = new SingleImageImageryLayer({
 })
 
 
-/* var wmsLayer = new WMSLayer({
-    id: 20,
-    name: "BlueMarble",
-    bounds: [-180, -90, 180, 90],
-    url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
-    layer: "GEBCO_LATEST_SUB_ICE_TOPO",
-    epsg: "EPSG:4326",
-    version: "1.3.0",
-    visible: true
-}) */
-
 var wmsLayer = new WMSLayer({
     id: 20,
     name: "BlueMarble",
@@ -140,19 +218,12 @@ var wmsLayer = new WMSLayer({
     visible: true
 })
 
-var shaderLayer = new JetElevation({
-    id: 22,
-    name: "jet",
-    visible: true,
-    minHeight: 0,
-    maxHeight: 8000,
-    transparency:0.5
-})
+
 var bingMaps = new BingMapsLayer({
     id: 21,
     name: "BingAerial",
-    imagerySet : BingMapsImagerySet.aerial,
-    key:"AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS",
+    imagerySet: BingMapsImagerySet.aerial,
+    key: "AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS",
     visible: true
 })
 
@@ -162,11 +233,11 @@ var ogc3dTiles = new OGC3DTilesLayer({
     visible: true,
     url: "http://localhost:8080/georef_tileset.json",
     //yUp:false,
-    longitude:0,
-    latitude:0,
-    height:100,
+    longitude: 0,
+    latitude: 0,
+    height: 100,
     //centerModel:true,
-    
+
     rotationX: -1.57,
     //rotationY: 180,
     //rotationZ: 180,
@@ -175,14 +246,9 @@ var ogc3dTiles = new OGC3DTilesLayer({
     loadOutsideView: false,
     flatShading: false
 });
-ogc3dTiles.update();
+ogc3dTiles.update(); */
 
-var perlinElevation = new PerlinElevationLayer({
-    id:43,
-    name:"perlin elevation",
-    visible: true,
-    bounds: [-180, -90, 180, 90]
-});
+
 /* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
@@ -196,26 +262,15 @@ var perlinElevation = new PerlinElevationLayer({
 
 
 
-map.setLayer(wmsLayer, 0)
-map.setLayer(ogc3dTiles, 1)
-// map.setLayer(perlinElevation, 2)
-map.setLayer(earthElevation, 2)
-map.setLayer(shaderLayer, 3)
+//map.setLayer(wmsLayer, 0)
+//map.setLayer(ogc3dTiles, 1)
+
 //map.setLayer(googleMaps3DTiles, 3);
 
 
 
 
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter' || e.keyCode === 13) {
-        const cam = map.camera;
-        let p = new THREE.Vector3();
-        cam.getWorldDirection(p).normalize();
-        console.log(cam.position);
-        console.log(p.add(cam.position));
-        console.log(cam.up.normalize())
-    }
-});
+
 
 
 
@@ -234,3 +289,57 @@ document.addEventListener('keyup', (e) => {
 function isMobileDevice() {
     return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
 };
+
+function generateLiquidColor() {
+    let hue = Math.floor(Math.random() * 360);
+    let saturation = 25 + Math.random() * 50;
+    let lightness = 30 + Math.random() * 40;
+
+    return hslToRgb(hue, saturation, lightness);
+}
+
+function generateAtmosphereColor() {
+    let hue = Math.floor(60+Math.random()* 180);
+    let saturation = 50+Math.random() * 25;
+    let lightness = 50 + Math.random() * 25;
+    
+    return hslToRgb(hue, saturation, lightness);
+}
+function generateSunColor() {
+    let hue = Math.floor(220+Math.random()* 140);
+    let saturation = 100;
+    let lightness = 50 + Math.random() * 50;
+    
+    return hslToRgb(hue, saturation, lightness);
+}
+
+function hslToRgb(h, s, l) {
+    s /= 100;
+    l /= 100;
+    let c = (1 - Math.abs(2 * l - 1)) * s,
+        x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+        m = l - c / 2,
+        r = 0,
+        g = 0,
+        b = 0;
+
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x;
+    }
+    // Adding 'm' to match the desired lightness
+    r = r + m;
+    g = g + m;
+    b = b + m;
+
+    return new THREE.Vector3(r,g,b);
+}

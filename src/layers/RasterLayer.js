@@ -9,6 +9,7 @@ class RasterLayer extends Layer{
      */
     constructor(properties) {
         super(properties);
+        this.isRasterLayer = true;
     }
 }
 export {RasterLayer}

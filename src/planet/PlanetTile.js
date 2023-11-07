@@ -189,6 +189,7 @@ class PlanetTile extends Mesh {
         self.loading = 0;
         self.material.visible = false;
         self.elevationDisplayed = false;
+        self.castShadow = true;
 
         self.priority = self.level;
         self.mapRequests = []; // collects texture requests in order to abort them when needed
@@ -202,7 +203,7 @@ class PlanetTile extends Mesh {
         }
         /////// prevent loading too many levels at the poles
         if (self.bounds.max.y == Math.PI / 2 || self.bounds.min.y == -Math.PI / 2) {
-            self.maxLevel = 4;
+            self.maxLevel = 5;
         } else {
             self.maxLevel = MAX_LEVEL;
         }
@@ -223,18 +224,28 @@ class PlanetTile extends Mesh {
 
     }
 
-    
+    _trimEdges(arr, width, height) {
+        const result = [];
+      
+        for (let row = 1; row < height - 1; row++) {
+          for (let col = 1; col < width - 1; col++) {
+            result.push(arr[row * width + col]);
+          }
+        }
+      
+        return result;
+      }
     _loadLayers(self) {
         self.layerManager.getLayers().forEach(layer => {
             if (!self.layerDataMap[layer.id]) {
                 if (layer instanceof ImageryLayer) {
                     self._startLoading(self);
                     self.layerDataMap[layer.id] = {};
-                    self._loadImagery(self, layer, (texture,projection, uvBounds) => {
+                    self._loadImagery(self, layer, (texture, projection, uvBounds) => {
                         self.layerDataMap[layer.id].texture = texture;
                         self.layerDataMap[layer.id].layer = layer;
-                        if(projection) self.layerDataMap[layer.id].projection = projection;
-                        if(uvBounds) self.layerDataMap[layer.id].uvBounds = uvBounds;
+                        if (projection) self.layerDataMap[layer.id].projection = projection;
+                        if (uvBounds) self.layerDataMap[layer.id].uvBounds = uvBounds;
                         delete self.layerDataMap[layer.id].loading;
                         self._endLoading(self);
                     }, (error) => {
@@ -245,8 +256,13 @@ class PlanetTile extends Mesh {
                 } else if (layer instanceof ElevationLayer) {
                     self._startLoading(self);
                     self.layerDataMap[layer.id] = {};
-                    layer.getElevation(self.bounds, TILE_SIZE, TILE_SIZE).then(elevationArray => {
-                        var elevationTexture = new THREE.DataTexture(Float32Array.from(elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
+                    const extendedBounds = self.bounds.clone();
+                    extendedBounds.min.x -= (self.bounds.max.x-self.bounds.min.x)/(TILE_SIZE-1);
+                    extendedBounds.max.x += (self.bounds.max.x-self.bounds.min.x)/(TILE_SIZE-1);
+                    extendedBounds.min.y -= (self.bounds.max.y-self.bounds.min.y)/(TILE_SIZE-1);
+                    extendedBounds.max.y += (self.bounds.max.y-self.bounds.min.y)/(TILE_SIZE-1);
+                    layer.getElevation(extendedBounds, TILE_SIZE+2, TILE_SIZE+2).then(elevationArray => {
+                        var elevationTexture = new THREE.DataTexture(Float32Array.from(elevationArray), TILE_SIZE+2, TILE_SIZE+2, THREE.RedFormat, THREE.FloatType);
                         elevationTexture.needsUpdate = true;
                         elevationTexture.magFilter = THREE.LinearFilter;
                         elevationTexture.minFilter = THREE.LinearFilter;
@@ -254,7 +270,7 @@ class PlanetTile extends Mesh {
                         elevationTexture.wrapT = THREE.ClampToEdgeWrapping;
                         self.layerDataMap[layer.id].texture = elevationTexture;
                         self.layerDataMap[layer.id].layer = layer;
-                        self.layerDataMap[layer.id].elevationArray = elevationArray;
+                        self.layerDataMap[layer.id].elevationArray = this._trimEdges(elevationArray, TILE_SIZE+2, TILE_SIZE+2);
 
                         self._endLoading(self);
                     });
@@ -323,7 +339,7 @@ class PlanetTile extends Mesh {
                 texture.magFilter = THREE.LinearFilter;
                 texture.minFilter = THREE.LinearFilter;
 
-                if (!!callbackSuccess) callbackSuccess(texture,projection, uvBounds);
+                if (!!callbackSuccess) callbackSuccess(texture, projection, uvBounds);
 
             }, error => callbackFailure(error), TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE)
         );
@@ -430,34 +446,36 @@ class PlanetTile extends Mesh {
     buildMaterial(self) {
         let numLayers = 0;
         let shaderColorLayerCode;
-        let ShaderColorLayerTransparency = 0;
+        let shaderColorLayerTransparency = 0;
+        let shaderColorLayerTextures;
         for (const id in self.layerDataMap) {
             if (self.layerDataMap.hasOwnProperty(id)) {
-                if (self.layerDataMap[id].layer instanceof ImageryLayer) {
+                if (self.layerDataMap[id].layer.isImageryLayer) {
                     numLayers++;
                 }
             }
         }
-        self.layerManager.getShaderColorLayers([]).forEach(function(layer) {
-            if (layer instanceof ShaderColorLayer && layer.visible) {
+        self.layerManager.getShaderColorLayers([]).forEach(function (layer) {
+            if (layer.isShaderColorLayer && layer.visible) {
                 shaderColorLayerCode = layer.shader;
-                ShaderColorLayerTransparency = layer.transparency;
+                shaderColorLayerTransparency = layer.transparency;
+                shaderColorLayerTextures = layer.textures;
             }
-          });
-        
+        });
+
 
         numLayers = Math.max(numLayers, 1);
 
         self.material = new CustomShaderMaterial({
             uniforms: {
-                elevationExageration : { value: self.planet.elevationExageration }
+                elevationExageration: { value: self.planet.elevationExageration }
             },
             baseMaterial: THREE.MeshStandardMaterial,
             depthTest: true,
             depthWrite: true,
             transparent: true,
             vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
-            fragmentShader: PlanetShader.fragmentShader(numLayers, shaderColorLayerCode, ShaderColorLayerTransparency)
+            fragmentShader: PlanetShader.fragmentShader(numLayers, shaderColorLayerCode, shaderColorLayerTransparency, shaderColorLayerTextures)
         });
 
         self.fillShaderUniforms(self);
@@ -465,11 +483,11 @@ class PlanetTile extends Mesh {
         self.material.visible = true;
         self.material.wireframe = false;
     }
-    setElevationExageration(){
-        if(this.material && this.material.uniforms && this.material.uniforms.elevationExageration){
+    setElevationExageration() {
+        if (this.material && this.material.uniforms && this.material.uniforms.elevationExageration) {
             this.material.uniforms.elevationExageration.value = this.planet.elevationExageration;
         }
-        this.children.forEach(planetTile=> planetTile.setElevationExageration());
+        this.children.forEach(planetTile => planetTile.setElevationExageration());
     }
     fillShaderUniforms(self) {
 
@@ -481,21 +499,28 @@ class PlanetTile extends Mesh {
         let elevation = defaultTexture;
         let elevationEncountered = false;
         self.layerManager.getLayers().forEach(layer => {
-            if (layer instanceof RasterLayer) {
+            if (layer.isRasterLayer) {
                 let layerData = self.layerDataMap[layer.id];
-                if (!!layerData && layer instanceof ImageryLayer && !!layer.visible) {
+                if (!!layerData && layer.isImageryLayer && !!layer.visible) {
                     imagery.push(layerData.texture);
                     imageryBounds.push(new Vector4(layer.bounds.min.x, layer.bounds.min.y, layer.bounds.max.x, layer.bounds.max.y));
                     imageryTransparency.push(layer.visible ? layer.transparency : 1);
-                    if(layerData.projection)imageryProjections.push(layerData.projection);
+                    if (layerData.projection) imageryProjections.push(layerData.projection);
                     else imageryProjections.push(0);
 
-                    if(layerData.uvBounds)imageryUVBounds.push(new Vector4(layerData.uvBounds[0], layerData.uvBounds[1], layerData.uvBounds[2], layerData.uvBounds[3]));
-                    else imageryUVBounds.push(new Vector4(0,1,0,1));
-                } else if (!elevationEncountered && !!layerData.layer && layer instanceof ElevationLayer && layer.visible) {
+                    if (layerData.uvBounds) imageryUVBounds.push(new Vector4(layerData.uvBounds[0], layerData.uvBounds[1], layerData.uvBounds[2], layerData.uvBounds[3]));
+                    else imageryUVBounds.push(new Vector4(0, 1, 0, 1));
+                } else if (!elevationEncountered && !!layerData.layer && layer.isElevationLayer && layer.visible) {
                     elevation = layerData.texture;
                     elevationEncountered = true;
                 }
+            }else if (layer.isShaderColorLayer && layer.textures){
+                for (const name in layer.textures) {
+                    if (layer.textures.hasOwnProperty(name)) {
+                      const tex = layer.textures[name];
+                      self.material.uniforms[name] = { type: "t", value: tex };
+                    }
+                  }
             }
 
         });
@@ -515,6 +540,7 @@ class PlanetTile extends Mesh {
         self.material.uniforms.planetPosition = { type: "v3", value: self.planet.center };
         self.material.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         self.material.uniforms.c = { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
+        self.material.uniforms.level = {type:"f", value: self.level};
     }
 
 
@@ -551,9 +577,9 @@ class PlanetTile extends Mesh {
                         layer.removeListener(self);
                     });
                     element.mapRequests.forEach(e => {
-                        if(e instanceof Promise){
-                            e.then(r=>r.abort());
-                        }else{
+                        if (e instanceof Promise) {
+                            e.then(r => r.abort());
+                        } else {
                             e.abort()
                         }
                     })
@@ -572,72 +598,79 @@ class PlanetTile extends Mesh {
         }
     }
 
+    calculateUpdateMetric2(camera, frustum) {
+
+    }
     calculateUpdateMetric(camera, frustum) {
-        p.copy(camera.position).sub(this.planet.center);
+        try {
+            p.copy(camera.position).sub(this.planet.center);
 
-        const llh = this.planet.llhToCartesian.inverse(p);
+            const llh = this.planet.llhToCartesian.inverse(p);
 
-        let lon = llh.x * degreeToRadians;
-        let lat = llh.y * degreeToRadians;
-        if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
-            var max = this.bounds.max.x - lon;
-            max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
+            let lon = llh.x * degreeToRadians;
+            let lat = llh.y * degreeToRadians;
+            if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
+                var max = this.bounds.max.x - lon;
+                max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
 
-            var min = this.bounds.min.x - lon;
-            min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
+                var min = this.bounds.min.x - lon;
+                min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
 
-            if (Math.abs(max) < Math.abs(min)) {
-                lon = this.bounds.max.x;
-            } else {
-                lon = this.bounds.min.x;
+                if (Math.abs(max) < Math.abs(min)) {
+                    lon = this.bounds.max.x;
+                } else {
+                    lon = this.bounds.min.x;
+                }
             }
+            lat = Math.min(this.bounds.max.y, Math.max(this.bounds.min.y, lat));
+
+            lat = ((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)); // lat in uv coordinates
+            lon = ((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)); // lon in uv coordinates
+
+            lat = Math.max(0, Math.min(1, lat));
+            lon = Math.max(0, Math.min(1, lon));
+
+            var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
+            var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
+            this.transformWGS84ToCartesian(long, lati, 0, nearestMSE);
+            this.transformWGS84ToCartesian(long, lati, this.billinearInterpolationOnElevationArray(lon, lat), nearestSurface);
+
+            this.bounds.getCenter(center);
+
+            this.transformWGS84ToCartesian(center.x, center.y, this.billinearInterpolationOnElevationArray(0.5, 0.5), p1);
+            this.transformWGS84ToCartesian(this.bounds.min.x, this.bounds.min.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p2);
+            this.transformWGS84ToCartesian(this.bounds.max.x, this.bounds.max.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p3);
+
+            // an estimation of the bounding volume is calculated based on the size of the tile and the elevation at the center and max elevation.
+            boundingSphere.radius = Math.max(p1.distanceTo(p2), p1.distanceTo(p3)) * 1.1;
+            boundingSphere.center.copy(p1).add(this.planet.center);
+
+
+            if (!frustum.intersectsSphere(boundingSphere)) {
+                return -1;
+            }
+
+            var dot = Math.max(0.01, Math.abs(p1.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
+            //dot = 1;
+            if (dot < 0) {
+                return -1;
+            }
+
+            var distance = p.distanceTo(nearestSurface);
+
+            const localRadius = nearestSurface.sub(this.planet.center).length();
+
+            var log = -(Math.log(distance * (isMobileDevice() ? 25000 : 2500) / localRadius) / Math.log(2)) + 16;
+            const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.07);
+
+            if (isNaN(metric)) {
+                return this.level;
+            }
+            self.priority = (distance) * this.level;
+            return metric;
+        } catch (e) {
+            return 1;
         }
-        lat = Math.min(this.bounds.max.y, Math.max(this.bounds.min.y, lat));
-
-        lat = ((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)); // lat in uv coordinates
-        lon = ((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)); // lon in uv coordinates
-
-        lat = Math.max(0, Math.min(1, lat));
-        lon = Math.max(0, Math.min(1, lon));
-
-        var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
-        var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-        this.transformWGS84ToCartesian(long, lati, 0, nearestMSE);
-        this.transformWGS84ToCartesian(long, lati, this.billinearInterpolationOnElevationArray(lon, lat), nearestSurface);
-
-        this.bounds.getCenter(center);
-
-        this.transformWGS84ToCartesian(center.x, center.y, this.billinearInterpolationOnElevationArray(0.5, 0.5), p1);
-        this.transformWGS84ToCartesian(this.bounds.min.x, this.bounds.min.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p2);
-        this.transformWGS84ToCartesian(this.bounds.max.x, this.bounds.max.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p3);
-
-        // an estimation of the bounding volume is calculated based on the size of the tile and the elevation at the center and max elevation.
-        boundingSphere.radius = Math.max(p1.distanceTo(p2), p1.distanceTo(p3)) * 1.1;
-        boundingSphere.center.copy(p1).add(this.planet.center);
-
-
-        if (!frustum.intersectsSphere(boundingSphere)) {
-            return -1;
-        }
-
-        var dot = Math.max(0.02, Math.abs(p1.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
-
-        if (dot < 0) {
-            return -1;
-        }
-
-        var distance = p.distanceTo(nearestSurface);
-
-        const localRadius = nearestSurface.sub(this.planet.center).length();
-
-        var log = -(Math.log(distance * (isMobileDevice()?25000:2500) / localRadius) / Math.log(2)) + 16;
-        const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.07);
-
-        if (isNaN(metric)) {
-            return this.level;
-        }
-        self.priority = (distance) * this.level;
-        return metric;
     }
 
     billinearInterpolationOnElevationArray(percentageX, percentageY) {

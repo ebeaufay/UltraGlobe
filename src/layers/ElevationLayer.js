@@ -9,6 +9,7 @@ class ElevationLayer extends RasterLayer{
      */
     constructor(properties) {
         super(properties);
+        this.isElevationLayer = true;
     }
 }
 

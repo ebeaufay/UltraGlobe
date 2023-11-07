@@ -10,6 +10,7 @@ class Layer {
      * } properties 
      */
     constructor(properties) {
+        this.isLayer = true;
         this.id = properties.id;
         this.name = properties.name;
         if(properties.bounds){

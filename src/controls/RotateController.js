@@ -95,7 +95,18 @@ class RotateController extends Controller {
 
 		this.map.moveCameraAboveSurface();
 		this.map.resetCameraNearFar(this.mouseRayCast);
+		this.straighten();
 	}
+
+	straighten() {
+
+        this.camera.getWorldDirection(tempPointD).normalize();
+
+        tempPointE.crossVectors(this.camera.up.normalize(), tempPointD);
+        tempPointD.add(this.camera.position);
+        this.camera.lookAt(tempPointD);
+        this.camera.up.crossVectors(tempPointD.sub(this.camera.position), tempPointE);
+    }
 
 	rotateX(rotateX) {
 

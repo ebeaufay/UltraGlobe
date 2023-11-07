@@ -11,7 +11,10 @@ import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-import opticalDepth from './images/optical_depth_old.png';
+import opticalDepth from './images/optical_depth.png';
+import water1 from './images/Water_1_M_Normal.jpg';
+import water2 from './images/Water_2_M_Normal.jpg';
+import perlin from './images/perlin.png';
 import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
 import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
@@ -36,6 +39,12 @@ const up = new THREE.Vector3(0, 1, 0);
 const loader = new THREE.TextureLoader();
 const degreeToRadians = Math.PI / 180;
 
+const cycle = 0.05; // a cycle of a flow map phase
+const halfCycle = cycle * 0.5;
+const waterScale = 100;
+
+const clock = new THREE.Clock();
+const flowSpeed = 0.01;
 class Map {
 
     /**
@@ -48,6 +57,7 @@ class Map {
         this.layerManager = new LayerManager();
         this.debug = properties.debug;
         this.scene = !!properties.scene ? properties.scene : this.initScene(properties.shadows);
+        this.globalElevation = properties.globalElevation;
         if (!!properties.domContainer) {
             this.domContainer = properties.domContainer;
         } else if (!!properties.divID) {
@@ -62,6 +72,10 @@ class Map {
             this.initStats();
         }
         this.shadows = properties.shadows;
+        this.ocean = properties.ocean;
+        this.atmosphere = properties.atmosphere;
+        this.sunColor = properties.sun;
+        this.waterTextureMatrix = new THREE.Matrix4();
 
         this.initPlanet(properties.shadows);
         this.initController();
@@ -78,8 +92,48 @@ class Map {
 
         this.selection = {};
 
+
     }
 
+    updateWaterTextureMatrix( ) {
+
+        this.waterTextureMatrix.set(
+            0.5, 0.0, 0.0, 0.5,
+            0.0, 0.5, 0.0, 0.5,
+            0.0, 0.0, 0.5, 0.5,
+            0.0, 0.0, 0.0, 1.0
+        );
+
+        this.waterTextureMatrix.multiply( this.camera.projectionMatrix );
+        this.waterTextureMatrix.multiply( this.camera.matrixWorldInverse );
+        //textureMatrix.multiply( scope.matrixWorld );
+
+    }
+
+    updateFlow() {
+
+        const delta = clock.getDelta();
+        const config = this.postMaterial.uniforms[ 'waterConfig' ];
+
+        config.value.x += flowSpeed * delta; // flowMapOffset0
+        config.value.y = config.value.x + halfCycle; // flowMapOffset1
+
+        // Important: The distance between offsets should be always the value of "halfCycle".
+        // Moreover, both offsets should be in the range of [ 0, cycle ].
+        // This approach ensures a smooth water flow and avoids "reset" effects.
+
+        if ( config.value.x >= cycle ) {
+
+            config.value.x = 0;
+            config.value.y = halfCycle;
+
+        } else if ( config.value.y >= cycle ) {
+
+            config.value.y = config.value.y - cycle;
+
+        }
+
+    }
     setDate(date) {
         if (this.shadows) {
             this.newSunPosition = getSunPosition(date);
@@ -120,6 +174,9 @@ class Map {
     }
     getLayers() {
         return this.layerManager.getLayers();
+    }
+    getLayerByID(id) {
+        return this.layerManager.getLayerByID(id);
     }
     initScene(shadows) {
         const scene = new THREE.Scene();
@@ -174,7 +231,6 @@ class Map {
         this.target.depthBuffer = true;
         this.target.depthTexture = new THREE.DepthTexture();
         this.target.depthTexture.format = THREE.DepthFormat;
-        this.target.depthTexture.type = THREE.UnsignedShortType;
 
         // the depth render target is used to render depth to the main texture so that it can read retrieved on the CPU
         if (this.depthTarget) this.depthTarget.dispose();
@@ -197,7 +253,7 @@ class Map {
         this.postCamera = new THREE.OrthographicCamera(- 1, 1, 1, - 1, 0, 1);
         this.postMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
-            fragmentShader: self.shadows?PostShader.fragmentShaderShadows():PostShader.fragmentShader(),
+            fragmentShader: self.shadows ? PostShader.fragmentShaderShadows(self.atmosphere, self.ocean, self.sunColor, !!self.globalElevation) : PostShader.fragmentShader(self.atmosphere, self.atmosphereThickness, self.ocean),
             uniforms: {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
@@ -209,16 +265,27 @@ class Map {
                 planetPosition: { value: new THREE.Vector3(0, 0, 0) },
                 nonPostCameraPosition: { value: new THREE.Vector3(0, 0, 0) },
                 viewCenterFar: { value: new THREE.Vector3(0, 0, 0) },
+                viewCenterNear: { value: new THREE.Vector3(0, 0, 0) },
                 up: { value: new THREE.Vector3(0, 0, 0) },
                 right: { value: new THREE.Vector3(0, 0, 0) },
                 heightAboveSeaLevel: { value: 0 },
                 opticalDepth: { value: null },
-                ldf: {value: 0},
+                perlin: {value:null},
+                water1: { value: null },
+                water2: { value: null },
+                waterConfig: { value: new THREE.Vector4(0,halfCycle, halfCycle, waterScale)},
+                waterTextureMatrix:{ value: null },
+                ldf: { value: 0 },
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
-                projMatrixInv: {value: new THREE.Matrix4()},
-                viewMatrixInv: {value: new THREE.Matrix4()}
+                projMatrixInv: { value: new THREE.Matrix4() },
+                viewMatrixInv: { value: new THREE.Matrix4() },
+                resolution: { value: new THREE.Vector2() }
             }
         });
+        if(self.globalElevation){
+            self.postMaterial.uniforms.globalElevation = { type: "t", value: self.globalElevation };
+        };
+        
 
         loader.load(
             // resource URL
@@ -238,6 +305,55 @@ class Map {
             }
         );
 
+        if(this.shadows){
+            loader.load(
+                // resource URL
+                water1,
+    
+                // onLoad callback
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.water1.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
+            loader.load(
+                water2,
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.water2.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
+            loader.load(
+                perlin,
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.perlin.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
+        }
+        
+
         this.depthPassMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
             fragmentShader: PostShader.depthPassFragmentShader(),
@@ -245,7 +361,7 @@ class Map {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
                 tDepth: { value: null },
-                ldf: {value: 0},
+                ldf: { value: 0 },
             }
         });
         const postPlane = new THREE.PlaneGeometry(2, 2);
@@ -260,7 +376,7 @@ class Map {
 
     initRenderer(shadows) {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: false, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
@@ -323,7 +439,7 @@ class Map {
 
 
     initCamera() {
-        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
+        const camera = new THREE.PerspectiveCamera(50, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -334,12 +450,12 @@ class Map {
 
 
 
-    initPlanet(shadows) {
+    initPlanet() {
 
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            shadows: shadows,
+            shadows: this.shadows,
             layerManager: this.layerManager
         });
         this.resetCameraNearFar();
@@ -464,25 +580,37 @@ class Map {
                 self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
                 self.postMaterial.uniforms.cameraNear.value = self.camera.near;
                 self.postMaterial.uniforms.cameraFar.value = self.camera.far;
-                self.postMaterial.uniforms.radius.value = 6356752.3142;
+                self.postMaterial.uniforms.radius.value = self.planet.radius;
                 self.postMaterial.uniforms.xfov.value = 2 * Math.atan(Math.tan(self.camera.fov * Math.PI / 180 / 2) * self.camera.aspect) * 180 / Math.PI;
                 self.postMaterial.uniforms.yfov.value = self.camera.fov;
                 self.postMaterial.uniforms.planetPosition.value = self.planet.position;
                 self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
                 self.postMaterial.uniforms.ldf.value = self.logDepthBufFC;
-                if(self.shadows) {
+                self.postMaterial.uniforms.resolution.value = new THREE.Vector2(
+                    self.renderer.domElement.width,
+                    self.renderer.domElement.height
+                );
+                self.postMaterial.uniforms.projMatrixInv.value.copy(self.camera.projectionMatrixInverse);
+
+                self.postMaterial.uniforms.viewMatrixInv.value.copy(self.camera.matrixWorld);
+                if (self.shadows) {
                     self.postMaterial.uniforms.sunLocation.value.copy(self.sun.position);
-                    //self.postMaterial.uniforms.sunLocation.value.multiplyScalar(999999999);
-                    self.postMaterial.uniforms.projMatrixInv.value.copy(self.camera.projectionMatrixInverse);
-                    self.postMaterial.uniforms.viewMatrixInv.value.copy(self.camera.matrixWorld);
+
                 }
 
                 self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
+                self.postMaterial.uniforms.viewCenterNear.value = self.postMaterial.uniforms.viewCenterFar.value.clone();
                 self.postMaterial.uniforms.up.value = self.camera.up.normalize();
                 self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
                 self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
+                self.postMaterial.uniforms.viewCenterNear.value.multiplyScalar(self.camera.near).add(self.camera.position);
 
-                self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - 6356752.3142;
+                self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - self.planet.radius;
+
+                //water
+                self.updateWaterTextureMatrix();
+                self.updateFlow();
+                self.postMaterial.uniforms.waterTextureMatrix.value = self.waterTextureMatrix;
 
 
                 self.depthPassMaterial.uniforms.cameraNear.value = self.camera.near;
@@ -510,16 +638,18 @@ class Map {
     }
 
     resetCameraNearFar() {
-        const geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
-        B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians)
-        //const distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+        
+        
+        const heightAboveEllipsoid = this.camera.position.length() - this.planet.radius;
 
         this.camera.near = 0.1;
-        const distanceToHorizon = Math.sqrt(2 * this.planet.a * Math.abs(geodeticCameraPosition.z) + geodeticCameraPosition.z * geodeticCameraPosition.z); // estimation
-        this.camera.far = distanceToHorizon * 2;
+        const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
+        this.camera.far = Math.max(1000000,distanceToHorizon * 1.5);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this.resetLogDepthBuffer();
+        
+        
     }
 
     resetLogDepthBuffer() {
@@ -527,16 +657,18 @@ class Map {
 
     }
     moveCameraAboveSurface() {
-        let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
+        try {
+            let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
+            B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
-        B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
-
-        this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-        if (this.distToGround < 10) {
-            geodeticCameraPosition.z += (10 - this.distToGround);
-            geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
-            this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
-        }
+            this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+            if (this.distToGround < 10) {
+                geodeticCameraPosition.z += (10 - this.distToGround);
+                geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
+                this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
+            }
+        }catch(e){}
+        
     }
     setCameraUp() {
         this.camera.getWorldDirection(A).normalize();
@@ -582,19 +714,19 @@ class Map {
         depth24.set(depths[0], depths[1], depths[2]);
         let z = depth24.dot(unpacker);
         z = (z * 0.00390630960555428397039749752041);
-        if(z<=0 || z>=1){
+        if (z <= 0 || z >= 1) {
             sideEffect.copy(this.camera.position);
             return;
         }
         z = -(Math.pow(2, z * Math.log2(this.camera.far + 1.0)) - 1.0);
         z = this.viewZToPerspectiveDepth(z, this.camera.near, this.camera.far);
         z = z * 2 - 1;
-        
+
         x = ((x - this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
         y = (1 - ((y - this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
 
-        sideEffect.set(x,y,z).unproject(this.camera);
-        
+        sideEffect.set(x, y, z).unproject(this.camera);
+
     }
 
     viewZToPerspectiveDepth(viewZ, near, far) {
@@ -620,10 +752,11 @@ class Map {
         p3.crossVectors(p1, p2);
         this.camera.up.crossVectors(p1, p3);
 
+        
         this.moveCameraAboveSurface();
         this.resetCameraNearFar();
     }
-    setElevationExageration(elevationExageration){
+    setElevationExageration(elevationExageration) {
         this.elevationExageration = elevationExageration;
         this.planet.setElevationExageration(this.elevationExageration);
     }

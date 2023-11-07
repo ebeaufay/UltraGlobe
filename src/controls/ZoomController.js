@@ -93,15 +93,13 @@ class ZoomController extends Controller {
 
         tempPointA.set(pointer2, pointer1, - this.camera.near).normalize().applyEuler(this.camera.rotation).normalize();
 
-        //const distEllipsoid = this.distEllipsoid(this.camera.position, tempPointA, this.planet.a)
         const distElevation = this.mouseRayCast.distanceTo(this.camera.position);
-        const lonlatheight= this.planet.llhToCartesian.inverse(this.mouseRayCast);
-        const heightAboveEllipsoid = lonlatheight.z;
-        //var datum = distEllipsoid - distElevation;
-        if (!distElevation || distElevation < 0) {
+        if (!distElevation || distElevation <= 0) {
             this.simpleZoom(this.zoom);
             return;
         }
+        const heightAboveEllipsoid = this.planet.llhToCartesian.inverse(this.mouseRayCast).z;
+
         tempPointC.copy(this.camera.position).add(tempPointB.copy(tempPointA).multiplyScalar(distElevation));
 
 
@@ -113,7 +111,7 @@ class ZoomController extends Controller {
 
         ///// calculate target point after zoom
 
-        pointer1 = this.distEllipsoid(this.camera.position, tempPointA, this.planet.a + heightAboveEllipsoid)
+        pointer1 = this.distEllipsoid(this.camera.position, tempPointA, this.planet.radius + heightAboveEllipsoid)
         if (!pointer1 || pointer1 < 0) {
             return;
         }
@@ -136,88 +134,17 @@ class ZoomController extends Controller {
         this.camera.lookAt(tempPointC.copy(this.camera.position).add(tempPointA));
         this.camera.up.crossVectors(tempPointB, tempPointA); // tempPointB = right t
     }
-    /* zoomAction() {
-	
-        //this.map.screenPixelRayCast(x, y, this.mouseRayCast);
-        // calculate pointOnGlobe and distToGlobeSurface before zoom
-        pointer1 = Math.tan(this.camera.fov * 0.5 * 0.0174533) * this.camera.near * 2;
-        pointer2 = pointer1 / this.dom.clientHeight * this.dom.clientWidth;
-        pointer2 = ((this.zoomLocation.x / this.dom.clientWidth) - 0.5) * pointer2; // x position in meter on near plane relative to near plane center
-        pointer1 = (1 - (this.zoomLocation.y / this.dom.clientHeight) - 0.5) * pointer1;// y position in meter on near plane relative to near plane center
-
-        tempPointA.set(pointer2, pointer1, - this.camera.near).normalize().applyEuler(this.camera.rotation).normalize(); // mouse location on near plane
-
-        pointer1 = this.distSphere(this.planet.center, this.planet.radius, this.camera.position, tempPointA)
-
-        let pointerx = this.distSphere(this.planet.center, this.planet.radius, this.camera.position, tempPointA)
-        console.log("1");
-        console.log(pointerx - pointer1);
-
-        if (!pointer1 || pointer1 < 0) {
-            this.simpleZoom(this.zoom);
-            return;
-        }
-        //tempPointC.copy(this.camera.position).add(tempPointB.copy(tempPointA).multiplyScalar(pointer1));
-        tempPointC.copy(this.mouseRayCast)
-    	
-        tempPointE.copy(this.camera.position);
-        pointer5 = this.camera.position.distanceTo(tempPointC);
-    	
-        //// Move camera forwards by zoom factor in the direction it's looking
-        this.camera.getWorldDirection(tempPointB).normalize();
-        this.camera.position.add(tempPointB.multiplyScalar(pointer1*(-this.zoom*0.01)));
-
-        ///// calculate target point after zoom
-
-        pointer1 = this.distSphere(this.planet.center, this.planet.radius, this.camera.position, tempPointA)
-
-        pointerx = this.distSphere(this.planet.center, this.planet.radius, this.camera.position, tempPointA)
-        console.log("2");
-        console.log(pointerx - pointer1);
-        if (!pointer1 || pointer1 < 0) {
-            //point not on globe after rotation
-            return;
-        }
-    	
-
-        tempPointB.copy(this.camera.position).add(tempPointA.multiplyScalar(pointer1)); // target position after camera movement 
-        quaternion.setFromUnitVectors(tempPointB.sub(this.planet.center).normalize(), tempPointA.copy(tempPointC).sub(this.planet.center).normalize());
-        this.camera.position.applyQuaternion(quaternion);
-        pointer3 = this.camera.position.distanceTo(tempPointC);
-    	
-        if((pointer3<=pointer5 && this.zoom>0) || (pointer3>=pointer5 && this.zoom<0)){
-            this.camera.position.copy(tempPointE);
-            this.simpleZoom(this.zoom);
-            return;
-        }
-    	
-
-        this.camera.getWorldDirection(tempPointA).applyQuaternion(quaternion);
-        tempPointB.crossVectors(tempPointA, this.camera.position);
-        this.camera.lookAt(tempPointC.copy(this.camera.position).add(tempPointA));
-        this.camera.up.crossVectors(tempPointB, tempPointA); // tempPointB = right t
-    } */
+    
 
     simpleZoom(zoom) {
         this.camera.getWorldDirection(tempPointA).normalize();
-        pointer1 = this.camera.position.distanceTo(this.planet.center) - this.planet.a;
+        //this.planet.llhToCartesian.inverse(this.camera.position);
+        pointer1 = this.planet.llhToCartesian.inverse(this.camera.position).z;
         this.camera.position.add(tempPointA.multiplyScalar(pointer1 * (-zoom * 0.01)));
         this.camera.position.add(tempPointA.normalize().multiplyScalar(zoom));
     }
 
-    distSphere(center, radius, origin, direction) {
-        tempPointD.copy(origin).sub(center);
-        pointer2 = direction.dot(direction);
-        pointer3 = 2.0 * tempPointD.dot(direction);
-        pointer4 = tempPointD.dot(tempPointD) - radius * radius;
-        pointer4 = pointer3 * pointer3 - 4 * pointer2 * pointer4;
-        if (pointer4 < 0) {
-            return -1.0;
-        }
-        else {
-            return (-pointer3 - Math.sqrt(pointer4)) / (2.0 * pointer2);
-        }
-    }
+    
     distEllipsoid(origin, direction, radius) {
         tempPointF.copy(origin).multiply(wgs84MajorMinorRatio);
         tempPointG.copy(direction).multiply(wgs84MajorMinorRatio).normalize();

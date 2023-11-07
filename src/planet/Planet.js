@@ -27,11 +27,11 @@ class Planet extends Object3D {
         self.llhToCartesian = TRANSFORM.transform("EPSG:4326", 'EPSG:4978');
         self.camera = properties.camera;
     
-        self.a = 6378137.0;
+        /* self.a = 6378137.0;
         self.w = 7292115E-11;
         self.f = 0.00335281066;
         self.GM = 3.986004418E14;
-
+ */
         
         if (!!properties.center) {
             self.center = properties.center;
@@ -59,7 +59,7 @@ class Planet extends Object3D {
                     child.update(self.camera, frustum);
                 }
             });
-        }, 50);
+        }, 10);
 
     }
 
