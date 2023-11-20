@@ -29,6 +29,7 @@ npm run dev
 ## Documentation
 
 [jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
+
 [guide](https://github.com/ebeaufay/UltraGlobe/blob/master/Guide.md)
 
 
