@@ -1,4 +1,6 @@
-## API
+# GUIDE
+
+## Creating a Map
 
 In your HTML, have a div with a specific id.
 
@@ -16,21 +18,8 @@ import { Map } from '@jdultra/ultra-globe/dist/ultraglobe.min.js';
 let map = new Map({ divID: 'screen' });
 ````
 
-At this point, you'll only see a black planet with atmosphere as no data has yet been loaded.
-
-### Shadows
-You can enable shadows and set a time:
-
-```js
-let map = new Map({ divID: 'screen', shadows:true });
-map.setDate(new Date(2023,5, 21, 8, 0,0,0));
-```
-
-The time will be relative to the local time-zone.
-OGC3DTiles tilesets, including google map tiles, will automatically cast shadows.
-
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/97eb24ee-2171-4ba6-a7a8-f2aa38c7d4c3)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/28c005f1-a990-4532-99af-a2ea76e86e47)![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/5ea31579-b03e-4ff0-9aa7-50877b550f9c)
-
+At this point, you'll only see an atmosphere as no data has yet been loaded.
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/610fb812-ca9b-4007-8eae-b3448670cdeb)
 
 ### Loading data
 
@@ -59,6 +48,8 @@ var wmsLayer = new WMSLayer({
 //add a layer at index 0
 map.setLayer(wmsLayer, 0);
 ````
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/722185b1-2b27-4e4b-b2bb-89006c0294d1)
+
 
 #### Imagery from single image
 
@@ -108,7 +99,7 @@ map.setLayer(earthElevation, 0);
 #### Custom imagery and elevation
 Loading data for the entire earth from a single image is definitely not ideal as you'll be limitted in terms of quality.
 
-chack out the classes "SimpleElevationLayer" and "UltraImageryLayer" to get an idea of how to implement your own layers to connect to your imagery/elevation service or generate on the fly data.
+chack out the classes "SimpleElevationLayer" to get an idea of how to implement your own layers to connect to a cusom imagery/elevation service or generate on the fly data.
 
 #### Loading OGC 3DTiles
 
@@ -291,6 +282,56 @@ self.domContainer.addEventListener('mouseup', (e) => {
   console.log(sideEffect);
 }, false);
 ````
+
+## Map parameters
+These are some extra map parameters that affect the general appearance.
+
+### Shadows
+You can enable shadows and set a time:
+
+```js
+let map = new Map({ divID: 'screen', shadows:true });
+map.setDate(new Date(2023,5, 21, 8, 0,0,0));
+```
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/c98cdc0c-a703-4bbd-8309-adc558dceb1e)
+
+The time will be relative to the local time-zone.
+OGC3DTiles tilesets, including google map tiles, will automatically cast shadows.
+
+### Atmosphere
+
+change the atmosphere base color
+```js
+let map = new Map({ divID: 'screen', atmosphere:new THREE.Vector3(1.0,0.0,0.0) });
+```
+### Sun
+
+change the sun color (only if shadows are turned on)
+```js
+let map = new Map({ divID: 'screen', sun:new THREE.Vector3(0.0,0.0,1.0) });
+```
+
+### Ocean
+
+Add oceans:
+```js
+let map = new Map({ divID: 'screen', ocean:true });
+```
+The ocean will be displayed as a wgs84 ellipsoid. make sure you have good enough elevation data
+
+You can also set the water color
+```js
+let map = new Map({ divID: 'screen', ocean:new THREE.Vector3(0.0,1.0,0.0) });
+```
+
+### Global Elevation
+
+This can be used to specify a global elevation texture used for post effects
+
+```js
+let map = new Map({ divID: 'screen', globalElevation:threejsDataTexture});
+```
+
 
 ### ThreeJS context objects
 Rather than a full fledged geospatial framework. This library is intended as a lightweight library on top of threeJS. Nevertheless, the render pipeline is mildly complex hence the need to manage it in the Map object itself. You can access threejs context objects from the map:
