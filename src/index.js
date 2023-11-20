@@ -87,6 +87,17 @@ var wmsLayer = new WMSLayer({
     visible: true,
     maxLOD:10
 });
+var wmsLayer2 = new WMSLayer({
+    id: 1,
+    name: "BlueMarble",
+    bounds: [-180, -90, 180, 90],
+    url: "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv",
+    layer: "GEBCO_LATEST_SUB_ICE_TOPO",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    visible: true,
+    imageSize: 256
+})
 var imagery = new SingleImageImageryLayer({
     id: 5,
     name: "imagery",
@@ -108,8 +119,25 @@ var ogc3dTiles = new OGC3DTilesLayer({
     scale: 10000.0,
     geometricErrorMultiplier: 1,
     loadOutsideView: true,
+    flatShading: false
+});
+
+var ogc3dTiles2 = new OGC3DTilesLayer({
+    id: 2,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    longitude: 13.42,
+    latitude: 52.4895,
+    height: 1000,
+    rotationY: 0.72,
+    rotationX: 3.1416,
+    scale: 100.0,
+    geometricErrorMultiplier: 0.03,
+    loadOutsideView: false,
     flatShading: true
 });
+
 var simpleElevationLayer = new SimpleElevationLayer({
     id:"simpleElevationLayer",
     name:"simpleElevationLayer",
@@ -172,8 +200,8 @@ function setupMap(globalElevationMap) {
     map.moveAndLookAt({ x: 0.0, y: 0.0000, z: 10000000 }, { x: 0, y: 1, z: 170 });
 
     map.setLayer(perlinElevation, 0);
-    map.setLayer(wmsLayer, 1);
-    //map.setLayer(ogc3dTiles, 2);
+    map.setLayer(wmsLayer2, 1);
+    map.setLayer(ogc3dTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
 

@@ -208,15 +208,16 @@ class OGC3DTilesLayer extends Layer {
                 }
                 mesh.material.wireframe = false;
                 mesh.material.side = THREE.DoubleSide;
+                if (!mesh.geometry.getAttribute('normal')) {
+                    mesh.geometry.computeVertexNormals();
+                }
                 if(map.csm){
                     mesh.material.side = THREE.FrontSide;
                     mesh.castShadow = true
                     mesh.receiveShadow = true;
                     mesh.parent.castShadow = true
                     mesh.parent.receiveShadow = true;
-                    if (!mesh.geometry.getAttribute('normal')) {
-                        mesh.geometry.computeVertexNormals();
-                    }
+                    
                     mesh.material.shadowSide = THREE.BackSide;
                     map.csm.setupMaterial(mesh.material);
                 }

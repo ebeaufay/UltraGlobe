@@ -43,14 +43,14 @@ const flowSpeed = 0.01;
 class Map {
 
     /**
-    * @param {Object} properties - The configuration object.
-    * @param {String} properties.divID - A div ID.
-    * @param {Boolean} [properties.debug=false] - Display debug information (optional).
-    * @param {Boolean} [properties.shadows=false] - Display sunlight and shadows (optional).
-    * @param {THREE.Vector3} properties.atmosphere - An atmosphere color. By thefault a blueish atmosphere is displayed (optional)
-    * @param {THREE.Vector3} properties.sun - A sun color, defaults to a yelowish sun. Only taken into account when shadows is true (optional).
-    * @param {Boolean|THREE.Vector3} properties.ocean - if true displays a blue ocean but a specific ocean color can be specified (optional).
-    * @param {THREE.DataTexture} properties.globalElevation - A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects (optional).
+    * @param {Object} properties 
+    * @param {String} properties.divID A div ID.
+    * @param {Boolean} [properties.debug=false] Display debug information.
+    * @param {Boolean} [properties.shadows=false] Display sunlight and shadows.
+    * @param {THREE.Vector3} [properties.atmosphere=false] An atmosphere color. By thefault a blueish atmosphere is displayed
+    * @param {THREE.Vector3} [properties.sun=false] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true.
+    * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
+    * @param {THREE.DataTexture} [properties.globalElevation=false] A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects.
     */
     constructor(properties) {
         this.layerManager = new LayerManager();
@@ -218,7 +218,7 @@ class Map {
                 fade: true,
                 parent: scene,
                 shadowMapSize: _isMobileDevice()?1024:2048,
-                lightIntensity: 3.2,
+                lightIntensity: 3.0,
                 lightDirection: this.sunPosition.clone().negate(),
                 lightMargin: 500000,
                 shadowBias: -0.000001,
@@ -239,7 +239,7 @@ class Map {
 
             
 
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.8));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.4));
 
             if (this.debug) {
                 this.csmHelper = new CSMHelper(this.csm);
@@ -288,7 +288,7 @@ class Map {
             }
 
         } else {
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 4.0));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 3.4));
         }
         return scene;
     }
@@ -479,7 +479,7 @@ class Map {
             }`
         );
         self.renderer.toneMapping = THREE.CustomToneMapping;
-        self.renderer.toneMappingExposure = 1;
+        self.renderer.toneMappingExposure = 0.2;
         self.renderer.domElement.style.overflow = "hidden";
         self.domContainer.appendChild(self.renderer.domElement);
 
