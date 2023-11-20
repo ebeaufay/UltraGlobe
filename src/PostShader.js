@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Shader for planet tiles
  */
@@ -341,7 +342,6 @@ const PostShader = {
 			uniform sampler2D opticalDepth;
 			uniform sampler2D water1;
 			uniform sampler2D water2;
-			uniform mat4 waterTextureMatrix;
 			uniform vec4 waterConfig;
 			uniform float cameraNear;
 			uniform float cameraFar;
@@ -493,7 +493,7 @@ const PostShader = {
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						
 						return vec3(
-							(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1,
+							(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.05*shade,
 							shade,0.0
 						);
 						
@@ -524,7 +524,7 @@ const PostShader = {
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
 							return vec3(
-								(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1,
+								(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.05*shade,
 								shade, 0.0
 							);
 						}else{ // to Space
@@ -543,6 +543,9 @@ const PostShader = {
 			}
 
 			vec3 computeWaterNormal(vec3 surfacePoint){
+				if(heightAboveSeaLevel>100000.0){
+					return vec3(0.0,1.0,0.0);
+				}
 				float flowMapOffset0 = waterConfig.x;
 				float flowMapOffset1 = waterConfig.y;
 				float halfCycle = waterConfig.z;
@@ -552,6 +555,7 @@ const PostShader = {
 				float lat = asin(surfacePoint.z/radius);
 				float lon = atan(surfacePoint.y, surfacePoint.x);
 				vec2 scale = vec2(waterConfig.w,waterConfig.w);
+				
 				vec2 waterUV = vec2(((lon*cos(lat)) + 3.14159265)/(3.14159265), (lat + 3.14159265 / 2.0)/3.14159265);
 				vec2 flow = normalize(vec2(0.7, 0.7))*1.0*cos(lat);
 				`;
@@ -580,8 +584,8 @@ const PostShader = {
 	
 				float flowLerp = abs( halfCycle - flowMapOffset0 ) / halfCycle;
 				vec4 normalColor = mix( normalColor0, normalColor1, flowLerp );
-				return normalize( vec3( normalColor.r * 2.0 - 1.0, normalColor.b,  normalColor.g * 2.0 - 1.0 ) );
-				
+				vec3 normal =  normalize( vec3( normalColor.r * 2.0 - 1.0, normalColor.b,  normalColor.g * 2.0 - 1.0 ) );
+				return mix(normal, vec3(0.0,1.0,0.0), max(0.0,heightAboveSeaLevel/100000.0));
 			}
 			vec3 oceanCalc(vec3 rayDirection, vec3 impact, vec3 sunVector){
 				float waterVolume = 0.0;
@@ -683,18 +687,19 @@ const PostShader = {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			const specularOcean = new THREE.Vector3(Math.sqrt(shallowOcean.x), Math.sqrt(shallowOcean.y), Math.sqrt(shallowOcean.z));
 			code += `
+							
 							vec3 oceanMeasures = oceanCalc(rayDirection, impact, sunVector);
-							float waterVolume = oceanMeasures.x;
-							float oceanIlumination = max(0.2,oceanMeasures.y) ;
+								float waterVolume = oceanMeasures.x;
+								float oceanIlumination = max(0.2,oceanMeasures.y) ;
+								
+								float oceanLightReflection = max(0.2,pow(oceanMeasures.z,1.0));
+								vec3 waterColor = mix(vec3(`+shallowOcean.x.toFixed(3)+`,`+shallowOcean.y.toFixed(3)+`,`+shallowOcean.z.toFixed(3)+`), vec3(`+ocean.x.toFixed(3)+`,`+ocean.y.toFixed(3)+`,`+ocean.z.toFixed(3)+`), min(1.0,max(0.0,waterVolume/1000.0)))*oceanIlumination;
+								waterColor = mix(waterColor, vec3(`+specularOcean.x.toFixed(3)+`,`+specularOcean.y.toFixed(3)+`,`+specularOcean.z.toFixed(3)+`), pow(oceanLightReflection,3.0));
+								float waterOpacity = max(0.0, min(0.7, waterVolume/200.0));
+								waterOpacity *= max(1.0,oceanLightReflection);
+								diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
 							
-							float oceanLightReflection = max(0.2,pow(oceanMeasures.z,1.0));
-							vec3 waterColor = mix(vec3(`+shallowOcean.x.toFixed(3)+`,`+shallowOcean.y.toFixed(3)+`,`+shallowOcean.z.toFixed(3)+`), vec3(`+ocean.x.toFixed(3)+`,`+ocean.y.toFixed(3)+`,`+ocean.z.toFixed(3)+`), min(1.0,max(0.0,waterVolume/1000.0)))*oceanIlumination;
-							waterColor = mix(waterColor, vec3(`+specularOcean.x.toFixed(3)+`,`+specularOcean.y.toFixed(3)+`,`+specularOcean.z.toFixed(3)+`), pow(oceanLightReflection,3.0));
-							float waterOpacity = max(0.0, min(0.7, waterVolume/200.0));
-							waterOpacity *= max(1.0,oceanLightReflection);
-							diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
 							
-							//diffuse.rgb = mix(diffuse,vec3(waterVolume/1000.0),0.5);
 							`;
 		}
 		code += `

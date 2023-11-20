@@ -8,37 +8,42 @@ const frustum = new THREE.Frustum();
 const mat = new THREE.Matrix4();
 
 class Planet extends Object3D {
+
+    
     /**
      * 
-     * @param {
-     *          camera: camera,
-     *          center: Vector3,
-     *          layerManager: LayerManager
-     *        } properties
+     * @param {Object} properties 
+     * @param {THREE.WebGLRenderer} properties.renderer main renderer
+     * @param {THREE.Camera} properties.camera main camera
+     * @param {CSM} properties.shadows cascade shadow map object
+     * @param {THREE.Vector3} properties.center (optional) planet center in world space. defaults to 0,0,0
+     * @param {LayerManager} properties.layerManager manages layers
      */
     constructor(properties) {
         super();
-        this.frustumCulled = false;
+        this.frustumCulled = true;
         this.elevationExageration = 1;
-        var self = this;
+        this.renderer = properties.renderer;
+        const self = this;
+
         if (!properties.camera) {
             throw ("A camera is required in order to refine the planet's levels of detail.")
         }
         self.llhToCartesian = TRANSFORM.transform("EPSG:4326", 'EPSG:4978');
         self.camera = properties.camera;
-    
+
         /* self.a = 6378137.0;
         self.w = 7292115E-11;
         self.f = 0.00335281066;
         self.GM = 3.986004418E14;
  */
-        
+
         if (!!properties.center) {
             self.center = properties.center;
         } else {
             self.center = new THREE.Vector3(0, 0, 0);
         }
-        
+
         self.radius = 6378137.0;
         self.layerManager = properties.layerManager;
 
@@ -52,15 +57,41 @@ class Planet extends Object3D {
         }));
 
         self.matrixAutoUpdate = false;
+        let lastUpdateIndex = 0;
+        let tilesToUpdate;
         setInterval(function () {
-            self.children.forEach(child => {
-                if(!self.pause){
-                    frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-                    child.update(self.camera, frustum);
-                }
-            });
-        }, 10);
+            if (!self.pause) {
+                let startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+                
+                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
 
+                if(!tilesToUpdate || lastUpdateIndex>= tilesToUpdate.length){
+                    tilesToUpdate = [];
+                    lastUpdateIndex = 0;
+                    self.traverse(o=>{
+                        if(o.isPlanetTile){
+                            tilesToUpdate.push(o);
+                        }
+                    });
+                    tilesToUpdate.sort((a,b)=>b.level - a.level);
+                }
+                while(lastUpdateIndex<tilesToUpdate.length){
+                    tilesToUpdate[lastUpdateIndex].update(self.camera, frustum, self.renderer);
+                    lastUpdateIndex++;
+                    if(lastUpdateIndex>=tilesToUpdate.length){
+                        
+                        tilesToUpdate = undefined;
+                        break;
+                    }
+                    const timeSpent = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now())-startTime
+                    if(timeSpent>=0.5){ // spend no more than a millisecond on this before freeing up the CPU
+                        break;
+                    }
+                }
+            }
+        }, 30); 
+
+        
     }
 
     /**
@@ -96,18 +127,60 @@ class Planet extends Object3D {
         if (elevation === false) {
             return 0;
         }
-        return elevation*this.elevationExageration;
+        return elevation * this.elevationExageration;
     }
-    pauseRendering(){
+    _pauseRendering() {
         this.pause = true;
     }
-    resumeRendering(){
+    _resumeRendering() {
         this.pause = false;
     }
 
-    setElevationExageration(elevationExageration){
+    setElevationExageration(elevationExageration) {
         this.elevationExageration = elevationExageration;
-        this.children.forEach(planetTile=>planetTile.setElevationExageration());
+        this.children.forEach(planetTile => planetTile.setElevationExageration());
+    }
+
+
+
+    /**
+     * Transforms a lon lat height point (degrees) to cartesian coordinates (EPSG:4978).
+     * The transform is slightly inaccurate compared to proj4 but it's 3 times faster
+     * @param {THREE.Vector3} llh
+     */
+    llhToCartesianFastSFCT(llh, radians = false) {
+        const lon = radians ? llh.x : 0.017453292519 * llh.x;
+        const lat = radians ? llh.y : 0.017453292519 * llh.y;
+        const N = 6378137.0 / (Math.sqrt(1.0 - (0.006694379990141316 * Math.pow(Math.sin(lat), 2.0))));
+        const cosLat = Math.cos(lat);
+        const cosLon = Math.cos(lon);
+        const sinLat = Math.sin(lat);
+        const sinLon = Math.sin(lon);
+        const nPh = (N + llh.z);
+
+        llh.set(nPh * cosLat * cosLon, nPh * cosLat * sinLon, (0.993305620009858684 * N + llh.z) * sinLat);
+    }
+
+    /**
+     * Transforms a xyz point (degrees) to llh coordinates (EPSG:4326).
+     * The transform is slightly inaccurate compared to proj4 but it's 2.5 times faster
+     * @param {THREE.Vector3} llh
+     */
+    cartesianToLlhFastSFCT(xyz) {
+        const a = 6378137.0;
+        const b = 6356752.314245179;
+        const e2 = 0.006694379990141316;
+        const p = Math.sqrt(xyz.x * xyz.x + xyz.y * xyz.y);
+        const th = Math.atan2(a * xyz.z, b * p);
+        const sinTh = Math.sin(th);
+        const cosTh = Math.cos(th);
+        const lat = Math.atan2(xyz.z + 42841.3115133135658 * sinTh * sinTh * sinTh, p - 42697.672707179 * cosTh * cosTh * cosTh);
+        const sinLat = Math.sin(lat);
+        const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
+
+        xyz.x = Math.atan2(xyz.y, xyz.x) * 57.29577951308232;
+        xyz.y = lat * 57.29577951308232;
+        xyz.z = p / Math.cos(lat) - N;
     }
 }
 

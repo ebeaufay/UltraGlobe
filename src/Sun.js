@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as THREE from 'three';
 const degreesToRadians = 0.01745329251994329576923690768489;
 const radiansToDegrees = 57.295779513082320876798154814105;

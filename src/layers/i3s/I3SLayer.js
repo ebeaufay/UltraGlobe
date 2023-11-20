@@ -13,6 +13,7 @@ import * as TRANSFORM from '../../transform/Transformer.js';
 class I3SLayer extends Layer {
     constructor(properties) {
         super(properties);
+        this.isI3SLayer = true;
         const self = this;
         // first fetch the layer information
         fetch(properties.url + "/layers/" + properties.layer + "?f=json").then(result => {

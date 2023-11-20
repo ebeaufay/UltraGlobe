@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 /**
  * A function that converts lon, lat, height geodetic coordinates to cartesian coordinates according to the WGS84 ellipsoid.
      * @param {Object} [lon] - longitude in radians

@@ -1,28 +1,47 @@
 import * as THREE from 'three';
-import { PlanetShader } from './PlanetShader2.js';
+import { PlanetTileShaderChunks } from './PlanetTileShaderChunks.glsl.js';
 import { Mesh } from 'three/src/objects/Mesh';
-import { Vector4 } from 'three';
+import { MeshStandardMaterial, Vector4 } from 'three';
 import { RasterLayer } from '../layers/RasterLayer.js';
-import { ImageryLayer } from '../layers/ImageryLayer.js';
-import { ShaderColorLayer } from '../layers/ShaderColorLayer.js';
-import { ElevationLayer } from '../layers/ElevationLayer.js';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js'
 import { VISIBILITY_CHANGE } from '../layers/Layer.js';
-import CustomShaderMaterial from 'three-custom-shader-material/vanilla';
+import { TerrainMeshGenerator } from './TerrainMeshGenerator';
 
-
+const terrainMeshGenerator = new TerrainMeshGenerator();
 const TILE_SIZE = 32;
-const TILE_IMAGERY_SIZE = 256;
-const TILE_GEOMETRY = generateBaseTile(TILE_SIZE);
 const MAX_LEVEL = 15;
+const TILE_IMAGERY_SIZE = 128;
 const defaultTexture = buildZeroTexture();
+const defaultImageTexture = generateDefaultImageTexture();
+function generateDefaultImageTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+
+    // Get the context of the canvas
+    const context = canvas.getContext('2d');
+
+    context.fillStyle = 'rgb(8,23,54)';
+    context.fillRect(0, 0, 1, 1);
+
+    // Create a Three.js texture from the canvas
+    const texture = new THREE.Texture(canvas);
+
+    // Set texture parameters if needed
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.needsUpdate = true;
+    return texture;
+}
 
 const emptyVec4 = new THREE.Vector4(0, 0, 0, 0);
 
-const defaultMaterial = new THREE.MeshBasicMaterial();
 const degreeToRadians = Math.PI / 180;
 const radiansToDegrees = 180 / Math.PI;
 const defaultElevation = [];
+const defaultExtendedElevation = [];
 
 // reusable points
 const nearestMSE = new THREE.Vector3();
@@ -39,6 +58,10 @@ for (let index = 0; index < TILE_SIZE * TILE_SIZE; index++) {
     defaultElevation.push(0);
 
 }
+for (let index = 0; index < (TILE_SIZE + 2) * (TILE_SIZE + 2); index++) {
+    defaultExtendedElevation.push(0);
+
+}
 
 function buildZeroTexture() {
     var data = new Uint8Array(3);
@@ -48,90 +71,15 @@ function buildZeroTexture() {
     return new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat);
 }
 
-function generateBaseTile(resolution) {
-    if (resolution < 2) {
-        console.log("unsupported resolution");
-        return;
-    }
 
-    var indices = [];
-    var vertices = [];
-    var skirts = [];
 
-    //// vertices
-    for (var z = 0; z <= resolution - 1; z += 1) {
-        for (var x = 0; x <= resolution - 1; x += 1) {
-            var vX = x / (resolution - 1);
-            var vZ = z / (resolution - 1);
-            vertices.push(vX, 1.0, vZ);
-            if (z == 0 || z == resolution - 1 || x == 0 || x == resolution - 1) {
-                skirts.push(vX, 0.99, vZ);
-            }
-        }
-    }
 
-    const skirtFirstIndex = (vertices.length / 3);
-    //// faces
-
-    // tile
-    for (var i = 0; i < (vertices.length / 3) - resolution - 1; i++) {
-        if ((i + 1) % resolution != 0) {
-            indices.push(i, i + 1, i + resolution);
-            indices.push(i + resolution, i + 1, i + 1 + resolution);
-        }
-    }
-
-    //first skirt
-    for (let i = 0; i < resolution - 1; i++) {
-        indices.push(skirtFirstIndex + i, skirtFirstIndex + i + 1, i);
-        indices.push(i, skirtFirstIndex + i + 1, i + 1);
-    }
-
-    //second skirt
-    let a = resolution - 1;
-    let b = resolution - 1;
-    while (a < (resolution - 1) + (2 * (resolution - 2))) {
-        indices.push(skirtFirstIndex + a, skirtFirstIndex + a + 2, b);
-        indices.push(b, skirtFirstIndex + a + 2, b + resolution);
-        a += 2;
-        b += resolution;
-    }
-    indices.push(skirtFirstIndex + a, skirtFirstIndex + a + resolution, b);
-    indices.push(b, skirtFirstIndex + a + resolution, b + resolution);
-
-    //third skirt
-    let skirtVertexIndex = skirtFirstIndex + resolution * 4 - 5;
-    let skirtEnd = skirtVertexIndex - resolution + 1;
-    let tileIndex = skirtFirstIndex - 1;
-    while (skirtVertexIndex > skirtEnd) {
-        indices.push(skirtVertexIndex, skirtVertexIndex - 1, tileIndex);
-        indices.push(tileIndex, skirtVertexIndex - 1, tileIndex - 1);
-        skirtVertexIndex--;
-        tileIndex--;
-    }
-
-    //fourth skirt
-    skirtEnd = skirtVertexIndex - (2 * (resolution - 2));
-    while (skirtVertexIndex > skirtEnd) {
-        indices.push(skirtVertexIndex, skirtVertexIndex - 2, tileIndex);
-        indices.push(tileIndex, skirtVertexIndex - 2, tileIndex - resolution);
-        skirtVertexIndex -= 2;
-        tileIndex -= resolution;
-    }
-    indices.push(skirtVertexIndex, skirtVertexIndex - resolution, tileIndex);
-    indices.push(tileIndex, skirtVertexIndex - resolution, tileIndex - resolution);
-
-    var geometry = new THREE.BufferGeometry();
-    geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices.concat(skirts), 3));
-
-    return geometry;
-}
 
 const tilesToLoad = [];
 function scheduleLoadLayers(tile) {
     const length = tilesToLoad.length;
     for (let index = 0; index < tilesToLoad.length; index++) {
+        if (tilesToLoad[index] == tile) return;
         if (tilesToLoad[index].priority > tile.priority) {
             tilesToLoad.splice(index, 0, tile);
             return;
@@ -146,7 +94,7 @@ function scheduleLoadLayers(tile) {
 
 setInterval(() => {
     const start = now();
-    while (tilesToLoad.length > 0 && now() - start < 5) {
+    while (tilesToLoad.length > 0 && now() - start < 1) {
         const tile = tilesToLoad.shift();
         if (!!tile && !tile.disposed) tile._loadLayers(tile);
     }
@@ -172,41 +120,38 @@ class PlanetTile extends Mesh {
      * }
      */
     constructor(properties) {
-        let geometry;
 
-        super(TILE_GEOMETRY, defaultMaterial);
+        super();
         const self = this;
-
-        self.frustumCulled = false; // frustum culling is handled separately (mesh is displaced in shader)
+        self.skirt = new THREE.Mesh();
+        self.tileChildren = [];
+        self.isPlanetTile = true;
+        self.frustumCulled = false; 
         self.bounds = properties.bounds; // Lon Lat bounds
         self.planet = properties.planet; // The parent planet (circular dependency... gives access to global planet properties and methods like tree traversal)
         self.layerManager = properties.layerManager;
         self.level = properties.level; // mesh recursion level
         self.elevationArray = defaultElevation;
+        self.extendedElevationArray = defaultExtendedElevation;
         self.layerDataMap = {};
         ///// Important, a tile cannot be made visible while "loaded" is false.
         self.loaded = false;
         self.loading = 0;
         self.material.visible = false;
         self.elevationDisplayed = false;
-        self.castShadow = true;
 
         self.priority = self.level;
         self.mapRequests = []; // collects texture requests in order to abort them when needed
-
+        self.shadows = properties.shadows;
         if (properties.shadows) {
-            self.shadows = properties.shadows;
+            self.skirt.castShadow = false;
+            self.skirt.receiveShadow = true;
             self.castShadow = true
             self.receiveShadow = true;
-            self.material.shadowSide = THREE.FrontSide;
+            
             //mesh.material.flatShading = true;
         }
-        /////// prevent loading too many levels at the poles
-        if (self.bounds.max.y == Math.PI / 2 || self.bounds.min.y == -Math.PI / 2) {
-            self.maxLevel = 5;
-        } else {
-            self.maxLevel = MAX_LEVEL;
-        }
+
 
         //Listen to changes in the list of layers, rebuild material if raster layer
         self.layerManager.addListener(self, (eventName, layer) => {
@@ -219,6 +164,7 @@ class PlanetTile extends Mesh {
         self.rendered = false;
         self.onAfterRender = () => {
             self.rendered = true;
+            self.frustumCulled = true;
             delete self.onAfterRender;
         };
 
@@ -226,84 +172,113 @@ class PlanetTile extends Mesh {
 
     _trimEdges(arr, width, height) {
         const result = [];
-      
+
         for (let row = 1; row < height - 1; row++) {
-          for (let col = 1; col < width - 1; col++) {
-            result.push(arr[row * width + col]);
-          }
+            for (let col = 1; col < width - 1; col++) {
+                result.push(arr[row * width + col]);
+            }
         }
-      
+
         return result;
-      }
+    }
+
     _loadLayers(self) {
+
         self.layerManager.getLayers().forEach(layer => {
             if (!self.layerDataMap[layer.id]) {
-                if (layer instanceof ImageryLayer) {
-                    self._startLoading(self);
+                if (layer.isImageryLayer) {
+                    //self._startLoading(self);
                     self.layerDataMap[layer.id] = {};
-                    self._loadImagery(self, layer, (texture, projection, uvBounds) => {
-                        self.layerDataMap[layer.id].texture = texture;
-                        self.layerDataMap[layer.id].layer = layer;
-                        if (projection) self.layerDataMap[layer.id].projection = projection;
-                        if (uvBounds) self.layerDataMap[layer.id].uvBounds = uvBounds;
-                        delete self.layerDataMap[layer.id].loading;
-                        self._endLoading(self);
+                    self.layerDataMap[layer.id].layer = layer;
+                    function loadImagery(textureUVBoundsAndReference) {
+                        self.layerDataMap[layer.id].texture = textureUVBoundsAndReference.texture;
+                        self.layerDataMap[layer.id].projection = textureUVBoundsAndReference.reference;
+                        self.layerDataMap[layer.id].uvBounds = textureUVBoundsAndReference.uvBounds;
+                        self.needsMaterialRebuild = true;
+                    }
+                    loadImagery(layer.getMap(self, (textureUVBoundsAndReference) => {
+                        if (!self.disposed) {
+                            layer.detach(this, self.layerDataMap[layer.id].texture);
+                            loadImagery(textureUVBoundsAndReference);
+                        } else {
+                            layer.detach(this);
+                        }
                     }, (error) => {
-                        //self.layerDataMap[layer.id].texture = defaultTexture;
-                        //self.layerDataMap[layer.id].layer = layer;
-                        //delete self.layerDataMap[layer.id].loading;
-                    });
-                } else if (layer instanceof ElevationLayer) {
+                        console.error(error);
+                    },
+                        TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE));
+
+                } else if (layer.isElevationLayer) {
                     self._startLoading(self);
                     self.layerDataMap[layer.id] = {};
                     const extendedBounds = self.bounds.clone();
-                    extendedBounds.min.x -= (self.bounds.max.x-self.bounds.min.x)/(TILE_SIZE-1);
-                    extendedBounds.max.x += (self.bounds.max.x-self.bounds.min.x)/(TILE_SIZE-1);
-                    extendedBounds.min.y -= (self.bounds.max.y-self.bounds.min.y)/(TILE_SIZE-1);
-                    extendedBounds.max.y += (self.bounds.max.y-self.bounds.min.y)/(TILE_SIZE-1);
-                    layer.getElevation(extendedBounds, TILE_SIZE+2, TILE_SIZE+2).then(elevationArray => {
-                        var elevationTexture = new THREE.DataTexture(Float32Array.from(elevationArray), TILE_SIZE+2, TILE_SIZE+2, THREE.RedFormat, THREE.FloatType);
+                    extendedBounds.min.x -= (self.bounds.max.x - self.bounds.min.x) / (TILE_SIZE - 1);
+                    extendedBounds.max.x += (self.bounds.max.x - self.bounds.min.x) / (TILE_SIZE - 1);
+                    extendedBounds.min.y -= (self.bounds.max.y - self.bounds.min.y) / (TILE_SIZE - 1);
+                    extendedBounds.max.y += (self.bounds.max.y - self.bounds.min.y) / (TILE_SIZE - 1);
+                    layer.getElevation(extendedBounds, TILE_SIZE + 2, TILE_SIZE + 2).then(elevationArray => {
+
+                        self.layerDataMap[layer.id].layer = layer;
+                        self.layerDataMap[layer.id].elevationArray = this._trimEdges(elevationArray, TILE_SIZE + 2, TILE_SIZE + 2);
+                        self.layerDataMap[layer.id].extendedElevationArray = elevationArray;
+                        var elevationTexture = new THREE.DataTexture(Float32Array.from(self.layerDataMap[layer.id].elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
                         elevationTexture.needsUpdate = true;
                         elevationTexture.magFilter = THREE.LinearFilter;
                         elevationTexture.minFilter = THREE.LinearFilter;
                         elevationTexture.wrapS = THREE.ClampToEdgeWrapping;
                         elevationTexture.wrapT = THREE.ClampToEdgeWrapping;
                         self.layerDataMap[layer.id].texture = elevationTexture;
-                        self.layerDataMap[layer.id].layer = layer;
-                        self.layerDataMap[layer.id].elevationArray = this._trimEdges(elevationArray, TILE_SIZE+2, TILE_SIZE+2);
 
                         self._endLoading(self);
                     });
                 }
                 layer.addListener(self, (layer, event) => {
                     if (VISIBILITY_CHANGE === event) {
-                        self.fillShaderUniforms(self);
+                        self._rebuildTile(self);
                     }
                 })
             }
         });
         self._setLoadingListener(self, () => {
-            for (const id in self.layerDataMap) {
-                if (self.layerDataMap.hasOwnProperty(id)) {
-                    if (self.layerDataMap[id].layer instanceof ElevationLayer) {
-                        self.elevationArray = self.layerDataMap[id].elevationArray;
-                    }
-                }
-            }
-            self.buildMaterial(self);
-            self.loaded = true;
+            self._rebuildTile(self);
         });
     }
 
+    _rebuildTile(self){
+        for (const id in self.layerDataMap) {
+            if (self.layerDataMap.hasOwnProperty(id)) {
+                if (self.layerDataMap[id].layer.isElevationLayer) {
+                    self.elevationArray = self.layerDataMap[id].elevationArray;
+                    self.extendedElevationArray = self.layerDataMap[id].extendedElevationArray;
+                }
+            }
+        }
+        if (self.bounds.max.y >= 1.57079632) {
+            self.shift = terrainMeshGenerator.generateNorthPoleTile(self.geometry, self.skirt.geometry, TILE_SIZE, self.bounds, self.extendedElevationArray, self.planet.llhToCartesianFastSFCT);
+        } else if (self.bounds.min.y <= -1.57079632) {
+            self.shift = terrainMeshGenerator.generateSouthPoleTile(self.geometry, self.skirt.geometry, TILE_SIZE, self.bounds, self.extendedElevationArray, self.planet.llhToCartesianFastSFCT);
+        } else {
+            self.shift = terrainMeshGenerator.generateBaseTile(self.geometry, self.skirt.geometry,TILE_SIZE, self.bounds, self.extendedElevationArray, self.planet.llhToCartesianFastSFCT);
+        }
+        self.position.set(0, 0, 0);
+        self.position.add(self.shift);
+        if (self.parent.shift) {
+            self.position.sub(self.parent.shift)
+        }
+        self.skirt.position.add(self.shift);
+        self.planet.add(self.skirt);
+        self.buildMaterial(self);
+        self.loaded = true;
+    }
     /**
-     * to call when a layer starts loading
+     * to call when a layer that needs to be fully loaded starts loading
      */
     _startLoading(self) {
         self.loading++;
     }
 
     /**
-     * to call when a layer ends loading
+     * to call when a layer that needs to be fully loaded ends loading
      */
     _endLoading(self) {
         self.loading--;
@@ -327,38 +302,25 @@ class PlanetTile extends Mesh {
          * Loads a texture native to this tile
          * @param {*} layerData 
          */
-    _loadImagery(self, layer, callbackSuccess, callbackFailure) {
-        self.mapRequests.push(
-            layer.getMap(self, (texture, projection, uvBounds) => {
-                if (!!self.disposed) {
-                    texture.dispose();
-                    return;
-                }
-                texture.wrapS = THREE.ClampToEdgeWrapping;
-                texture.wrapT = THREE.ClampToEdgeWrapping;
-                texture.magFilter = THREE.LinearFilter;
-                texture.minFilter = THREE.LinearFilter;
-
-                if (!!callbackSuccess) callbackSuccess(texture, projection, uvBounds);
-
-            }, error => callbackFailure(error), TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE)
-        );
-    }
 
 
-    update(camera, frustum) {
+
+    update(camera, frustum, renderer) {
         const self = this;
-        if (self.layerManager.getRasterLayers([]).length == 0) {
-            self.material.transparent = true;
+        if (self.needsMaterialRebuild) {
+            self.buildMaterial(self);
+            self.needsMaterialRebuild = false;
+        }
+        if (self.layerManager._getRasterLayers([]).length == 0) {
+            self.material.visible = false;
             return;
         }
-        self.material.transparent = false;
-        let metric = self.calculateUpdateMetric(camera, frustum);
+        
+        let metric = self.calculateUpdateMetric(camera, frustum, renderer);
+
         if (isNaN(metric)) {
             throw ("calculation of metric for planet LOD calculation failed");
         }
-
-
 
         if (metric == -1 && self.rendered) { // outside frustum or facing away from camera
             self.material.visible = true;
@@ -368,7 +330,7 @@ class PlanetTile extends Mesh {
             }
             return false;
         }
-        if (metric < self.level + 1 || self.level >= self.maxLevel) { // if self is ideal LOD
+        if (metric < self.level + 1 || self.level >= MAX_LEVEL) { // if self is ideal LOD
             if (self.loaded) { // if layers are loaded
                 self.material.visible = true;
                 self.disposeChildren(self);
@@ -395,32 +357,53 @@ class PlanetTile extends Mesh {
                     return true;
                 }
             } else { // if self tile doesn't have children yet
-                var boundsCenter = new THREE.Vector2();
-                self.bounds.getCenter(boundsCenter);
-                self.add(new PlanetTile(
-                    {
-                        bounds: new THREE.Box2(self.bounds.min, boundsCenter),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                    }
-                ));
-                self.add(new PlanetTile(
-                    {
-                        bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                    }
-                ));
-                self.add(new PlanetTile(
-                    {
-                        bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                    }
-                ));
-                self.add(new PlanetTile(
-                    {
-                        bounds: new THREE.Box2(boundsCenter, self.bounds.max),
-                        layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                    }
-                ));
+                const lengthUp = 111319 * (this.bounds.max.y - this.bounds.min.y);
+                const lengthSide = Math.cos((self.bounds.min.y + self.bounds.max.y) * 0.5) * 111319 * (self.bounds.max.x - self.bounds.min.x);
+
+                if (lengthSide < lengthUp * 0.5) {
+                    const halfY = self.bounds.min.y + (self.bounds.max.y - self.bounds.min.y) * 0.5;
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(self.bounds.min, new THREE.Vector2(self.bounds.max.x, halfY)),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, self.bounds.min.y + (self.bounds.max.y - self.bounds.min.y) * 0.5), self.bounds.max),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+
+                } else {
+                    var boundsCenter = new THREE.Vector2();
+                    self.bounds.getCenter(boundsCenter);
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(self.bounds.min, boundsCenter),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+                    self.add(new PlanetTile(
+                        {
+                            bounds: new THREE.Box2(boundsCenter, self.bounds.max),
+                            layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                        }
+                    ));
+                }
+
 
 
 
@@ -455,7 +438,7 @@ class PlanetTile extends Mesh {
                 }
             }
         }
-        self.layerManager.getShaderColorLayers([]).forEach(function (layer) {
+        self.layerManager._getShaderColorLayers([]).forEach(function (layer) {
             if (layer.isShaderColorLayer && layer.visible) {
                 shaderColorLayerCode = layer.shader;
                 shaderColorLayerTransparency = layer.transparency;
@@ -466,22 +449,49 @@ class PlanetTile extends Mesh {
 
         numLayers = Math.max(numLayers, 1);
 
-        self.material = new CustomShaderMaterial({
-            uniforms: {
-                elevationExageration: { value: self.planet.elevationExageration }
-            },
-            baseMaterial: THREE.MeshStandardMaterial,
-            depthTest: true,
-            depthWrite: true,
-            transparent: true,
-            vertexShader: PlanetShader.vertexShader(numLayers, TILE_SIZE),
-            fragmentShader: PlanetShader.fragmentShader(numLayers, shaderColorLayerCode, shaderColorLayerTransparency, shaderColorLayerTextures)
-        });
-
-        self.fillShaderUniforms(self);
+        
+        self.material = new MeshStandardMaterial();
         self.material.side = THREE.FrontSide;
-        self.material.visible = true;
+        if(self.shadows){
+            self.material.shadowSide = THREE.BackSide;
+            
+            self.shadows.setupMaterial(self.material);
+        }
+        const obc = self.material.onBeforeCompile;
+        self.material.onBeforeCompile=(shader) => {
+            if(obc) obc(shader);
+            self.material.userData.shader = shader;
+            self.fillShaderUniforms(self, shader);
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <uv_pars_vertex>',
+                PlanetTileShaderChunks.vertexPreMain()+
+                `#include <uv_pars_vertex>`
+            );
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <worldpos_vertex>',
+                `#include <worldpos_vertex>` +
+                PlanetTileShaderChunks.vertexMain()
+            );
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <packing>',
+                `#include <packing>` +
+                PlanetTileShaderChunks.fragmentPreMain(numLayers, shaderColorLayerCode, shaderColorLayerTextures)
+            );
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <color_fragment>',
+                PlanetTileShaderChunks.fragmentMain(shaderColorLayerCode, shaderColorLayerTransparency)
+            );
+        };
+        
+        self.material.visible = false;
         self.material.wireframe = false;
+        self.material.flatShading = false;
+        self.material.metalness = 0.0;
+        self.material.roughness = 1.0;
+        self.skirt.material = self.material;
+        self.material.needsUpdate = true;
     }
     setElevationExageration() {
         if (this.material && this.material.uniforms && this.material.uniforms.elevationExageration) {
@@ -489,7 +499,8 @@ class PlanetTile extends Mesh {
         }
         this.children.forEach(planetTile => planetTile.setElevationExageration());
     }
-    fillShaderUniforms(self) {
+
+    fillShaderUniforms(self, shader) {
 
         let imagery = [];
         let imageryBounds = [];
@@ -508,54 +519,64 @@ class PlanetTile extends Mesh {
                     if (layerData.projection) imageryProjections.push(layerData.projection);
                     else imageryProjections.push(0);
 
-                    if (layerData.uvBounds) imageryUVBounds.push(new Vector4(layerData.uvBounds[0], layerData.uvBounds[1], layerData.uvBounds[2], layerData.uvBounds[3]));
+                    if (layerData.uvBounds) imageryUVBounds.push(new Vector4(layerData.uvBounds.min.x, layerData.uvBounds.min.y, layerData.uvBounds.max.x, layerData.uvBounds.max.y));
                     else imageryUVBounds.push(new Vector4(0, 1, 0, 1));
                 } else if (!elevationEncountered && !!layerData.layer && layer.isElevationLayer && layer.visible) {
                     elevation = layerData.texture;
                     elevationEncountered = true;
                 }
-            }else if (layer.isShaderColorLayer && layer.textures){
+            } else if (layer.isShaderColorLayer && layer.textures) {
                 for (const name in layer.textures) {
                     if (layer.textures.hasOwnProperty(name)) {
-                      const tex = layer.textures[name];
-                      self.material.uniforms[name] = { type: "t", value: tex };
+                        const tex = layer.textures[name];
+                        shader.uniforms[name] = { type: "t", value: tex };
                     }
-                  }
+                }
             }
 
         });
         if (imagery.length == 0) {
-            imagery.push(defaultTexture);
-            imageryBounds.push(emptyVec4);
+            imagery.push(defaultImageTexture);
+            imageryBounds.push(new THREE.Vector4(-180,-90,180,90));
             imageryTransparency.push(0);
+            imageryUVBounds.push(new THREE.Vector4(0,0,1,1))
         }
         self.elevationDisplayed = elevationEncountered;
 
-        self.material.uniforms.imagery = { type: "tv", value: imagery };
-        self.material.uniforms.imageryBounds = { type: "v4v", value: imageryBounds };
-        self.material.uniforms.imageryTransparency = { type: "fv", value: imageryTransparency };
-        self.material.uniforms.imageryUVBounds = { type: "v4v", value: imageryUVBounds };
-        self.material.uniforms.imageryProjections = { type: "iv", value: imageryProjections };
-        self.material.uniforms.elevation = { type: "t", value: elevation };
-        self.material.uniforms.planetPosition = { type: "v3", value: self.planet.center };
-        self.material.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
-        self.material.uniforms.c = { type: "v4", value: new Vector4(Math.random(), Math.random(), Math.random(), 1.0) };
-        self.material.uniforms.level = {type:"f", value: self.level};
+        shader.uniforms.imagery = { type: "tv", value: imagery };
+        shader.uniforms.imageryBounds = { type: "v4v", value: imageryBounds };
+        shader.uniforms.imageryTransparency = { type: "fv", value: imageryTransparency };
+        shader.uniforms.imageryUVBounds = { type: "v4v", value: imageryUVBounds };
+        shader.uniforms.imageryProjections = { type: "iv", value: imageryProjections };
+        shader.uniforms.elevation = { type: "t", value: elevation };
+        shader.uniforms.planetPosition = { type: "v3", value: self.planet.center };
+        shader.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
+        shader.uniforms.level = { type: "f", value: self.level };
+        
     }
+    
 
-
+    
     disposeChildren(self) {
         if (self.children.length != 0) {
             self.traverse(function (element) {
 
+                
                 if (element != self && element.material) {
-
+                    if(element.skirt){
+                        element.skirt.geometry.dispose();
+                        self.planet.remove(element.skirt);
+                    }
                     // dispose textures
                     for (const id in element.layerDataMap) {
                         if (element.layerDataMap.hasOwnProperty(id)) {
-                            if (!!element.layerDataMap[id].texture) {
+
+                            if (element.layerDataMap[id].layer.isImageryLayer) {
+                                element.layerDataMap[id].layer.detach(element);
+                            } else if (!!element.layerDataMap[id].texture) {
                                 element.layerDataMap[id].texture.dispose();
                             }
+
                         }
                     }
                     // dispose materials
@@ -568,13 +589,16 @@ class PlanetTile extends Mesh {
                         element.material.dispose()
                     }
 
-                    var index = tilesToLoad.indexOf(this);
+                    //dispose mesh geometry
+                    element.geometry.dispose();
+
+                    var index = tilesToLoad.indexOf(element);
                     if (index !== -1) {
                         tilesToLoad.splice(index, 1);
                     }
-                    self.layerManager.removeListener(self);
+                    self.layerManager.removeListener(element);
                     self.layerManager.getLayers().forEach(layer => {
-                        layer.removeListener(self);
+                        layer.removeListener(element);
                     });
                     element.mapRequests.forEach(e => {
                         if (e instanceof Promise) {
@@ -598,70 +622,24 @@ class PlanetTile extends Mesh {
         }
     }
 
-    calculateUpdateMetric2(camera, frustum) {
 
-    }
-    calculateUpdateMetric(camera, frustum) {
+    calculateUpdateMetric(camera, frustum, renderer) {
         try {
-            p.copy(camera.position).sub(this.planet.center);
-
-            const llh = this.planet.llhToCartesian.inverse(p);
-
-            let lon = llh.x * degreeToRadians;
-            let lat = llh.y * degreeToRadians;
-            if (lon > this.bounds.max.x || lon < this.bounds.min.x) {
-                var max = this.bounds.max.x - lon;
-                max += (max > Math.PI) ? -2 * Math.PI : (max < -Math.PI) ? 2 * Math.PI : 0;
-
-                var min = this.bounds.min.x - lon;
-                min += (min > Math.PI) ? -2 * Math.PI : (min < -Math.PI) ? 2 * Math.PI : 0;
-
-                if (Math.abs(max) < Math.abs(min)) {
-                    lon = this.bounds.max.x;
-                } else {
-                    lon = this.bounds.min.x;
-                }
-            }
-            lat = Math.min(this.bounds.max.y, Math.max(this.bounds.min.y, lat));
-
-            lat = ((lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)); // lat in uv coordinates
-            lon = ((lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x)); // lon in uv coordinates
-
-            lat = Math.max(0, Math.min(1, lat));
-            lon = Math.max(0, Math.min(1, lon));
-
-            var lati = (lat * (this.bounds.max.y - this.bounds.min.y)) + this.bounds.min.y; // lat in geodetic coordinates
-            var long = (lon * (this.bounds.max.x - this.bounds.min.x)) + this.bounds.min.x; // lon in geodetic coordinates
-            this.transformWGS84ToCartesian(long, lati, 0, nearestMSE);
-            this.transformWGS84ToCartesian(long, lati, this.billinearInterpolationOnElevationArray(lon, lat), nearestSurface);
-
-            this.bounds.getCenter(center);
-
-            this.transformWGS84ToCartesian(center.x, center.y, this.billinearInterpolationOnElevationArray(0.5, 0.5), p1);
-            this.transformWGS84ToCartesian(this.bounds.min.x, this.bounds.min.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p2);
-            this.transformWGS84ToCartesian(this.bounds.max.x, this.bounds.max.y, this.elevationArray[(TILE_SIZE * TILE_SIZE) - 1], p3);
-
-            // an estimation of the bounding volume is calculated based on the size of the tile and the elevation at the center and max elevation.
-            boundingSphere.radius = Math.max(p1.distanceTo(p2), p1.distanceTo(p3)) * 1.1;
-            boundingSphere.center.copy(p1).add(this.planet.center);
-
-
-            if (!frustum.intersectsSphere(boundingSphere)) {
+            
+            let boundingBox = this.geometry.boundingBox.clone();
+            boundingBox.applyMatrix4(this.matrixWorld)
+            
+            if (!frustum.intersectsBox(boundingBox)) {
                 return -1;
             }
+            //const verticesPerMeter = TILE_SIZE/(111111*(this.bounds.max.y-this.bounds.min.y));
 
-            var dot = Math.max(0.01, Math.abs(p1.copy(p).sub(nearestMSE).normalize().dot(nearestMSE.normalize())));
-            //dot = 1;
-            if (dot < 0) {
-                return -1;
-            }
+            var distance = boundingBox.distanceToPoint(camera.position);
 
-            var distance = p.distanceTo(nearestSurface);
+            const localRadius = this.planet.radius;
 
-            const localRadius = nearestSurface.sub(this.planet.center).length();
-
-            var log = -(Math.log(distance * (isMobileDevice() ? 25000 : 2500) / localRadius) / Math.log(2)) + 16;
-            const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001)) * Math.pow(dot, 0.07);
+            var log = -(Math.log(distance * (isMobileDevice() ? 10000 : 2500) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
+            const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001));
 
             if (isNaN(metric)) {
                 return this.level;
@@ -673,7 +651,8 @@ class PlanetTile extends Mesh {
         }
     }
 
-    billinearInterpolationOnElevationArray(percentageX, percentageY) {
+    billinearInterpolationOnElevationArray(percentageX, percentageY, elevationArray) {
+        if (!elevationArray) elevationArray = this.elevationArray;
         var x = percentageX * (TILE_SIZE - 1);
         var y = percentageY * (TILE_SIZE - 1);
 
@@ -693,10 +672,10 @@ class PlanetTile extends Mesh {
         ceilY = Math.min((TILE_SIZE - 1), ceilY);
 
 
-        return ((1 - (x - floorX)) * (1 - (y - floorY)) * this.elevationArray[(floorY * TILE_SIZE) + floorX]) +
-            ((1 - (ceilX - x)) * (1 - (y - floorY)) * this.elevationArray[(floorY * TILE_SIZE) + ceilX]) +
-            ((1 - (x - floorX)) * (1 - (ceilY - y)) * this.elevationArray[(ceilY * TILE_SIZE) + floorX]) +
-            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * this.elevationArray[(ceilY * TILE_SIZE) + ceilX]);
+        return ((1 - (x - floorX)) * (1 - (y - floorY)) * elevationArray[(floorY * TILE_SIZE) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (y - floorY)) * elevationArray[(floorY * TILE_SIZE) + ceilX]) +
+            ((1 - (x - floorX)) * (1 - (ceilY - y)) * elevationArray[(ceilY * TILE_SIZE) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * elevationArray[(ceilY * TILE_SIZE) + ceilX]);
     }
 
 
@@ -738,7 +717,7 @@ class PlanetTile extends Mesh {
             return elevation;
         }
 
-        if (!this.elevationDisplayed) {
+        if (!this.rendered) {
             return false;
         }
         else {

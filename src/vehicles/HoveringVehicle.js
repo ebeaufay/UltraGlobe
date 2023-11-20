@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as THREE from 'three';
 import { VerletSystem } from '../physics/VerletSystem';
 

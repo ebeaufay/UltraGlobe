@@ -11,7 +11,6 @@ export { ShaderColorLayer } from "./layers/ShaderColorLayer";
 export { JetElevation } from "./layers/JetElevation";
 export { PerlinTerrainColorShader } from "./layers/PerlinTerrainColorShader";
 export { OGC3DTilesLayer } from "./layers/OGC3DTilesLayer";
-export { LODObjectLayer } from "./layers/LODObjectLayer";
 export { ImageryLayer } from "./layers/ImageryLayer";
 export { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer";
 export { ElevationLayer } from "./layers/ElevationLayer";

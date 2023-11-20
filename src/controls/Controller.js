@@ -1,4 +1,10 @@
 class Controller {
+    /**
+     * 
+     * @param {THREE.Camera} camera (optional) the camera controlled by this controller
+     * @param {HTMLDocument} domElement the html element where evenets are listened to
+     * @param {Map} map 
+     */
     constructor(camera, domElement, map){
         this.next = null;
         this.dom = domElement;

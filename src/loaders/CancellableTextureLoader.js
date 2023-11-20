@@ -1,3 +1,5 @@
+// @ts-nocheck
+import * as THREE from 'three';
 import { RGBAFormat } from 'three/src/constants.js';
 import { ImageLoader } from 'three/src/loaders/ImageLoader.js';
 import { Texture } from 'three/src/textures/Texture.js';
@@ -15,14 +17,14 @@ class CancellableTextureLoader extends Loader {
 
     }
 
-    
+
 
     load(url, onLoad, onProgress, onError) {
 
         const texture = new Texture();
         let aborted = false;
-        var image = this.loader.load(url, function (image) {
-            if(aborted){
+        const image = this.loader.load(url, function (image) {
+            if (aborted) {
                 return;
             }
             texture.image = image;
@@ -31,8 +33,12 @@ class CancellableTextureLoader extends Loader {
             //const isJPEG = url.search(/\.jpe?g($|\?)/i) > 0 || url.search(/^data\:image\/jpeg/) === 0;
 
             texture.format = RGBAFormat;
+            texture.wrapS = THREE.ClampToEdgeWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearFilter;
             texture.needsUpdate = true;
-
+            texture.isReady = true;
             if (onLoad !== undefined) {
 
                 onLoad(texture);
@@ -47,7 +53,7 @@ class CancellableTextureLoader extends Loader {
             }
         };
 
-        
+
         return texture;
 
     }

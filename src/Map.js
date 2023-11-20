@@ -19,7 +19,8 @@ import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
 import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
 import { getSunPosition } from "./Sun";
-
+import { CSM } from './csm/CSM.js';
+import { CSMHelper } from 'three/addons/csm/CSMHelper.js';
 
 
 // reused variables
@@ -30,33 +31,32 @@ const depth24 = new THREE.Vector3();
 const unpacker = new THREE.Vector3(1, 1 / 256, 1 / (256 * 256));
 const A = new THREE.Vector3();
 const B = new THREE.Vector3();
-const VEC4 = new THREE.Vector4();
-const shadowTarget = new THREE.Vector3();
-const sunToTarget = new THREE.Vector3();
-const cameraRight = new THREE.Vector3();
-const cameraUp = new THREE.Vector3();
-const up = new THREE.Vector3(0, 1, 0);
 const loader = new THREE.TextureLoader();
 const degreeToRadians = Math.PI / 180;
 
-const cycle = 0.05; // a cycle of a flow map phase
+const cycle = 0.04; // a cycle of a flow map phase
 const halfCycle = cycle * 0.5;
-const waterScale = 100;
+const waterScale = 1000;
 
 const clock = new THREE.Clock();
 const flowSpeed = 0.01;
 class Map {
 
     /**
-     * 
-     * @param {
-     *          divID: a div Id
-     *        } properties
-     */
+    * @param {Object} properties - The configuration object.
+    * @param {string} properties.divID - A div ID.
+    * @param {boolean} [properties.debug=false] - Display debug information (optional).
+    * @param {boolean} [properties.shadows=false] - Display sunlight and shadows (optional).
+    * @param {THREE.Vector3} properties.atmosphere - An atmosphere color. By thefault a blueish atmosphere is displayed (optional)
+    * @param {THREE.Vector3} properties.sun - A sun color, defaults to a yelowish sun. Only taken into account when shadows is true (optional).
+    * @param {boolean|THREE.Vector3} properties.ocean - if true displays a blue ocean but a specific ocean color can be specified (optional).
+    * @param {THREE.DataTexture} properties.globalElevation - A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects (optional).
+    */
     constructor(properties) {
         this.layerManager = new LayerManager();
         this.debug = properties.debug;
-        this.scene = !!properties.scene ? properties.scene : this.initScene(properties.shadows);
+        this.shadows = properties.shadows;
+
         this.globalElevation = properties.globalElevation;
         if (!!properties.domContainer) {
             this.domContainer = properties.domContainer;
@@ -65,55 +65,41 @@ class Map {
         } else {
             throw "cannot create Map without a domContainer or divID"
         }
-        this.camera = !!properties.camera ? properties.camera : this.initCamera();
-        this.resetLogDepthBuffer();
+        this.camera = !!properties.camera ? properties.camera : this._initCamera();
+        this.scene = !!properties.scene ? properties.scene : this._initScene(properties.shadows);
+        this._resetLogDepthBuffer();
 
         if (properties.debug) {
-            this.initStats();
+            this._initStats();
+            const axesHelper = new THREE.AxesHelper(50000000);
+            this.scene.add(axesHelper);
         }
-        this.shadows = properties.shadows;
+
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
         this.sunColor = properties.sun;
-        this.waterTextureMatrix = new THREE.Matrix4();
-
-        this.initPlanet(properties.shadows);
-        this.initController();
+        this._initRenderer(properties.shadows);
+        this._initPlanet(properties.shadows);
+        this._initController();
         this.scene.add(this.planet);
-        this.setupRenderTarget();
-        this.setupPost();
-        this.initLabelRenderer();
-        this.initRenderer(properties.shadows);
+        this._setupRenderTarget();
+        this._setupPost();
+        this._initLabelRenderer();
 
-        this.startAnimation();
+
+        this._startAnimation();
         this.mapNavigator = new MapNavigator(this);
 
         this.raycaster = new THREE.Raycaster();
 
         this.selection = {};
 
-
     }
 
-    updateWaterTextureMatrix( ) {
-
-        this.waterTextureMatrix.set(
-            0.5, 0.0, 0.0, 0.5,
-            0.0, 0.5, 0.0, 0.5,
-            0.0, 0.0, 0.5, 0.5,
-            0.0, 0.0, 0.0, 1.0
-        );
-
-        this.waterTextureMatrix.multiply( this.camera.projectionMatrix );
-        this.waterTextureMatrix.multiply( this.camera.matrixWorldInverse );
-        //textureMatrix.multiply( scope.matrixWorld );
-
-    }
-
-    updateFlow() {
+    _updateFlow() {
 
         const delta = clock.getDelta();
-        const config = this.postMaterial.uniforms[ 'waterConfig' ];
+        const config = this.postMaterial.uniforms['waterConfig'];
 
         config.value.x += flowSpeed * delta; // flowMapOffset0
         config.value.y = config.value.x + halfCycle; // flowMapOffset1
@@ -122,102 +108,192 @@ class Map {
         // Moreover, both offsets should be in the range of [ 0, cycle ].
         // This approach ensures a smooth water flow and avoids "reset" effects.
 
-        if ( config.value.x >= cycle ) {
+        if (config.value.x >= cycle) {
 
             config.value.x = 0;
             config.value.y = halfCycle;
 
-        } else if ( config.value.y >= cycle ) {
+        } else if (config.value.y >= cycle) {
 
             config.value.y = config.value.y - cycle;
 
         }
 
     }
+
+    /**
+     * Set the date (sun position)
+     * @param {Date} date 
+     */
     setDate(date) {
         if (this.shadows) {
-            this.newSunPosition = getSunPosition(date);
+            this.sunPosition = getSunPosition(date);
+            if (this.csm) {
+                this.csm.lightDirection.copy(this.sunPosition).negate();
+            }
         }
-
-        //shpere to delete
-        /* const m = new THREE.Mesh(new THREE.SphereGeometry(), new THREE.MeshLambertMaterial());
-            m.castShadow = true;
-            m.receiveShadow = true;
-            m.position.copy(this.sun.position);
-            m.scale.set(sunDistance*0.9,sunDistance*0.9,sunDistance*0.9)
-            this.scene.add(m);  */
     }
+
+    /**
+     * Sets the given layer at the given index disposing of any layer previously at that index.
+     * @param {Layer} layer 
+     * @param {Number} index 
+     */
     setLayer(layer, index) {
         this._prepareLayer(layer)
         this.layerManager.setLayer(layer, index);
     }
 
     _prepareLayer(layer) {
-        if (layer instanceof OGC3DTilesLayer) {
-            layer.setRenderer(this.renderer);
+        if (layer.isOGC3DTilesLayer) {
+            layer.setMap(this);
             layer.setPlanet(this.planet);
             layer.addToScene(this.scene, this.camera);
         }
-        if (layer instanceof I3SLayer) {
-            //layer.setPlanet(this.planet);
+        if (layer.isI3SLayer) {
             layer.addToScene(this.scene, this.camera);
         }
     }
 
+    /**
+     * appends the layer to the end of the list of layers, replacing any layer already at that position.
+     * @param {Layer} layer 
+     * @param {Number} index 
+     */
     addLayer(layer) {
         this._prepareLayer(layer)
         return this.layerManager.addLayer(layer);
     }
 
-    removeLayer(index) {
-        this.layerManager.removeLayer(index);
+    /**
+     * removes the layer at the specific index optionally "disposing" of any resources the layer is using.
+     * @param {Number} index 
+     * @param {Boolean} dispose 
+     */
+    removeLayer(index, dispose = true) {
+        this.layerManager.removeLayer(index, dispose);
     }
+
+    /**
+     * Returns an array of layers currently loaded on the map
+     * @returns {[Layer]} the list of layers
+     */
     getLayers() {
         return this.layerManager.getLayers();
     }
+
+    /**
+     * Fetches a specific layer by ID.
+     * @param {Number|String} id 
+     * @returns 
+     */
     getLayerByID(id) {
         return this.layerManager.getLayerByID(id);
     }
-    initScene(shadows) {
+    _initScene() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
 
 
-        if (shadows) {
+        if (this.shadows) {
 
+            this.sunPosition = getSunPosition(new Date())
+            const csmSplits = [];
+            for(let i = 0; i<7; i++){
+                if(i == 0)csmSplits.push(1);
+                else{
+                    csmSplits.push(csmSplits[i-1]*3);
+                }
+            }
+            for(let i = 0; i<csmSplits.length; i++){
+                csmSplits[i] /= csmSplits[csmSplits.length-1];
+            }
+            this.csm = new CSM({
+                maxFar: 500000,
+                cascades: csmSplits.length,
+                mode: "custom",
+                customSplitsCallback: (cascadeCount, nearDistance, farDistance, target) => {
+                    target.push(...csmSplits);
+                },
+                fade: true,
+                parent: scene,
+                shadowMapSize: _isMobileDevice()?1024:2048,
+                lightIntensity: 3.2,
+                lightDirection: this.sunPosition.clone().negate(),
+                lightMargin: 500000,
+                shadowBias: -0.000001,
+                //noLastCascadeCutOff: true,
+                //shadowNormalBias : -5000,
+                camera: this.camera
+            });
+            
+            for (let i = 0; i < this.csm.lights.length; i++) {
+                this.csm.lights[ i ].shadow.bias = 0.001 * csmSplits[i];
+                this.csm.lights[ i ].shadow.normalBias = 0.1;
+                this.csm.lights[i].shadow.camera.near = 1;
+                this.csm.lights[i].shadow.camera.updateProjectionMatrix();
+                this.csm.lights[i].shadow.camera.far = this.csm.lightMargin + this.csm.maxFar*2*csmSplits[i];
+                this.csm.lights[i].shadow.needsUpdate = true;
+            }
+            //this.sun.shadow.bias = -0.005;
 
-            this.sun = new THREE.DirectionalLight(0xffFFFF, 1.0);
-            this.sun.position.copy(getSunPosition(new Date()));
-            this.sun.castShadow = true;
+            
 
-
-            this.sun.shadow.bias = -0.0005;
-
-            this.sun.shadow.blurSamples = 8
-            this.sun.shadow.mapSize.width = 2048;
-            this.sun.shadow.mapSize.height = 2048;
-
-            this.sun.needsUpdate = true;
-
-            scene.add(this.sun)
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.8));
 
             if (this.debug) {
-                this.lightShadowMapViewer = new ShadowMapViewer(this.sun);
-                this.lightShadowMapViewer.position.x = 10;
-                this.lightShadowMapViewer.position.y = 110;
-                this.lightShadowMapViewer.size.width = 100;
-                this.lightShadowMapViewer.size.height = 100;
-                this.lightShadowMapViewer.update();
+                this.csmHelper = new CSMHelper(this.csm);
+                this.csmHelper.visible = true;
+                scene.add(this.csmHelper);
+                const self = this;
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'u') {
+                        console.log("csmHelper update");
+                        self.csmHelper.update();
+                        for (let i = 0; i < this.csm.lights.length; i++) {
+                            console.log(this.csm.lights[i].shadow.camera.position)
+
+                        }
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'a') {
+                        for (let i = 0; i < this.csm.lights.length; i++) {
+                            this.csm.lights[ i ].shadow.normalBias *=2;
+                            this.csm.lights[i].shadow.needsUpdate = true;
+                        }
+                    }
+                    if (e.key === 'q') {
+                        for (let i = 0; i < this.csm.lights.length; i++) {
+                            this.csm.lights[ i ].shadow.normalBias *=0.5;
+                            this.csm.lights[i].shadow.needsUpdate = true;
+                        }
+                        console.log("normalBiasDown "+ this.csm.lights[ 0 ].shadow.normalBias);
+                    }
+                    if (e.key === 'z') {
+                        for (let i = 0; i < this.csm.lights.length; i++) {
+                            this.csm.lights[ i ].shadow.bias *=2;
+                            this.csm.lights[i].shadow.needsUpdate = true;
+                        }
+                    }
+                    if (e.key === 's') {
+                        for (let i = 0; i < this.csm.lights.length; i++) {
+                            this.csm.lights[ i ].shadow.bias *=0.5;
+                            this.csm.lights[i].shadow.needsUpdate = true;
+                        }
+                        console.log("BiasDown "+ this.csm.lights[ 0 ].shadow.bias);
+                    }
+                });
             }
 
         } else {
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 1.0));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 4.0));
         }
         return scene;
     }
 
-    setupRenderTarget() {
+    _setupRenderTarget() {
 
         if (this.target) this.target.dispose();
 
@@ -246,7 +322,7 @@ class Map {
     }
 
 
-    setupPost() {
+    _setupPost() {
 
         // Setup post processing stage
         const self = this;
@@ -270,11 +346,10 @@ class Map {
                 right: { value: new THREE.Vector3(0, 0, 0) },
                 heightAboveSeaLevel: { value: 0 },
                 opticalDepth: { value: null },
-                perlin: {value:null},
+                perlin: { value: null },
                 water1: { value: null },
                 water2: { value: null },
-                waterConfig: { value: new THREE.Vector4(0,halfCycle, halfCycle, waterScale)},
-                waterTextureMatrix:{ value: null },
+                waterConfig: { value: new THREE.Vector4(0, halfCycle, halfCycle, waterScale) },
                 ldf: { value: 0 },
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
                 projMatrixInv: { value: new THREE.Matrix4() },
@@ -282,10 +357,10 @@ class Map {
                 resolution: { value: new THREE.Vector2() }
             }
         });
-        if(self.globalElevation){
+        if (self.globalElevation) {
             self.postMaterial.uniforms.globalElevation = { type: "t", value: self.globalElevation };
         };
-        
+
 
         loader.load(
             // resource URL
@@ -305,11 +380,11 @@ class Map {
             }
         );
 
-        if(this.shadows){
+        if (this.shadows) {
             loader.load(
                 // resource URL
                 water1,
-    
+
                 // onLoad callback
                 function (texture) {
                     texture.wrapS = THREE.RepeatWrapping;
@@ -352,7 +427,7 @@ class Map {
                 }
             );
         }
-        
+
 
         this.depthPassMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
@@ -374,13 +449,14 @@ class Map {
         this.depthScene.add(depthPostQuad);
     }
 
-    initRenderer(shadows) {
+    _initRenderer(shadows) {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: false, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
-            if (isMobileDevice()) {
+            if (_isMobileDevice()) {
                 self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             } else {
                 self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -423,7 +499,7 @@ class Map {
         setTimeout(onWindowResize, 1000);
     }
 
-    initLabelRenderer() {
+    _initLabelRenderer() {
         this.labelRenderer = new CSS3DRenderer();
         this.labelRenderer.setSize(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.labelRenderer.domElement.style.position = 'absolute';
@@ -432,13 +508,13 @@ class Map {
         document.body.appendChild(this.labelRenderer.domElement);
     }
 
-    initStats() {
+    _initStats() {
         this.stats = new Stats();
         this.domContainer.appendChild(this.stats.dom);
     }
 
 
-    initCamera() {
+    _initCamera() {
         const camera = new THREE.PerspectiveCamera(50, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
@@ -450,19 +526,20 @@ class Map {
 
 
 
-    initPlanet() {
+    _initPlanet() {
 
         this.planet = new Planet({
             camera: this.camera,
             center: new THREE.Vector3(0, 0, 0),
-            shadows: this.shadows,
-            layerManager: this.layerManager
+            shadows: this.csm,
+            layerManager: this.layerManager,
+            renderer: this.renderer
         });
         this.resetCameraNearFar();
     }
 
 
-    initController() {
+    _initController() {
         const self = this;
         self.controller = new Controller(self.camera, self.domContainer, self);
         //self.controller.append(new SelectController(self.camera, self.domContainer, self));
@@ -512,54 +589,31 @@ class Map {
 
     }
 
-
+    /**
+     * Pauses the rendering of all the layers.
+     */
     pauseRendering() {
         this.pause = true;
-        this.planet.pauseRendering();
-        this.layerManager.pauseRendering();
+        this.planet._pauseRendering();
+        this.layerManager._pauseRendering();
     }
+    /**
+     * Resumes the rendering of all the layers
+     */
     resumeRendering() {
         this.pause = false;
-        this.planet.resumeRendering();
-        this.layerManager.resumeRendering();
+        this.planet._resumeRendering();
+        this.layerManager._resumeRendering();
     }
-    startAnimation() {
+
+    _startAnimation() {
         var self = this;
 
         function animate() {
             requestAnimationFrame(animate);
             if (self.shadows) {
-                if (self.newSunPosition) {
-                    self.sun.shadow.camera.position.copy(self.newSunPosition);
-                    self.sun.position.copy(self.newSunPosition);
-                    self.newSunPosition = undefined;
-                }
-                self.screenPixelRayCast(self.domContainer.offsetWidth * (0.5), self.domContainer.offsetHeight * (0.8), shadowTarget);
-                //A.copy(self.sun.position).normalize();
-                const targetToSunDistance = 1 - self.sun.position.dot(shadowTarget)
-
-                sunToTarget.subVectors(shadowTarget, self.sun.shadow.camera.position);
-
-
-                cameraRight.crossVectors(self.sun.position, self.sun.shadow.camera.up).normalize();
-                cameraUp.crossVectors(cameraRight, self.sun.position).normalize();
-
-                let rightDistance = cameraRight.dot(sunToTarget);
-                let upDistance = cameraUp.dot(sunToTarget);
-
-
-                let frustumHalfSize = Math.pow(self.camera.position.distanceTo(shadowTarget) * 1.5, 0.9);
-                frustumHalfSize = Math.max(Math.floor(frustumHalfSize / 30) * 30, 400);
-                self.sun.shadow.camera.left = -rightDistance - frustumHalfSize;
-                self.sun.shadow.camera.right = -rightDistance + frustumHalfSize;
-                self.sun.shadow.camera.bottom = upDistance - frustumHalfSize;
-                self.sun.shadow.camera.top = upDistance + frustumHalfSize;
-
-                self.sun.shadow.camera.near = targetToSunDistance - frustumHalfSize;
-                self.sun.shadow.camera.far = targetToSunDistance + frustumHalfSize;
-
-                self.sun.shadow.camera.updateProjectionMatrix();
-
+                self.csm.update(self.camera.matrix);
+                
             }
             if (!self.pause) {
                 self.controller.update();
@@ -594,7 +648,7 @@ class Map {
 
                 self.postMaterial.uniforms.viewMatrixInv.value.copy(self.camera.matrixWorld);
                 if (self.shadows) {
-                    self.postMaterial.uniforms.sunLocation.value.copy(self.sun.position);
+                    self.postMaterial.uniforms.sunLocation.value.copy(self.sunPosition);
 
                 }
 
@@ -608,9 +662,7 @@ class Map {
                 self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - self.planet.radius;
 
                 //water
-                self.updateWaterTextureMatrix();
-                self.updateFlow();
-                self.postMaterial.uniforms.waterTextureMatrix.value = self.waterTextureMatrix;
+                self._updateFlow();
 
 
                 self.depthPassMaterial.uniforms.cameraNear.value = self.camera.near;
@@ -630,46 +682,62 @@ class Map {
             if (self.stats) {
                 self.stats.update();
             }
-            if (self.lightShadowMapViewer) {
-                //self.lightShadowMapViewer.render(self.renderer);
-            }
+            
         }
         animate();
     }
 
+    /**
+     * When moving the map.camera manually, you may want to call this method to correctly set the camera near and far to limit z-fighting artefacts.
+     */
     resetCameraNearFar() {
-        
-        
+
+
         const heightAboveEllipsoid = this.camera.position.length() - this.planet.radius;
 
         this.camera.near = 0.1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
-        this.camera.far = Math.max(1000000,distanceToHorizon * 1.5);
+        this.camera.far = Math.max(1000000, distanceToHorizon * 1.5);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
-        this.resetLogDepthBuffer();
-        
-        
+        this._resetLogDepthBuffer();
+
+        /* if(this.csm){
+            this.csm.maxFar = Math.min(1000000, this.camera.far);
+            
+            
+            this.csm.updateFrustums()
+        } */
+
     }
 
-    resetLogDepthBuffer() {
+    _resetLogDepthBuffer() {
         this.logDepthBufFC = 2.0 / (Math.log(this.camera.far + 1.0) / Math.LN2);
 
     }
+
+    /**
+     * Moves the camera 1 meter above the ground.
+     */
     moveCameraAboveSurface() {
         try {
             let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
             B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
+
             this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-            if (this.distToGround < 10) {
-                geodeticCameraPosition.z += (10 - this.distToGround);
+            if (this.distToGround < 5) {
+                geodeticCameraPosition.z += (5 - this.distToGround);
                 geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
                 this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
             }
-        }catch(e){}
-        
+        } catch (e) { }
+
     }
+
+    /**
+     * reset the camera up so that the camera roll alligns with the horizon
+     */
     setCameraUp() {
         this.camera.getWorldDirection(A).normalize();
         B.crossVectors(this.camera.position, A);
@@ -698,16 +766,16 @@ class Map {
         this.moveCameraAboveSurface();
         this.resetCameraNearFar();
         this.setCameraUp();
-        //this.camera.up.set(Math.random(), Math.random(), Math.random())
-
-
-        //this.planet.update();
-        //this.camera.up.copy(this.camera.position).normalize();
-        //this.camera.updateProjectionMatrix();
-        //this.controller._update();
     }
 
 
+    /**
+     * Get the hit location of a ray going from the camera through a pixel on screen or undefined if the ray does not hit anything.
+     * @param {Number} x a screen pixel x coordinate
+     * @param {Number} y a screen pixel y coordinate
+     * @param {THREE.Vector3} sideEffect a THREE.Vector3 that will be moved to the ray hit location
+     * @returns {THREE.Vector3} the sideEffect object.
+     */
     screenPixelRayCast(x, y, sideEffect) {
         this.renderer.readRenderTargetPixels(this.depthTarget, x - this.domContainer.offsetLeft, (this.domContainer.offsetHeight - (y - this.domContainer.offsetTop)), 1, 1, depths);
 
@@ -719,43 +787,43 @@ class Map {
             return;
         }
         z = -(Math.pow(2, z * Math.log2(this.camera.far + 1.0)) - 1.0);
-        z = this.viewZToPerspectiveDepth(z, this.camera.near, this.camera.far);
+        z = this._viewZToPerspectiveDepth(z, this.camera.near, this.camera.far);
         z = z * 2 - 1;
 
         x = ((x - this.domContainer.offsetLeft) / this.domContainer.offsetWidth) * 2 - 1;
         y = (1 - ((y - this.domContainer.offsetTop) / this.domContainer.offsetHeight)) * 2 - 1;
 
         sideEffect.set(x, y, z).unproject(this.camera);
+        return sideEffect;
 
     }
 
-    viewZToPerspectiveDepth(viewZ, near, far) {
+    _viewZToPerspectiveDepth(viewZ, near, far) {
         return ((near + viewZ) * far) / ((far - near) * viewZ);
     }
 
-    checkCameraCollision() {
-        this.planet.heightAboveElevation();
+    /**
+     * Transforms a lon lat height point (degrees) to cartesian coordinates (EPSG:4978).
+     * The transform is slightly inaccurate compared to proj4 but it's 3 times faster
+     * @param {THREE.Vector3} llh
+     */
+    llhToCartesianFastSFCT(llh) {
+        this.planet.llhToCartesianFastSFCT(llh);
     }
 
-
-
-    moveCamera(location, lookAt) {
-
-        this.camera.position.copy(location);
-        this.camera.lookAt(lookAt);
-        let p1 = new THREE.Vector3();
-        let p2 = new THREE.Vector3();
-        let p3 = new THREE.Vector3();
-        this.camera.getWorldDirection(p1).normalize();
-        p2.copy(this.planet.center).sub(this.camera.position);
-
-        p3.crossVectors(p1, p2);
-        this.camera.up.crossVectors(p1, p3);
-
-        
-        this.moveCameraAboveSurface();
-        this.resetCameraNearFar();
+    /**
+     * Transforms a xyz point (degrees) to llh coordinates (EPSG:4326).
+     * The transform is slightly inaccurate compared to proj4 but it's 2.5 times faster
+     * @param {THREE.Vector3} llh
+     */
+    cartesianToLlhFastSFCT(xyz) {
+        this.planet.cartesianToLlhFastSFCT(xyz);
     }
+
+    /**
+     * Set an elevation exageration factor
+     * @param {Number} elevationExageration 
+     */
     setElevationExageration(elevationExageration) {
         this.elevationExageration = elevationExageration;
         this.planet.setElevationExageration(this.elevationExageration);
@@ -846,13 +914,13 @@ class Map {
 }
 
 
-function perspectiveDepthToViewZ(invClipZ, near, far) {
+function _perspectiveDepthToViewZ(invClipZ, near, far) {
     return (near * far) / ((far - near) * invClipZ - far);
 
 
 }
 
-function isMobileDevice() {
+function _isMobileDevice() {
     return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
 };
 

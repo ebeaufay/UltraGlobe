@@ -2,10 +2,11 @@ import { RasterLayer } from './RasterLayer.js';
 
 class ElevationLayer extends RasterLayer{
     /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double]} properties 
+     * Base constructor for elevation layers.
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
      */
     constructor(properties) {
         super(properties);

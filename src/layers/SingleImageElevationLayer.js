@@ -1,20 +1,21 @@
-import {ElevationLayer} from './ElevationLayer.js'
+import { ElevationLayer } from './ElevationLayer.js'
 
-const radiansToDegrees = 180/Math.PI;
-
+const radiansToDegrees = 180 / Math.PI;
+const halfPI = Math.PI*0.5;
 /**
  * Elevation from a single image (Equidistant Cylindrical).
  */
-class SingleImageElevationLayer extends ElevationLayer{
+class SingleImageElevationLayer extends ElevationLayer {
 
     /**
      * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double], 
-     * url: imageURL,
-     * min: Double,
-     * max: Double} properties 
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {[String]} properties.url the url of the elevation image
+     * @param {[Number]} properties.min min height relative to sea level
+     * @param {[Number]} properties.max max height relative to sea level
      */
     constructor(properties) {
         super(properties);
@@ -27,17 +28,17 @@ class SingleImageElevationLayer extends ElevationLayer{
 
         const canvas = document.createElement('canvas');
         this.context = canvas.getContext('2d');
-        
+
         const img = new Image;
         const self = this;
-        
-        img.onload = function(){
+
+        img.onload = function () {
             canvas.height = img.height;
             canvas.width = img.width;
-            self.context.drawImage(img,0,0); // Or at whatever offset you like
+            self.context.drawImage(img, 0, 0); // Or at whatever offset you like
             self.data = self.context.getImageData(0, 0, canvas.width, canvas.height).data;
             self.loaded = true;
-            self.pendingRequests.forEach(f=>f());
+            self.pendingRequests.forEach(f => f());
         };
         img.src = properties.url;
 
@@ -46,45 +47,58 @@ class SingleImageElevationLayer extends ElevationLayer{
 
     getElevation(bounds, width, height) {
         const self = this;
-        function request(){
+        function request() {
             var elevationArray = new Array(width * height).fill(0);
-            for (let x = 0; x < width; x ++) {
-                for (let y = 0; y < height; y ++) {
-                    let lon = (bounds.min.x + (x * ((bounds.max.x - bounds.min.x) / (width-1))))*radiansToDegrees;
-                    let lat = -(bounds.min.y + (y * ((bounds.max.y - bounds.min.y) / (height-1))))*radiansToDegrees;
-    
-                    elevationArray[width * y + x] = self.getElevationAtLocation(lon,lat);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let lon = (bounds.min.x + (x * ((bounds.max.x - bounds.min.x) / (width - 1)))) ;
+                    let lat = -(bounds.min.y + (y * ((bounds.max.y - bounds.min.y) / (height - 1))));
+
+                    if (lat > halfPI) {
+                        lon += Math.PI;
+                        lat = halfPI - (lat - halfPI)
+                    }else if (lat < -halfPI) {
+                        lon += Math.PI;
+                        lat = -halfPI - (lat + halfPI)
+                    }
+                    if(lon>Math.PI){
+                        lon = -Math.PI+(lon%Math.PI);
+                    }
+                    else if(lon<-Math.PI){
+                        lon = Math.PI+(lon%Math.PI);
+                    }
+                    elevationArray[width * y + x] = self.getElevationAtLocation(lon* radiansToDegrees, lat* radiansToDegrees);
                 }
             }
             return elevationArray;
         }
-        if(this.loaded){
+        if (this.loaded) {
             return Promise.resolve(request());
-        }else{
+        } else {
             var onLoad;
-            const promise = new Promise(resolve=>{
-                onLoad = ()=>{
+            const promise = new Promise(resolve => {
+                onLoad = () => {
                     resolve(request());
                 }
             })
             this.pendingRequests.push(onLoad);
             return promise;
         }
-        
-        
+
+
     };
 
-    getElevationAtLocation(lon, lat){
-        if(lon < this.bounds.min.x || lat < this.bounds.min.y || lon>this.bounds.max.x || lat > this.bounds.max.y){
+    getElevationAtLocation(lon, lat) {
+        if (lon < this.bounds.min.x || lat < this.bounds.min.y || lon > this.bounds.max.x || lat > this.bounds.max.y) {
             return 0;
-        }else{
+        } else {
             let pixelRedValue = this.billinearInterpolation(
-                (lon - this.bounds.min.x)/(this.bounds.max.x-this.bounds.min.x),
-                (lat - this.bounds.min.y)/(this.bounds.max.y-this.bounds.min.y)
+                (lon - this.bounds.min.x) / (this.bounds.max.x - this.bounds.min.x),
+                (lat - this.bounds.min.y) / (this.bounds.max.y - this.bounds.min.y)
             );
-            pixelRedValue/=255;
-            pixelRedValue*= this.max - this.min;
-            pixelRedValue+=this.min;
+            pixelRedValue /= 255;
+            pixelRedValue *= this.max - this.min;
+            pixelRedValue += this.min;
             return pixelRedValue;
         }
     }
@@ -109,10 +123,10 @@ class SingleImageElevationLayer extends ElevationLayer{
         ceilX = Math.min((this.context.canvas.width - 1), ceilX);
         ceilY = Math.min((this.context.canvas.height - 1), ceilY);
 
-        return ((1 - (x - floorX)) * (1 - (y - floorY)) * this.data[floorY*4*this.context.canvas.width+floorX*4]) +
-            ((1 - (ceilX - x)) * (1 - (y - floorY)) * this.data[floorY*4*this.context.canvas.width+floorX*4+4]) +
-            ((1 - (x - floorX)) * (1 - (ceilY - y)) * this.data[(floorY+1)*4*this.context.canvas.width+floorX*4]) +
-            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * this.data[(floorY+1)*4*this.context.canvas.width+floorX*4+4]);
+        return ((1 - (x - floorX)) * (1 - (y - floorY)) * this.data[floorY * 4 * this.context.canvas.width + floorX * 4]) +
+            ((1 - (ceilX - x)) * (1 - (y - floorY)) * this.data[floorY * 4 * this.context.canvas.width + floorX * 4 + 4]) +
+            ((1 - (x - floorX)) * (1 - (ceilY - y)) * this.data[(floorY + 1) * 4 * this.context.canvas.width + floorX * 4]) +
+            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * this.data[(floorY + 1) * 4 * this.context.canvas.width + floorX * 4 + 4]);
     }
 
 }

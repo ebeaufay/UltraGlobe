@@ -1,6 +1,8 @@
 
+import * as THREE from 'three';
 import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
 import { ImageryLayer } from "./ImageryLayer.js"
+import { MapTile } from "./MapTile.js";
 /**
  * A service to retrieve maps from a WMS Service
  */
@@ -9,14 +11,17 @@ const toDegrees = 57.295779513082320876798154814105;
 class WMSLayer extends ImageryLayer {
 
     /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double], 
-     * url: String,
-     * layer: String[],
-     * epsg:String,
-     * version:String} properties 
+     * Create a layer that requests images from a WMS service. 
+     * The layer will immediately return the closest available LOD and load a better LOD for the tile when requestable
+     * Only EPSG:4326 is supported.
+     * @param {Object} properties 
+     * @param {String} properties.url the service url
+     * @param {String} properties.layer the wms layer 
+     * @param {String} properties.epsg an EPSG code (only 4326 supported)
+     * @param {String} properties.version the version of the service
+     * @param {String} properties.format the image format (usually jpeg or png)
+     * @param {Number} properties.maxLOD (optional) a maximum LOD (default : 20) where LOD 0 represents the entire earth and subsequent levels split the parent zone in 4. For EPSG:4326, LOD 0 already has 2 tiles for left and right hemisphere.
+     * @param {Number} properties.imageSize (optional) set a size for image requests. defaults to 128
      */
     constructor(properties) {
         super(properties);
@@ -27,40 +32,76 @@ class WMSLayer extends ImageryLayer {
         self.version = properties.version;
         self.format = properties.format ? properties.format : "jpeg";
         self.textureLoader = new CancellableTextureLoader();
+        self.imageSize = properties.imageSize ? properties.imageSize : 128;
+        self.maxLOD = properties.maxLOD? properties.maxLOD:20;
 
         self.downloads = [];
+        self.fetchTextureFunction = (aBounds, callback, onError) => {
+            
+            const minY = Math.min(90, Math.max(-90, aBounds.min.y * toDegrees));
+            const maxY = Math.min(90, Math.max(-90, aBounds.max.y * toDegrees));
+            const minX = Math.min(179.99999999, Math.max(-180, aBounds.min.x * toDegrees));
+            const maxX = Math.min(179.99999999, Math.max(-180, aBounds.max.x * toDegrees));
 
-        
-        
+
+            let request = self.url + "?request=GetMap&SERVICE=WMS&BBOX=";
+            switch (self.version) {
+                case "1.1.1": request += minX + "," + minY + "," + maxX + "," + maxY + "&SRS=" + self.epsg; break;
+                default: request += minY + "," + minX + "," + maxY + "," + maxX + "&CRS=" + self.epsg; break;
+            }
+            request +=
+                "&LAYERS=" + self.layer +
+                "&WIDTH=" + self.imageSize +
+                "&HEIGHT=" + self.imageSize +
+                "&VERSION=" + self.version +
+                "&STYLES=" +
+                "&FORMAT=image/" + self.format;
+
+
+            return self.textureLoader.load(request, (texture) => callback(texture), null, (error) => onError(error));
+        }
+        self.mapTiles = [
+            new MapTile({
+                reference: self.epsg,
+                bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
+                fetchTileTextureFunction: self.fetchTextureFunction,
+                maxLOD: self.maxLOD
+            }),
+            new MapTile({
+                reference: self.epsg,
+                bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
+                fetchTileTextureFunction: self.fetchTextureFunction,
+                maxLOD: self.maxLOD
+            })
+        ];
+
+
+
     }
 
 
-    getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
-        if (!this.bounds || !this.bounds.intersectsBox(tile.bounds)) {
-            callbackFailure("bounds don't intersect with layer");
-        }
-        var minY = Math.min(90, Math.max(-90, tile.bounds.min.y * toDegrees));
-        var maxY = Math.min(90, Math.max(-90, tile.bounds.max.y * toDegrees));
-        var minX = Math.min(179.99999999, Math.max(-180, tile.bounds.min.x * toDegrees));
-        var maxX = Math.min(179.99999999, Math.max(-180, tile.bounds.max.x * toDegrees));
-
-        var request = this.url + "?request=GetMap&SERVICE=WMS&BBOX=";
-        switch (this.version) {
-            case "1.1.1": request += minX + "," + minY + "," + maxX + "," + maxY + "&SRS=" + this.epsg; break;
-            default: request += minY + "," + minX + "," + maxY + "," + maxX + "&CRS=" + this.epsg; break;
-        }
-        request +=
-            "&LAYERS=" + this.layer +
-            "&WIDTH=" + width +
-            "&HEIGHT=" + height +
-            "&VERSION=" + this.version +
-            "&STYLES="+
-            "&FORMAT=image/" + this.format;
-
+    /**
+     * 
+     * @param {PlanetTile} tile the requestor 
+     * @param {Function} callbackSuccess the callback to be called when correct LOD is available with an object containing texture and uvBounds
+     * @param {Function} callbackFailure called on exception
+     * @returns {{Texture, THREE.Box2}} the nearest already loaded LOD texture and uv bounds for the requestor
+     */
+    getMap(tile, callbackSuccess, callbackFailure) {
         
-        return this.textureLoader.load(request, (texture) => callbackSuccess(texture), null, (error) => callbackFailure(error));
 
+        for(let i = 0; i<this.mapTiles.length; i++){
+            if (this.mapTiles[i].bounds.containsBox(tile.bounds)){
+                return this.mapTiles[i].getTextureAndUVBounds(tile, tile.bounds, callbackSuccess)
+            }
+        }
+        callbackFailure("bounds don't intersect with layer");
+        throw("bounds don't intersect with layer")
     };
+
+    detach(tile, texture){
+        this.mapTiles.forEach(mapTile=>mapTile.detach(tile, texture));
+    }
 }
 
 export { WMSLayer };

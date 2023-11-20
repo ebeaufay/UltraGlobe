@@ -1,8 +1,8 @@
 import { Layer } from "./Layer";
-import { OGC3DTile } from "@jdultra/threedtiles/dist/threedtiles.min_old";
+import { OGC3DTile } from "@jdultra/threedtiles/dist/threedtiles.min.js";
 import * as THREE from 'three';
-import { TileLoader } from '@jdultra/threedtiles/dist/threedtiles.min_old';
-import { OBB } from '@jdultra/threedtiles/dist/threedtiles.min_old';
+import { TileLoader } from '@jdultra/threedtiles/dist/threedtiles.min.js';
+import { OBB } from '@jdultra/threedtiles/dist/threedtiles.min.js';
 import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import moveUpSVG from "./../images/double-arrow.png";
 
@@ -12,7 +12,31 @@ const up = new THREE.Vector3(0, 1, 0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
 
+
 class OGC3DTilesLayer extends Layer {
+    /**
+     * 
+     * @param {Object} properties 
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {Boolean} properties.displayCopyright the name can be anything you want and is intended for labeling
+     * @param {String} properties.url url of the root tileset.json
+     * @param {Boolean} properties.displayErrors (optional) display loading errors
+     * @param {Boolean} properties.proxy (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
+     * @param {Boolean} properties.queryParams (optional) path params to add to individual tile urls (starts with "?").
+     * @param {Number} properties.scale (optional) scale the model
+     * @param {Number} properties.rotationX (optional) rotates the model on its x axis in radians
+     * @param {Number} properties.rotationY (optional) rotates the model on its y axis in radians
+     * @param {Number} properties.rotationZ (optional) rotates the model on its z axis in radians
+     * @param {Number} properties.geometricErrorMultiplier (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {Number} properties.longitude (optional) longitude of the model's center point in degrees.
+     * @param {Number} properties.latitude (optional) latitude of the model's center point in degrees.
+     * @param {Number} properties.height (optional) height in meters above sea level.
+     * @param {Boolean} properties.loadOutsideView (optional) if true, will load tiles outside the view at the lowest possible LOD.
+     * @param {Boolean} properties.selectable (optional) if true, the tileset can be selected.
+     * 
+     */
     constructor(properties) {
         
         if (!properties) {
@@ -36,20 +60,11 @@ class OGC3DTilesLayer extends Layer {
 
 
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
-        this.longitude = properties.longitude;
-        this.latitude = properties.latitude;
         if(!!properties.longitude && !!properties.latitude){
             this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
         }
-        /**if(properties.longitude !== 'undefined' && properties.latitude !== 'undefined'){
-            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0);
-            this.centerModel = true;
-        }*/
-        
-
         
         this.url = properties.url;
-        this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
         
         
@@ -171,11 +186,11 @@ class OGC3DTilesLayer extends Layer {
         this.update();
     }
 
-    setRenderer(renderer){
+    setMap(map){
         const self = this;
 
         var tileLoader = !!self.properties.tileLoader ? self.properties.tileLoader : new TileLoader({
-            renderer: renderer,
+            renderer: map.renderer,
             maxCachedItems: 200,
             meshCallback: mesh => {
                 //mesh.material = new THREE.MeshLambertMaterial();
@@ -189,14 +204,19 @@ class OGC3DTilesLayer extends Layer {
                 }
                 mesh.material.wireframe = false;
                 mesh.material.side = THREE.DoubleSide;
-                mesh.castShadow = true
-                mesh.receiveShadow = true;
-                mesh.parent.castShadow = true
-                mesh.parent.receiveShadow = true;
-                if (!mesh.geometry.getAttribute('normal')) {
-                    mesh.geometry.computeVertexNormals();
+                if(map.csm){
+                    mesh.material.side = THREE.FrontSide;
+                    mesh.castShadow = true
+                    mesh.receiveShadow = true;
+                    mesh.parent.castShadow = true
+                    mesh.parent.receiveShadow = true;
+                    if (!mesh.geometry.getAttribute('normal')) {
+                        mesh.geometry.computeVertexNormals();
+                    }
+                    mesh.material.shadowSide = THREE.BackSide;
+                    map.csm.setupMaterial(mesh.material);
                 }
-                mesh.material.shadowSide = THREE.BackSide;
+                
                 mesh.material.flatShading = self.properties.flatShading;
             },
             pointsCallback: points => {
@@ -209,7 +229,7 @@ class OGC3DTilesLayer extends Layer {
             geometricErrorMultiplier: this.geometricErrorMultiplier,
             loadOutsideView: this.loadOutsideView,
             tileLoader: tileLoader,
-            renderer: renderer,
+            renderer: map.renderer,
             proxy: self.proxy,
             queryParams: self.queryParams,
             displayErrors: self.displayErrors,
