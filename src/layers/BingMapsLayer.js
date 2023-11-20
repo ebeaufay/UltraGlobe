@@ -2,7 +2,8 @@
 import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
 import { ImageryLayer } from "./ImageryLayer.js"
 /**
- * A service to retrieve maps from a WMS Service
+ * A service to retrieve maps from Bing
+ * @private
  */
 
 const toDegrees = 57.295779513082320876798154814105;
@@ -20,14 +21,7 @@ const BingMapsImagerySet = {
 }
 class BingMapsLayer extends ImageryLayer {
 
-    /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double],
-     * imagerySet: String,
-     * key:String} properties 
-     */
+    
     constructor(properties) {
         super(properties);
         this.urls = [];

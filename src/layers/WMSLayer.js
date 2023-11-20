@@ -3,11 +3,13 @@ import * as THREE from 'three';
 import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
 import { ImageryLayer } from "./ImageryLayer.js"
 import { MapTile } from "./MapTile.js";
-/**
- * A service to retrieve maps from a WMS Service
- */
 
 const toDegrees = 57.295779513082320876798154814105;
+/**
+* A service to retrieve maps from a WMS Service
+* @class
+* @extends ImageryLayer
+*/
 class WMSLayer extends ImageryLayer {
 
     /**
@@ -33,11 +35,11 @@ class WMSLayer extends ImageryLayer {
         self.format = properties.format ? properties.format : "jpeg";
         self.textureLoader = new CancellableTextureLoader();
         self.imageSize = properties.imageSize ? properties.imageSize : 128;
-        self.maxLOD = properties.maxLOD? properties.maxLOD:20;
+        self.maxLOD = properties.maxLOD ? properties.maxLOD : 20;
 
         self.downloads = [];
         self.fetchTextureFunction = (aBounds, callback, onError) => {
-            
+
             const minY = Math.min(90, Math.max(-90, aBounds.min.y * toDegrees));
             const maxY = Math.min(90, Math.max(-90, aBounds.max.y * toDegrees));
             const minX = Math.min(179.99999999, Math.max(-180, aBounds.min.x * toDegrees));
@@ -81,26 +83,26 @@ class WMSLayer extends ImageryLayer {
 
 
     /**
-     * 
+     * Fetches the nearest loaded LOD (texture, uvBounds and reference) and adds a callback for the ideal LOD if not yet available
      * @param {PlanetTile} tile the requestor 
      * @param {Function} callbackSuccess the callback to be called when correct LOD is available with an object containing texture and uvBounds
      * @param {Function} callbackFailure called on exception
-     * @returns {{Texture, THREE.Box2}} the nearest already loaded LOD texture and uv bounds for the requestor
+     * @returns {{texture: THREE.Texture, uvBounds:THREE.Box2}} the nearest already loaded LOD texture and uv bounds for the requestor: {texture: THREE.Texture, uvBounds:THREE.Box2}
      */
     getMap(tile, callbackSuccess, callbackFailure) {
-        
 
-        for(let i = 0; i<this.mapTiles.length; i++){
-            if (this.mapTiles[i].bounds.containsBox(tile.bounds)){
+
+        for (let i = 0; i < this.mapTiles.length; i++) {
+            if (this.mapTiles[i].bounds.containsBox(tile.bounds)) {
                 return this.mapTiles[i].getTextureAndUVBounds(tile, tile.bounds, callbackSuccess)
             }
         }
         callbackFailure("bounds don't intersect with layer");
-        throw("bounds don't intersect with layer")
+        throw ("bounds don't intersect with layer")
     };
 
-    detach(tile, texture){
-        this.mapTiles.forEach(mapTile=>mapTile.detach(tile, texture));
+    detach(tile, texture) {
+        this.mapTiles.forEach(mapTile => mapTile.detach(tile, texture));
     }
 }
 

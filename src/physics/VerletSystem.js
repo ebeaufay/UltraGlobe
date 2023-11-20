@@ -8,6 +8,7 @@ const tempVector2 = new Vector3();
  * A system of points with constraints resolved through verlet integration. 
  * There is an implicit constraint for all points against the planet surface when a planet is passed to the constructor
  * as well as a gravity constraint when a planet is provided that defaults to a downward force of 9.81 m/s
+ * @private
  */
 class VerletSystem {
     constructor(planet, gravity = 9.81) {
@@ -22,8 +23,7 @@ class VerletSystem {
 
     /**
      * add an array of points (THREE.Vector3) to the system.
-     * if generateConstraints is set to true, a hard distance constraint (min & max) will be added between every single point pair 
-     * @param {[THREE.Vector3]} newPoints 
+     * if generateConstraints is set to true, a hard distance constraint (min & max) will be added between every single point pair  
      */
     addPoints(newPoints, generateConstraints) {
         this.points.push(...newPoints);
@@ -79,7 +79,7 @@ class VerletSystem {
     }
     /**
      * 
-     * @param {array} pointDistanceConstraints an array where each element is an array of 4 element with the index of the 2 points involved the desired 
+     * @param {Number[]} pointDistanceConstraints an array where each element is an array of 4 element with the index of the 2 points involved the desired 
      * distance between them and wether the constraint is on max distance, minDistance or both (0,1,2);
      * 
      * [[0,1,51,0]] // a single distance constraint that asks for a maximum distance of 51 between points 0 and 1

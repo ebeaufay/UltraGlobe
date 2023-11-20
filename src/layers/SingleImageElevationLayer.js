@@ -4,6 +4,8 @@ const radiansToDegrees = 180 / Math.PI;
 const halfPI = Math.PI*0.5;
 /**
  * Elevation from a single image (Equidistant Cylindrical).
+ * @class
+ * @extends ElevationLayer
  */
 class SingleImageElevationLayer extends ElevationLayer {
 
@@ -12,10 +14,10 @@ class SingleImageElevationLayer extends ElevationLayer {
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {[String]} properties.url the url of the elevation image
-     * @param {[Number]} properties.min min height relative to sea level
-     * @param {[Number]} properties.max max height relative to sea level
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {String} properties.url the url of the elevation image
+     * @param {Number} properties.min min height relative to sea level
+     * @param {Number} properties.max max height relative to sea level
      */
     constructor(properties) {
         super(properties);

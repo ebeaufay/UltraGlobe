@@ -1,0 +1,35 @@
+{
+    "source": {
+        "include": [
+            "./src"
+        ],
+        "includePattern": ".+\\.js(doc|x)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "opts": {
+        "template": "C:/Users/emeri/AppData/Roaming/npm/node_modules/clean-jsdoc-theme",
+        "encoding": "utf8",
+        "destination": "dist/docs/",
+        "recurse": true,
+        "verbose": true
+    },
+    "templates": {
+        "applicationName": "U L T R A G L O B E"
+    },
+    "markdown": {
+        "hardwrap": false,
+        "idInHeadings": true
+    },
+    "theme_opts": {
+        "base_url": "https://github.com/ebeaufay/UltraGlobe",
+        "homepageTitle": "U L T R A G L O B E",
+        "title": "U L T R A G L O B E",
+        "includeFilesListInHomepage": true,
+        "menu": [
+            {
+                "title": "Website",
+                "link": "https://www.jdultra.com"
+            }
+        ]
+    }
+}

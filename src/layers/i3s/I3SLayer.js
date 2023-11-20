@@ -4,12 +4,10 @@ import { I3SPointNode } from './I3SPointNode';
 
 //const TRANSFORM = require('transform-coordinates')
 import * as TRANSFORM from '../../transform/Transformer.js';
+
 /**
-* @param {
-*   root: String,
-*   layer: String
-* } properties 
-*/
+ * A layer for loading I3S data (only points supported)
+ */
 class I3SLayer extends Layer {
     constructor(properties) {
         super(properties);

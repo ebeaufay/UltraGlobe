@@ -1,21 +1,17 @@
 import { CancellableTextureLoader } from '../loaders/CancellableTextureLoader.js'
 import { ImageryLayer } from './ImageryLayer.js';
 
-/**
- * A service to retrieve maps from a WMS Service
- */
 
+/**
+ * A service to retrieve imagery from a custom (ULTRA) Service
+ * @class
+ * @extends ImageryLayer
+ * @private
+ */
 const toDegrees = 57.295779513082320876798154814105;
 class UltraImageryLayer extends ImageryLayer {
 
-    /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double], 
-     * url: String,
-     * layer: String} properties 
-     */
+    
     constructor(properties) {
         super(properties)
         this.url = properties.url;

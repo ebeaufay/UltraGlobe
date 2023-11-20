@@ -25,8 +25,11 @@ function generateDefaultTexture() {
     texture.needsUpdate = true;
     return texture;
 }
+
 /**
  * Imagery from a single image (Equidistant Cylindrical only).
+ * @class
+ * @extends ImageryLayer
  */
 class SingleImageImageryLayer extends ImageryLayer {
 

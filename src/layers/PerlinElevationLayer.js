@@ -8,6 +8,11 @@ function noise(x,y,z){
     return perlin.noise(x+rand,y+rand,z+rand)*2;
 }
 
+/**
+ * An elevation layer that generates on the fly elevation using a mixture of noise techniques
+ * @class
+ * @extends ElevationLayer
+ */
 class PerlinElevationLayer extends ElevationLayer {
 
     /**
@@ -15,9 +20,9 @@ class PerlinElevationLayer extends ElevationLayer {
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {[Number]} properties.minHeight min terrain height relative to sea level
-     * @param {[Number]} properties.maxHeight max terrain height relative to sea level
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Number} properties.minHeight min terrain height relative to sea level
+     * @param {Number} properties.maxHeight max terrain height relative to sea level
      */
     constructor(properties) {
         super(properties);

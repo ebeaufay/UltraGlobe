@@ -1,5 +1,10 @@
 import { ShaderColorLayer } from './ShaderColorLayer.js';
 
+/**
+ * A color layer where the color is a function of the elevation above sea level with the "JET" color scheme.
+ * @class
+ * @extends ShaderColorLayer
+ */
 class JetElevation extends ShaderColorLayer{
     /**
      * A color layer where the color is fully computed in the shader.
@@ -12,9 +17,9 @@ class JetElevation extends ShaderColorLayer{
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {Number} properties.transparency the layer's transparency (0 to 1)
-     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {[Number]} properties.min min height for the jet color scheme
-     * @param {[Number]} properties.max max height for the jet color scheme
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Number} properties.min min height for the jet color scheme
+     * @param {Number} properties.max max height for the jet color scheme
      */
     constructor(properties) {
         let min = Number.isInteger(properties.min) ? properties.min.toFixed(1) : String(properties.min);

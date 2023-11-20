@@ -12,7 +12,11 @@ const up = new THREE.Vector3(0, 1, 0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
 
-
+/**
+ * A layer for loading a OGC3DTiles tileset. 
+ * @class
+ * @extends Layer
+ */
 class OGC3DTilesLayer extends Layer {
     /**
      * 

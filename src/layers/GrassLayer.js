@@ -14,28 +14,18 @@ const rotation = new THREE.Quaternion();
 const scale = new THREE.Vector3(1, 1, 1);
 /**
  * A vector layer designed to display point objects on terrain.
+ * @private
  */
 class GrassLayer extends VectorLayer {
 
-    /**
-     * 
-     * @param {Object} properties 
-     * @param {Number} properties.density density of grass blades in grass blades per meter squared
-     */
+    
     constructor(properties) {
         this.super(properties)
         this.isGrassLayer = true;
         this.density = properties.density? properties.density:1;
     }
 
-    /**
-     * 
-     * @param {THREE.Box2} bounds in longitude latitude (radians) 
-     * @param {Number} tileLOD the tile LOD (0 is coarsest)
-     * @param {Array} terrainElevation terrain elevation above ellipsoid (rows)
-     * @param {Function} llhToCartesian a function that converts lon lat height to cartesian (sideeffect). 
-     * @returns 
-     */
+    
     getObjects(bounds, tileLOD, terrainElevation, llhToCartesian) {
         if(tileLOD == 13){
             const numItemsX = Math.cos((bounds.max.y+bounds.min.y)*0.5)*111320*this.density;

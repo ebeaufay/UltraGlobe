@@ -7,6 +7,9 @@ import * as TRANSFORM from '../transform/Transformer.js';
 const frustum = new THREE.Frustum();
 const mat = new THREE.Matrix4();
 
+/**
+ * @private
+ */
 class Planet extends Object3D {
 
     

@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import {Layer} from "./Layer.js";
 /**
- * A vector layer designed to display point objects on terrain.
+ * Base class to be implemented by layers displaying vector data
+ * @class
+ * @extends Layer
+ * @private
  */
 class VectorLayer extends Layer {
     

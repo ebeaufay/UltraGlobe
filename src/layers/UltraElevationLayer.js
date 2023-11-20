@@ -1,20 +1,16 @@
 import {CancellableTextureLoader} from '../loaders/CancellableTextureLoader.js'
 import {ElevationLayer} from './ElevationLayer.js'
-/**
- * A service to retrieve maps from a WMS Service
- */
 
+/**
+ * A service to retrieve elevation from a custom (ULTRA) Service
+ * @class
+ * @extends ElevationLayer
+ * @private
+ */
 const toDegrees = 57.295779513082320876798154814105;
 class UltraElevationLayer extends ElevationLayer{
 
-    /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double], 
-     * url: String,
-     * layer: String} properties 
-     */
+    
     constructor(properties) {
         super(properties);
         this.url = properties.url;

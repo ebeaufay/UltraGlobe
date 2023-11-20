@@ -62,7 +62,7 @@ class LayerManager{
     
     /**
      * Returns an array of layers currently loaded on the map
-     * @returns {[Layer]} the list of layers
+     * @returns {Layer[]} the list of layers
      */
     getLayers(){
         return this.layers;
@@ -71,7 +71,7 @@ class LayerManager{
     /**
      * Fetches a specific layer by ID.
      * @param {Number|String} id 
-     * @returns 
+     * @returns {Layer} layer with given id if any
      */
     getLayerByID(layerID){
         for (let i = 0; i < this.layers.length; i++) {

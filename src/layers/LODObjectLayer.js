@@ -1,13 +1,11 @@
 import { Layer } from './Layer.js';
 import * as THREE from 'three';
 
+/**
+ * @private
+ */
 class LODObjectLayer extends Layer{
-    /**
-     * 
-     * @param {id: Object, 
-     * name: String, 
-     * bounds: [Double]} properties 
-     */
+    
     constructor(properties) {
         super(properties);
 

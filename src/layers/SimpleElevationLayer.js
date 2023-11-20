@@ -3,6 +3,8 @@ import {ElevationLayer} from './ElevationLayer.js'
 const halfPI = Math.PI*0.5;
 /**
  * A simple on the fly elevation layer that displays sinusoidal terrain
+ * @class
+ * @extends ElevationLayer
  */
 class SimpleElevationLayer extends ElevationLayer{
 

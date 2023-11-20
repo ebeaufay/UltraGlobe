@@ -107,18 +107,7 @@ function now() {
 
 class PlanetTile extends Mesh {
 
-    /**
-     * @param properties 
-     * {
-     *  bounds: Box2
-     *  layerManager: LayerManager,
-     *  planet: Planet, 
-     *  level: Integer, 
-     *  parentLayerDataMap: intenal,
-     *  childType: 0 BottomLeft, 1 BottomRight, 2 TopLeft, 3 TopRight,
-     *  shadows: truthy/falsy
-     * }
-     */
+    
     constructor(properties) {
 
         super();
@@ -298,13 +287,7 @@ class PlanetTile extends Mesh {
         }
     }
 
-    /**
-         * Loads a texture native to this tile
-         * @param {*} layerData 
-         */
-
-
-
+    
     update(camera, frustum, renderer) {
         const self = this;
         if (self.needsMaterialRebuild) {

@@ -100,14 +100,7 @@ export class MapNavigator {
             cameraMovedCallback
         )
     }
-    /**
-     * 
-     * @param {Vector3[]} positions in lon lat height
-     * @param {Vector3[]} quaternions 
-     * @param {long} timeTotal 
-     * @param {*} cameraMovedCallback 
-     * @returns 
-     */
+    
     moveThroughGeodeticSinusoidal(positions, quaternions, timeTotal, adaptNearFar, cameraMovedCallback) {
 
         const self = this;

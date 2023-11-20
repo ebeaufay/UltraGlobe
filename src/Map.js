@@ -44,12 +44,12 @@ class Map {
 
     /**
     * @param {Object} properties - The configuration object.
-    * @param {string} properties.divID - A div ID.
-    * @param {boolean} [properties.debug=false] - Display debug information (optional).
-    * @param {boolean} [properties.shadows=false] - Display sunlight and shadows (optional).
+    * @param {String} properties.divID - A div ID.
+    * @param {Boolean} [properties.debug=false] - Display debug information (optional).
+    * @param {Boolean} [properties.shadows=false] - Display sunlight and shadows (optional).
     * @param {THREE.Vector3} properties.atmosphere - An atmosphere color. By thefault a blueish atmosphere is displayed (optional)
     * @param {THREE.Vector3} properties.sun - A sun color, defaults to a yelowish sun. Only taken into account when shadows is true (optional).
-    * @param {boolean|THREE.Vector3} properties.ocean - if true displays a blue ocean but a specific ocean color can be specified (optional).
+    * @param {Boolean|THREE.Vector3} properties.ocean - if true displays a blue ocean but a specific ocean color can be specified (optional).
     * @param {THREE.DataTexture} properties.globalElevation - A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects (optional).
     */
     constructor(properties) {
@@ -176,7 +176,7 @@ class Map {
 
     /**
      * Returns an array of layers currently loaded on the map
-     * @returns {[Layer]} the list of layers
+     * @returns {Layer[]} the list of layers
      */
     getLayers() {
         return this.layerManager.getLayers();
@@ -185,7 +185,7 @@ class Map {
     /**
      * Fetches a specific layer by ID.
      * @param {Number|String} id 
-     * @returns 
+     * @returns {Layer} the layer with given ID if any
      */
     getLayerByID(id) {
         return this.layerManager.getLayerByID(id);
@@ -838,7 +838,7 @@ class Map {
     /**
      * select action at a particular location on this map (normalized between -1 and 1)
      * @param {THREE.Vector2} screenLocation 
-     * @param {int} type 0(Add), 1(Remove) or 2(Replace)
+     * @param {Number} type 0(Add), 1(Remove) or 2(Replace)
      */
     select(screenLocation, type) {
 

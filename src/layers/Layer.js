@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 const VISIBILITY_CHANGE = "visibility-change";
+/**
+ * Base class implemented by all layers.
+ */
 class Layer {
     /**
      * Base constructor for all layer types.
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {[Boolean]} properties.visible layer will be rendered if true (true by default)
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
      */
     constructor(properties) {
         this.isLayer = true;

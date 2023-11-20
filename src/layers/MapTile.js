@@ -23,6 +23,10 @@ function generateDefaultTexture() {
     texture.needsUpdate = true;
     return texture;
 }
+
+/**
+ * Map Tile handles level of detail for maps separately from the terrain level of detail.
+ */
 class MapTile {
     /**
      * 

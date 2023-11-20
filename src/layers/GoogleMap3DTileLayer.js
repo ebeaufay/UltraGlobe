@@ -1,18 +1,24 @@
 import {OGC3DTilesLayer} from "./OGC3DTilesLayer"
 
+/**
+ * A layer that displays google maps 3DTiles.
+ * Note that the regular OGC3DTilesLayer can be used but this layer handles default settings specific to google maps 3D tiles
+ * @class
+ * @extends OGC3DTilesLayer
+ */
 class GoogleMap3DTileLayer extends OGC3DTilesLayer {
 
     /**
      * @param {Object} [properties] - the properties for this tileset
-     * @param {Object} [properties.apiKey] - the google map API key
+     * @param {String} [properties.apiKey] - the google map API key
      * @param {Object} [properties.id] - the layer id
-     * @param {Object} [properties.name] - a name for the layer.
-     * @param {Object} [properties.bounds] - optional, the geometric bounds of the layer
-     * @param {Object} [properties.visible] - optional, specifies the visibility of the layer 
-     * @param {Object} [properties.geometricErrorMultiplier] - optional, the geometric error multiplier. A higher value means more detail is loaded. defaults to 0.3. 
-     * @param {Object} [properties.displayCopyright] - optional, displays copyright info about the loaded tiles
-     * @param {Object} [properties.displayErrors] - optional, displays tile loading errors on screen
-     * @param {Object} [properties.loadOutsideView] - optional, loads tiles outside the view frustum with the lowest possible detail. this allows data to already be present when the camera moves and for rendering shadows from objects outside the view.
+     * @param {String} [properties.name] - a name for the layer.
+     * @param {Number[]} [properties.bounds] - optional, the geometric bounds of the layer
+     * @param {Boolean} [properties.visible] - optional, specifies the visibility of the layer 
+     * @param {Number} [properties.geometricErrorMultiplier] - optional, the geometric error multiplier. A higher value means more detail is loaded. defaults to 0.3. 
+     * @param {Boolean} [properties.displayCopyright] - optional, displays copyright info about the loaded tiles
+     * @param {Boolean} [properties.displayErrors] - optional, displays tile loading errors on screen
+     * @param {Boolean} [properties.loadOutsideView] - optional, loads tiles outside the view frustum with the lowest possible detail. this allows data to already be present when the camera moves and for rendering shadows from objects outside the view.
      */
     constructor (properties){
         

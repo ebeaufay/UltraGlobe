@@ -40,7 +40,9 @@ function loadTexture(url) {
     return texture;
 }
 /**
- * A sample ShaderColorLayer that loads extra textures 
+ * A ShaderColorLayer that computes color on the fly based on elevation, terrain normals and noise functions
+ * @class
+ * @extends ShaderColorLayer
  */
 class PerlinTerrainColorShader extends ShaderColorLayer {
     constructor(properties) {

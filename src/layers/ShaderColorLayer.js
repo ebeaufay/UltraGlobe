@@ -1,8 +1,13 @@
 import { Layer } from './Layer.js';
 
+/**
+ * A color layer where the color is fully computed in the shader.
+ * @class
+ * @extends Layer
+ */
 class ShaderColorLayer extends Layer{
     /**
-     * A color layer where the color is fully computed in the shader based on the terrain.
+     * A color layer where the color is fully computed in the shader.
      * The given shader glsl code will be inserted in the main planet shader and 
      * color per fragment will be computed via a call to "vec3 getShaderLayerColor(vec3 llh, vec3 xyz, vec3 normal, float level);".
      * Note that the normal is in world space.
@@ -14,7 +19,7 @@ class ShaderColorLayer extends Layer{
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {Number} properties.transparency the layer's transparency (0 to 1)
-     * @param {[Number]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Object} properties.textures an object containing texture names and THREE.Texture objects as key-value pairs
      */
     constructor(properties) {
