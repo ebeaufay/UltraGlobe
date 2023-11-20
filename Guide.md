@@ -110,21 +110,24 @@ import { Map, OGC3DTilesLayer } from '@jdultra/ultra-globe/dist/ultraglobe.min.j
 
 let map = new Map({ divID: 'screen' });
 var ogc3dTiles = new OGC3DTilesLayer({
-    id: 0,
+    id: 1,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tileset.json",
-    zUp: false,
-    longitude: 100.5877,
-    latitude: 14.3692,
-    height: 16,
-    rotationY: 0.5,
-    scale: 1,
-    geometricErrorMultiplier: 1.5,
-    loadOutsideView:true
+    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    longitude: 13.42,
+    latitude: 52.4895,
+    height: 172,
+    rotationY: 0.72,
+    rotationX: 3.1416,
+    scale: 1.0,
+    geometricErrorMultiplier: 0.03,
+    loadOutsideView: false
 });
-map.setLayer(ogc3dTiles, 0);
+map.setLayer(ogc3dTiles, 1);
 ````
+
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/a8bf92c2-5f93-4556-b392-e22b89401f89)
+
 
 In the case of a tileset that is already georeferenced (region bounding volume) you should omit the properties related to tileset positioning and scaling :
 
@@ -168,7 +171,7 @@ In the same spirit, an I3SLayer is also provided although only points are suppor
 #### Shader Color Layer
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/af7d20d9-b6a8-4de0-a724-23846ad3108f)
-Shader color layers allow adding an overlay with a color that's computed in the shader based on lon lat height position and the terrain normal.
+Shader color layers allow adding an overlay with a color that can be computed in the shader based on lon lat height position and the terrain normal.
 
 A sample "JetElevation" layer is provided that can be added like so:
 
@@ -193,13 +196,15 @@ var shaderLayer = new ShaderColorLayer({
     maxHeight: 8000,
     transparency:0.5,
     shader:`
-      vec3 getShaderLayerColor(float lon, float lat, float height, vec3 terrainNormal){
+      vec3 getShaderLayerColor(vec3 llh, vec3 xyz, vec3 normal, float level){
         // compute color here
       }
     `
 })
 map.setLayer(shaderLayer, 3)
 ```
+
+You can also pass layer specific textures through the properties.textures parameter. it should contain a map of name/THREE.Texture value pairs and the textures will be available by name as 'sampler2D' objects.
 
 Only a single visible layer is visualized at a time so there may be several loaded ShaderColorLayers 
 but only the last visible layer will be displayed.
@@ -260,7 +265,7 @@ the maps LayerManager allows accessing layers
 let map = new Map({ divID: 'screen' });
 
 // retrieve a layer by id
-let imageryLayer = map.layerManager.getLayerByID(0);
+let imageryLayer = map.getLayerByID(0);
 imageryLayer.setVisible(false);
 
 // retrieve all layers
