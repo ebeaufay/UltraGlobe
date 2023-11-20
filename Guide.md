@@ -164,6 +164,8 @@ var googleMaps3DTiles = new GoogleMap3DTileLayer({
 map.setLayer(googleMaps3DTiles, 0);
 ````
 
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
+
 #### I3S
 
 In the same spirit, an I3SLayer is also provided although only points are supported currently
