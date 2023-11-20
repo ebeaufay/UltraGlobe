@@ -26,7 +26,9 @@ npm install
 ```
 npm run dev
 ```
+## Documentation
 
+[jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
 ## Demos
 
 [Google Map Tile API](https://www.jdultra.com/mapTiles/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
