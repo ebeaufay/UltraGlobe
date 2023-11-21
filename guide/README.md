@@ -168,7 +168,7 @@ map.setLayer(googleMaps3DTiles, 0);
 
 #### I3S
 
-In the same spirit, an I3SLayer is also provided although only points are supported currently
+In the same spirit, an I3SLayer is also provided although only points are supported currently. (tell me if there's more interest)
 
 #### Shader Color Layer
 
