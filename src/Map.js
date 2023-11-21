@@ -250,10 +250,6 @@ class Map {
                     if (e.key === 'u') {
                         console.log("csmHelper update");
                         self.csmHelper.update();
-                        for (let i = 0; i < this.csm.lights.length; i++) {
-                            console.log(this.csm.lights[i].shadow.camera.position)
-
-                        }
                     }
                 });
 

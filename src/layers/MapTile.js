@@ -273,7 +273,6 @@ class MapTile {
     fetchTile() {
         const self = this;
         return self.fetchTileTextureFunction(self.bounds, (texture) => {
-            console.log(self.callbacks.length)
             self.callbacks.forEach(callback => callback(texture));
             self.callbacks.length = 0;
         }, error => {
