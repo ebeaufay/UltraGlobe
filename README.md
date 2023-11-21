@@ -30,7 +30,7 @@ npm run dev
 
 [jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
 
-[guide](https://github.com/ebeaufay/UltraGlobe/blob/master/guide/Guide.md)
+[guide](https://github.com/ebeaufay/UltraGlobe/blob/master/guide/README.md)
 
 
 ## Demos
