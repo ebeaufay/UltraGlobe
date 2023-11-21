@@ -9,6 +9,17 @@ import * as TRANSFORM from '../../transform/Transformer.js';
  * A layer for loading I3S data (only points supported)
  */
 class I3SLayer extends Layer {
+    /**
+     * 
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {String} properties.url the service url
+     * @param {String} properties.layer the service layer to display
+     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
+     */
     constructor(properties) {
         super(properties);
         this.isI3SLayer = true;
@@ -25,9 +36,6 @@ class I3SLayer extends Layer {
                         self.root = new I3SPointNode({
                             url: properties.url + "/layers/" + properties.layer + "/nodes/",
                             node: "root",
-                            tileLoader: properties.tileLoader,
-                            onLoadCallback: properties.onLoadCallback,
-                            loadOutsideView: properties.loadOutsideView,
                             geometricErrorMultiplier: properties.geometricErrorMultiplier,
                             transform: TRANSFORM.transform("EPSG:4326", 'EPSG:4978')
                         });

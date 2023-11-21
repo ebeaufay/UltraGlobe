@@ -38,13 +38,13 @@ class SingleImageImageryLayer extends ImageryLayer {
      * The layer will immediately return the closest available LOD and load a better LOD for the tile when requestable
      * Only EPSG:4326 is supported.
      * @param {Object} properties 
-     * @param {String} properties.url the image url
-     * @param {String} properties.epsg an EPSG code (only epsg:4326 supported)
-     * @param {THREE.Box2} properties.bounds the bounds of the image
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {Number} properties.transparency the layer's transparency (0 to 1)
-     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * @param {String} properties.url the image url
+     * @param {String} properties.epsg an EPSG code (only epsg:4326 supported)
+     * @param {Number} [properties.transparency = 0] the layer's transparency (0 to 1)
+     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      */
     constructor(properties) {
         super(properties);

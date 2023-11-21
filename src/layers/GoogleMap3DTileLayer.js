@@ -13,12 +13,12 @@ class GoogleMap3DTileLayer extends OGC3DTilesLayer {
      * @param {String} properties.apiKey the google map API key
      * @param {Object} properties.id the layer id
      * @param {String} properties.name a name for the layer.
-     * @param {Number[]} properties.bounds optional, the geometric bounds of the layer
-     * @param {Boolean} properties.visible optional, specifies the visibility of the layer 
-     * @param {Number} properties.geometricErrorMultiplier optional, the geometric error multiplier. A higher value means more detail is loaded. defaults to 0.3. 
-     * @param {Boolean} properties.displayCopyright optional, displays copyright info about the loaded tiles
-     * @param {Boolean} properties.displayErrors optional, displays tile loading errors on screen
-     * @param {Boolean} properties.loadOutsideView optional, loads tiles outside the view frustum with the lowest possible detail. this allows data to already be present when the camera moves and for rendering shadows from objects outside the view.
+     * @param {Boolean} [properties.displayCopyright = true] (optional) display copyright information when present in tiles by concatenating all copyright info for all displayed tiles
+     * @param {Boolean} [properties.displayErrors = false] (optional) display loading errors
+     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {Boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
+     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      */
     constructor (properties){
         

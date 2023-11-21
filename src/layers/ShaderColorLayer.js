@@ -18,11 +18,11 @@ class ShaderColorLayer extends Layer{
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {Number} properties.transparency the layer's transparency (0 to 1)
-     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {Object} properties.textures an object containing texture names and THREE.Texture objects as key-value pairs
      * @param {String} properties.shader a string representing shader code to be injected. Should at least implement the method : vec3 getShaderLayerColor(vec3 llh, vec3 xyz, vec3 normal, float level)
-     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * @param {Object} [properties.textures = undefined] an object containing texture names and THREE.Texture objects as key-value pairs
+     * @param {Number} [properties.transparency = 0] the layer's transparency (0 to 1)
+     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      * 
      */
     constructor(properties) {

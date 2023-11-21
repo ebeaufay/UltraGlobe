@@ -20,27 +20,26 @@ const quaternionSelfRotation = new THREE.Quaternion();
 class OGC3DTilesLayer extends Layer {
     /**
      * 
-     * @param {Object} properties 
-     * @param {Object} properties 
+     * @param {Object} properties
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {Boolean} properties.displayCopyright the name can be anything you want and is intended for labeling
      * @param {String} properties.url url of the root tileset.json
-     * @param {Boolean} properties.displayErrors (optional) display loading errors
-     * @param {Boolean} properties.proxy (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
-     * @param {Boolean} properties.queryParams (optional) path params to add to individual tile urls (starts with "?").
-     * @param {Number} properties.scale (optional) scale the model
-     * @param {Number} properties.rotationX (optional) rotates the model on its x axis in radians
-     * @param {Number} properties.rotationY (optional) rotates the model on its y axis in radians
-     * @param {Number} properties.rotationZ (optional) rotates the model on its z axis in radians
-     * @param {Number} properties.geometricErrorMultiplier (optional) between 0 and infinity, defaults to 1. controls the level of detail.
-     * @param {Number} properties.longitude (optional) longitude of the model's center point in degrees.
-     * @param {Number} properties.latitude (optional) latitude of the model's center point in degrees.
-     * @param {Number} properties.height (optional) height in meters above sea level.
-     * @param {Boolean} properties.loadOutsideView (optional) if true, will load tiles outside the view at the lowest possible LOD.
-     * @param {Boolean} properties.selectable (optional) if true, the tileset can be selected.
-     * @param {Number[]} properties.bounds optional, the geometric bounds of the layer
-     * @param {Boolean} properties.visible optional, specifies the visibility of the layer 
+     * @param {Boolean} [properties.displayCopyright = false] (optional) display copyright information when present in tiles by concatenating all copyright info for all displayed tiles
+     * @param {Boolean} [properties.displayErrors = false] (optional) display loading errors
+     * @param {Boolean} [properties.proxy = undefined] (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
+     * @param {Boolean} [properties.queryParams = undefined] (optional) path params to add to individual tile urls (starts with "?").
+     * @param {Number} [properties.scale = 1] (optional) scale the model
+     * @param {Number} [properties.rotationX = 0] (optional) rotates the model on its x axis in radians
+     * @param {Number} [properties.rotationY = 0] (optional) rotates the model on its y axis in radians
+     * @param {Number} [properties.rotationZ = 0] (optional) rotates the model on its z axis in radians
+     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {Number} [properties.longitude = 0] (optional) longitude of the model's center point in degrees.
+     * @param {Number} [properties.latitude = 0] (optional) latitude of the model's center point in degrees.
+     * @param {Number} [properties.height = 0] (optional) height in meters above sea level.
+     * @param {Boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
+     * @param {Boolean} [properties.selectable = false] (optional) if true, the tileset can be selected.
+     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      * 
      */
     constructor(properties) {
