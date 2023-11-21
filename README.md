@@ -26,6 +26,8 @@ npm install
 ```
 npm run dev
 ```
+
+and here's the same project in typescript: [ULTRAGLOBE getting started TypeScript](https://drive.google.com/file/d/1TPZiEL6xq_qNbfiWT-BE08S5SozcPc0S/view?usp=sharing)
 ## Documentation
 
 [jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
