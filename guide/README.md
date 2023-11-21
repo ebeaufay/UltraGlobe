@@ -351,3 +351,72 @@ Map#labelRenderer
 Map#camera
 Map#scene
 ```
+
+### Advanced
+Rather than displaying the same old earth we're used to, we can try to display alien worlds. 
+
+We'll first generate some noisy elevation data using the pre-built PerlinElevationLayer
+
+```javascript
+var perlinElevation = new PerlinElevationLayer({
+    id: 43,
+    name: "perlin elevation",
+    visible: true,
+    bounds: [-180, -90, 180, 90]
+});
+```
+
+We'll then use this layer to compute a texture giving elevation around the world. this will be used in post to affect water flow (less flow near the coast)
+
+```javascript
+perlinElevation.getElevation({ min: { x: -Math.PI, y: -Math.PI * 0.5 }, max: { x: Math.PI, y: Math.PI * 0.5 } }, 2048, 1024, 7).then(elevationArray => {
+    var globalElevationMap = new THREE.DataTexture(Float32Array.from(elevationArray), 1024, 512, THREE.RedFormat, THREE.FloatType);
+    globalElevationMap.needsUpdate = true;
+    globalElevationMap.magFilter = THREE.LinearFilter;
+    globalElevationMap.minFilter = THREE.LinearFilter;
+    globalElevationMap.wrapS = THREE.ClampToEdgeWrapping;
+    globalElevationMap.wrapT = THREE.ClampToEdgeWrapping;
+    setupMap(globalElevationMap);
+})
+```
+
+The setupMap function can then specify this texture as global elevation and we're also going to activate ocean and set the water, sun and atmosphere colors to something fancy
+
+```javascript
+function setupMap(globalElevationMap) {
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+    });
+}
+```
+
+This gives us something like this
+
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/6e9b2418-b795-41f8-9959-7fc9ba01252c)
+
+Finally, we want to add some color to the terrain. As an example, you can use the PerlinTerrainColorShader class that implements a few techniques for texturing the earth without seems and distortions. It also applies texture rotations so that the ground texture doesn't seem too repetitive.
+
+```javascript
+var shaderLayer = new PerlinTerrainColorShader({
+    id: 22,
+    name: "randomGroundColor",
+    visible: true,
+    min: perlinElevation.min,
+    max: perlinElevation.max,
+    transparency: 0.0
+});
+
+map.setLayer(shaderLayer, 1);
+```
+
+And voila!
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/f7deaa15-0acb-4332-b308-71eacd35eb49)
+
+If you're interested in implementing specific elevation or color shader layers, check the source.
