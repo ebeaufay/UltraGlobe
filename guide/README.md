@@ -206,7 +206,9 @@ var shaderLayer = new ShaderColorLayer({
 map.setLayer(shaderLayer, 3)
 ```
 
-You can also pass layer specific textures through the properties.textures parameter. it should contain a map of name/THREE.Texture value pairs and the textures will be available by name as 'sampler2D' objects.
+note that the normal passed to the "getShaderLayerColor" function is in world space as is the xyz coordinate.
+
+You can also pass layer specific textures through the properties.textures parameter. it should contain a map of name->THREE.Texture value pairs and the textures will be available by name as 'sampler2D' objects.
 
 Only a single visible layer is visualized at a time so there may be several loaded ShaderColorLayers 
 but only the last visible layer will be displayed.
