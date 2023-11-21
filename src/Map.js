@@ -5,9 +5,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { PanController } from './controls/PanController.js';
 import { RotateController } from './controls/RotateController.js';
 import { ZoomController } from './controls/ZoomController.js';
-import { SelectController } from './controls/SelectController.js';
 import { LayerManager } from './layers/LayerManager.js';
-import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer';
 import { PostShader } from './PostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
@@ -15,9 +13,7 @@ import opticalDepth from './images/optical_depth.png';
 import water1 from './images/Water_1_M_Normal.jpg';
 import water2 from './images/Water_2_M_Normal.jpg';
 import perlin from './images/perlin.png';
-import { I3SLayer } from "./layers/i3s/I3SLayer.js";
 import { Controller } from "./controls/Controller.js";
-import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
 import { getSunPosition } from "./Sun";
 import { CSM } from './csm/CSM.js';
 import { CSMHelper } from 'three/addons/csm/CSMHelper.js';
@@ -199,14 +195,14 @@ class Map {
 
             this.sunPosition = getSunPosition(new Date())
             const csmSplits = [];
-            for(let i = 0; i<7; i++){
-                if(i == 0)csmSplits.push(1);
-                else{
-                    csmSplits.push(csmSplits[i-1]*3);
+            for (let i = 0; i < 7; i++) {
+                if (i == 0) csmSplits.push(1);
+                else {
+                    csmSplits.push(csmSplits[i - 1] * 3);
                 }
             }
-            for(let i = 0; i<csmSplits.length; i++){
-                csmSplits[i] /= csmSplits[csmSplits.length-1];
+            for (let i = 0; i < csmSplits.length; i++) {
+                csmSplits[i] /= csmSplits[csmSplits.length - 1];
             }
             this.csm = new CSM({
                 maxFar: 500000,
@@ -217,7 +213,7 @@ class Map {
                 },
                 fade: true,
                 parent: scene,
-                shadowMapSize: _isMobileDevice()?1024:2048,
+                shadowMapSize: _isMobileDevice() ? 1024 : 2048,
                 lightIntensity: 3.0,
                 lightDirection: this.sunPosition.clone().negate(),
                 lightMargin: 500000,
@@ -226,18 +222,18 @@ class Map {
                 //shadowNormalBias : -5000,
                 camera: this.camera
             });
-            
+
             for (let i = 0; i < this.csm.lights.length; i++) {
-                this.csm.lights[ i ].shadow.bias = 0.001 * csmSplits[i];
-                this.csm.lights[ i ].shadow.normalBias = 0.1;
+                this.csm.lights[i].shadow.bias = 0.001 * csmSplits[i];
+                this.csm.lights[i].shadow.normalBias = 0.1;
                 this.csm.lights[i].shadow.camera.near = 1;
                 this.csm.lights[i].shadow.camera.updateProjectionMatrix();
-                this.csm.lights[i].shadow.camera.far = this.csm.lightMargin + this.csm.maxFar*2*csmSplits[i];
+                this.csm.lights[i].shadow.camera.far = this.csm.lightMargin + this.csm.maxFar * 2 * csmSplits[i];
                 this.csm.lights[i].shadow.needsUpdate = true;
             }
             //this.sun.shadow.bias = -0.005;
 
-            
+
 
             scene.add(new THREE.AmbientLight(0xFFFFFF, 0.4));
 
@@ -256,29 +252,29 @@ class Map {
                 document.addEventListener('keyup', (e) => {
                     if (e.key === 'a') {
                         for (let i = 0; i < this.csm.lights.length; i++) {
-                            this.csm.lights[ i ].shadow.normalBias *=2;
+                            this.csm.lights[i].shadow.normalBias *= 2;
                             this.csm.lights[i].shadow.needsUpdate = true;
                         }
                     }
                     if (e.key === 'q') {
                         for (let i = 0; i < this.csm.lights.length; i++) {
-                            this.csm.lights[ i ].shadow.normalBias *=0.5;
+                            this.csm.lights[i].shadow.normalBias *= 0.5;
                             this.csm.lights[i].shadow.needsUpdate = true;
                         }
-                        console.log("normalBiasDown "+ this.csm.lights[ 0 ].shadow.normalBias);
+                        console.log("normalBiasDown " + this.csm.lights[0].shadow.normalBias);
                     }
                     if (e.key === 'z') {
                         for (let i = 0; i < this.csm.lights.length; i++) {
-                            this.csm.lights[ i ].shadow.bias *=2;
+                            this.csm.lights[i].shadow.bias *= 2;
                             this.csm.lights[i].shadow.needsUpdate = true;
                         }
                     }
                     if (e.key === 's') {
                         for (let i = 0; i < this.csm.lights.length; i++) {
-                            this.csm.lights[ i ].shadow.bias *=0.5;
+                            this.csm.lights[i].shadow.bias *= 0.5;
                             this.csm.lights[i].shadow.needsUpdate = true;
                         }
-                        console.log("BiasDown "+ this.csm.lights[ 0 ].shadow.bias);
+                        console.log("BiasDown " + this.csm.lights[0].shadow.bias);
                     }
                 });
             }
@@ -609,7 +605,7 @@ class Map {
             requestAnimationFrame(animate);
             if (self.shadows) {
                 self.csm.update(self.camera.matrix);
-                
+
             }
             if (!self.pause) {
                 self.controller.update();
@@ -678,7 +674,7 @@ class Map {
             if (self.stats) {
                 self.stats.update();
             }
-            
+
         }
         animate();
     }

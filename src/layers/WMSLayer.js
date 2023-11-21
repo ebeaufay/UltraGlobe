@@ -24,6 +24,11 @@ class WMSLayer extends ImageryLayer {
      * @param {String} properties.format the image format (usually jpeg or png)
      * @param {Number} properties.maxLOD (optional) a maximum LOD (default : 20) where LOD 0 represents the entire earth and subsequent levels split the parent zone in 4. For EPSG:4326, LOD 0 already has 2 tiles for left and right hemisphere.
      * @param {Number} properties.imageSize (optional) set a size for image requests. defaults to 128
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {Number} properties.transparency the layer's transparency (0 to 1)
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
      */
     constructor(properties) {
         super(properties);

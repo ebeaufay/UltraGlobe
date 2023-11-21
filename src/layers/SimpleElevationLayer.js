@@ -8,7 +8,14 @@ const halfPI = Math.PI*0.5;
  */
 class SimpleElevationLayer extends ElevationLayer{
 
-    
+    /**
+     * 
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     */
     constructor(properties) {
         super(properties);
     }

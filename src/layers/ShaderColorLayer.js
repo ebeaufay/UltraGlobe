@@ -21,6 +21,9 @@ class ShaderColorLayer extends Layer{
      * @param {Number} properties.transparency the layer's transparency (0 to 1)
      * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Object} properties.textures an object containing texture names and THREE.Texture objects as key-value pairs
+     * @param {String} properties.shader a string representing shader code to be injected. Should at least implement the method : vec3 getShaderLayerColor(vec3 llh, vec3 xyz, vec3 normal, float level)
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * 
      */
     constructor(properties) {
         super(properties);

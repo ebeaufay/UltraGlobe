@@ -18,6 +18,8 @@ class SingleImageElevationLayer extends ElevationLayer {
      * @param {String} properties.url the url of the elevation image
      * @param {Number} properties.min min height relative to sea level
      * @param {Number} properties.max max height relative to sea level
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * 
      */
     constructor(properties) {
         super(properties);

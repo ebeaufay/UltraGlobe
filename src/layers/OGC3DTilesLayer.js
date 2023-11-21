@@ -39,6 +39,8 @@ class OGC3DTilesLayer extends Layer {
      * @param {Number} properties.height (optional) height in meters above sea level.
      * @param {Boolean} properties.loadOutsideView (optional) if true, will load tiles outside the view at the lowest possible LOD.
      * @param {Boolean} properties.selectable (optional) if true, the tileset can be selected.
+     * @param {Number[]} properties.bounds optional, the geometric bounds of the layer
+     * @param {Boolean} properties.visible optional, specifies the visibility of the layer 
      * 
      */
     constructor(properties) {

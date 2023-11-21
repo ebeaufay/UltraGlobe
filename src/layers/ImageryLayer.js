@@ -13,6 +13,7 @@ class ImageryLayer extends RasterLayer{
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {Number} properties.transparency the layer's transparency (0 to 1)
      * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
      */
     constructor(properties) {
         super(properties);

@@ -23,6 +23,7 @@ class PerlinElevationLayer extends ElevationLayer {
      * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Number} properties.minHeight min terrain height relative to sea level
      * @param {Number} properties.maxHeight max terrain height relative to sea level
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
      */
     constructor(properties) {
         super(properties);

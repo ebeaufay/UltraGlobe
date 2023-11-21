@@ -45,9 +45,22 @@ function loadTexture(url) {
  * @extends ShaderColorLayer
  */
 class PerlinTerrainColorShader extends ShaderColorLayer {
+
+    /**
+     * 
+     * @param {Object} properties 
+     * @param {String|Number} properties.id layer id should be unique
+     * @param {String} properties.name the name can be anything you want and is intended for labeling
+     * @param {Number} properties.transparency the layer's transparency (0 to 1)
+     * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {Object} properties.textures an object containing texture names and THREE.Texture objects as key-value pairs
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * @param {Number} properties.min min height for the color scheme
+     * @param {Number} properties.max max height for the color scheme
+     */
     constructor(properties) {
-        let min = Number.isInteger(properties.minHeight) ? properties.minHeight.toFixed(1) : String(properties.minHeight);
-        let range = Number.isInteger(properties.maxHeight - properties.minHeight) ? (properties.maxHeight - properties.minHeight).toFixed(1) : String(properties.maxHeight - properties.minHeight);
+        let min = Number.isInteger(properties.min) ? properties.min.toFixed(1) : String(properties.min);
+        let range = Number.isInteger(properties.max - properties.min) ? (properties.max - properties.min).toFixed(1) : String(properties.max - properties.min);
 
         let shuffled = noiseTextures.sort(() => 0.5 - Math.random());
 

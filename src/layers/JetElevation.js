@@ -20,6 +20,8 @@ class JetElevation extends ShaderColorLayer{
      * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Number} properties.min min height for the jet color scheme
      * @param {Number} properties.max max height for the jet color scheme
+     * @param {Boolean} properties.visible layer will be rendered if true (true by default)
+     * 
      */
     constructor(properties) {
         let min = Number.isInteger(properties.min) ? properties.min.toFixed(1) : String(properties.min);
