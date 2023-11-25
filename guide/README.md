@@ -353,7 +353,7 @@ Map#scene
 ```
 
 ### Advanced
-Rather than displaying the same old earth we're used to, we can try to display alien worlds. 
+Rather than displaying the same old earth we're used to, we can try to display some alien worlds. 
 
 We'll first generate some noisy elevation data using the pre-built PerlinElevationLayer
 
@@ -366,7 +366,7 @@ var perlinElevation = new PerlinElevationLayer({
 });
 ```
 
-We'll then use this layer to compute a texture giving elevation around the world. this will be used in post to affect water flow (less flow near the coast)
+We'll then use this layer to compute a texture giving elevation around the world. this will be used in post to affect water flow (less flow near the coast). This step is optional.
 
 ```javascript
 perlinElevation.getElevation({ min: { x: -Math.PI, y: -Math.PI * 0.5 }, max: { x: Math.PI, y: Math.PI * 0.5 } }, 2048, 1024, 7).then(elevationArray => {
@@ -401,7 +401,7 @@ This gives us something like this
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/6e9b2418-b795-41f8-9959-7fc9ba01252c)
 
-Finally, we want to add some color to the terrain. As an example, you can use the PerlinTerrainColorShader class that implements a few techniques for texturing the earth without seems and distortions. It also applies texture rotations so that the ground texture doesn't seem too repetitive.
+We want to add some color to the terrain. As an example, you can use the PerlinTerrainColorShader class that implements a few techniques for texturing the earth without seems and distortions. It also applies texture rotations so that the ground texture doesn't seem too repetitive.
 
 ```javascript
 var shaderLayer = new PerlinTerrainColorShader({
@@ -416,7 +416,112 @@ var shaderLayer = new PerlinTerrainColorShader({
 map.setLayer(shaderLayer, 1);
 ```
 
-And voila!
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/f7deaa15-0acb-4332-b308-71eacd35eb49)
+
+Now for some extra fancyness, let's add a random space background:
+
+```javascript
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+        space: true
+    });
+}
+```
+space is computed on the fly in post and again applies the same tricks to avoid repetition and seems. The space background can be controlled by passing a more complete object:
+
+```javascript
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+        space: {
+            starsIntensity: 1.5,
+            gasCloudsIntensity: 0.8,
+            colorMap: 0.25, // this is a modulation on a pre-defined color palette,
+            texRotation1 : 0.75, //radians
+            texRotation2 : 1.78  // these 2 rotations avoid repetition on the sampled random texture but changing them will modify the appearance of the gas clouds
+        }
+    });
+}
+```
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/f04fba92-7c42-4185-8a4b-a53706b76cb4)
+
+And let's also add some planet rings:
+
+```javascript
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+        space: true,
+        rings: true
+    });
+}
+```
+
+or with a bit more control:
+
+```javascript
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+        space: true,
+        rings: {
+            origin: new THREE.Vector3(), // center of the rings, defaults to the center of the planet
+            normal: new THREE.Vector3(0,1,0), //orientation of the rings
+            innerRadius: 6378137.0 * 2, // twice the earth radius (all planets are actually based on the earth, this is an earth centered library after all)
+            outerRadius: 6378137.0 * 3,
+            colorMap: 0.6, // a modulation on a pre-defined color palette
+            colorMapDisplace: 0.7, // displaces the rings. they will repeat between the inner and outer radius
+        }
+    });
+}
+```
+
+The result should look something like this
+![planet6](https://github.com/ebeaufay/UltraGlobe/assets/16924300/0da89e6e-a692-463d-a505-12a220eb1dc8)
+
+Finally, you can add this somewhere to change the time of day and get nice sun-sets:
+
+```
+    let h = 20;
+    let m = 0;
+    let s = 0;
+    setInterval(()=>{
+        s++;
+        if(s==60){
+            m++;
+            s=0;
+        }
+        if(m==60){
+            m=0;
+            h = (h+1)%24
+        }
+        map.setDate(new Date(2023, 2, 21, h, m, s, 0));
+    },10);
+```
 
 If you're interested in implementing specific elevation or color shader layers, check the source.
