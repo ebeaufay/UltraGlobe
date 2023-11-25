@@ -15,7 +15,7 @@ class GoogleMap3DTileLayer extends OGC3DTilesLayer {
      * @param {String} properties.name a name for the layer.
      * @param {Boolean} [properties.displayCopyright = true] (optional) display copyright information when present in tiles by concatenating all copyright info for all displayed tiles
      * @param {Boolean} [properties.displayErrors = false] (optional) display loading errors
-     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1 on desktop and 0.3 on mobile devices. controls the level of detail.
      * @param {Boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
      * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
@@ -27,7 +27,7 @@ class GoogleMap3DTileLayer extends OGC3DTilesLayer {
         if(properties.displayCopyright === undefined) properties.displayCopyright = true;
         properties.url= "https://tile.googleapis.com/v1/3dtiles/root.json";
         properties.queryParams =  { key: properties.apiKey };
-        if (!properties.geometricErrorMultiplier) properties.geometricErrorMultiplier = isMobileDevice()?0.2:0.4;
+        if (!properties.geometricErrorMultiplier) properties.geometricErrorMultiplier = isMobileDevice()?0.3:1.0;
         super(properties);
         this.isGoogleMaps3DTilesLayer = true;
     }

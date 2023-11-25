@@ -54,8 +54,8 @@ var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
     visible: true,
-    minHeight: perlinElevation.min,
-    maxHeight: perlinElevation.max,
+    min: perlinElevation.min,
+    max: perlinElevation.max,
     transparency: 0.0
 });
 var jetElevationShaderLayer = new JetElevation({
@@ -158,14 +158,18 @@ perlinElevation.getElevation({ min: { x: -Math.PI, y: -Math.PI * 0.5 }, max: { x
 
 function setupMap(globalElevationMap) {
     
+    
+    
     let map = new Map({
         divID: 'screen',
         shadows: true,
         debug: false,
-        ocean: false,//generateLiquidColor(),
+        ocean: generateLiquidColor(),
         atmosphere: generateAtmosphereColor(),
         sun: generateSunColor(),
         globalElevation: globalElevationMap,
+        rings:true,
+        space: true,
     });
 
     const t = new THREE.Vector3(6301200,50,50);
@@ -186,22 +190,28 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.setDate(new Date(2023, 5, 21, 10, 0, 0, 0));
+    map.setDate(new Date(2023, 2, 21, 10, 0, 0, 0));
     let h = 20;
     let m = 0;
-    /* setInterval(()=>{
-        map.setDate(new Date(2023, 5, 21, h, m++, 0, 0));
+    let s = 0;
+    setInterval(()=>{
+        s++;
+        if(s==60){
+            m++;
+            s=0;
+        }
         if(m==60){
             m=0;
             h = (h+1)%24
         }
-    },5000); */
+        map.setDate(new Date(2023, 2, 21, h, m, s, 0));
+    },10);
 
     map.moveAndLookAt({ x: 0.0, y: 0.0000, z: 10000000 }, { x: 0, y: 1, z: 170 });
 
     map.setLayer(perlinElevation, 0);
-    map.setLayer(wmsLayer2, 1);
-    map.setLayer(ogc3dTiles, 2);
+    map.setLayer(shaderLayer, 1);
+    //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
 
@@ -386,6 +396,14 @@ function generateAtmosphereColor() {
     let hue = Math.floor(60+Math.random()* 180);
     let saturation = 50+Math.random() * 25;
     let lightness = 50 + Math.random() * 25;
+    
+    return hslToRgb(hue, saturation, lightness);
+    
+}
+function generateRingColor() {
+    let hue = Math.floor(30+Math.random()* 20);
+    let saturation = 20+Math.random() * 80;
+    let lightness = 10 + Math.random() * 90;
     
     return hslToRgb(hue, saturation, lightness);
 }

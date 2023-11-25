@@ -85,7 +85,7 @@ module.exports = {
         loader: 'webpack-glsl-loader'
       },
       {
-        test: /\.(png|svg|jpg|jpeg|gif)$/i,
+        test: /\.(png|svg|jpg|jpeg|gif|ktx2)$/i,
         type: 'asset/inline',
       },
       {

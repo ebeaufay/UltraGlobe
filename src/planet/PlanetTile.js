@@ -621,7 +621,7 @@ class PlanetTile extends Mesh {
 
             const localRadius = this.planet.radius;
 
-            var log = -(Math.log(distance * (isMobileDevice() ? 10000 : 2500) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
+            var log = -(Math.log(distance * (isMobileDevice() ? 10000/50*camera.fov : 2500/50*camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
             const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001));
 
             if (isNaN(metric)) {

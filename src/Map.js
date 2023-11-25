@@ -12,11 +12,15 @@ import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth.png';
 import water1 from './images/Water_1_M_Normal.jpg';
 import water2 from './images/Water_2_M_Normal.jpg';
-import perlin from './images/perlin.png';
+import perlin from './images/perlin2.png';
 import { Controller } from "./controls/Controller.js";
 import { getSunPosition } from "./Sun";
 import { CSM } from './csm/CSM.js';
 import { CSMHelper } from 'three/addons/csm/CSMHelper.js';
+import ringsPalette from './images/ringsPalette.png';
+import stars from './images/stars.png';
+import nebula from './images/nebula.png';
+import nebulaPalette from './images/paletteNebula.png';
 
 
 // reused variables
@@ -47,11 +51,43 @@ class Map {
     * @param {THREE.Vector3} [properties.sun=false] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true.
     * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
     * @param {THREE.DataTexture} [properties.globalElevation=false] A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects.
+    * @param {Boolean|Object} [properties.rings = false] Rings properties, if undefined, no rings are drawn 
+    * @param {THREE.Vector3} [properties.rings.origin=new THREE.Vector3()] the center point of the rings
+    * @param {THREE.Vector3} [properties.rings.normal=new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize()] the orientation of the rings plane
+    * @param {Number} [properties.rings.innerRadius=6378137.0 * (1.1+Math.random())] the rings inner radius
+    * @param {Number} [properties.rings.outerRadius=this.rings.innerRadius+(0.1+Math.random())*6378137.0] the rings outer radius
+    * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
+    * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
+    * @param {Boolean|Object} [properties.space = false] space properties, if undefined, no space is drawn
+    * @param {Number} [properties.space.starsIntensity=1] The intensity of stars
+    * @param {Number} [properties.space.gasCloudsIntensity=1] the intensity of nebula like gasClouds
+    * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
+    * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
+    * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     */
     constructor(properties) {
         this.layerManager = new LayerManager();
         this.debug = properties.debug;
         this.shadows = properties.shadows;
+        this.rings = properties.rings;
+        if(this.rings){
+            if(!(typeof this.rings === 'object' && Array.isArray(this.rings) )) this.rings = {};
+            if(!this.rings.origin)this.rings.origin = new THREE.Vector3();
+            if(!this.rings.normal)this.rings.normal = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize();
+            if(!this.rings.innerRadius)this.rings.innerRadius = 6378137.0 * (1.1+Math.random());
+            if(!this.rings.outerRadius)this.rings.outerRadius = this.rings.innerRadius+(0.1+Math.random())*6378137.0;
+            if(!this.rings.colorMap)this.rings.colorMap = Math.random();
+            if(!this.rings.colorMapDisplace)this.rings.colorMapDisplace = Math.random();
+        }
+        this.space = properties.space;
+        if(this.space){
+            if(!(typeof this.space === 'object' && Array.isArray(this.space) )) this.space = {};
+            if(!this.space.starsIntensity)this.space.starsIntensity = 1;
+            if(!this.space.gasCloudsIntensity)this.space.gasCloudsIntensity = 1;//Math.random();
+            if(!this.space.colorMap)this.space.colorMap = Math.random();
+            if(!this.space.texRotation1)this.space.texRotation1 = Math.random()*Math.PI;
+            if(!this.space.texRotation2)this.space.texRotation2 = Math.random()*Math.PI;
+        }
 
         this.globalElevation = properties.globalElevation;
         if (!!properties.domContainer) {
@@ -321,7 +357,7 @@ class Map {
         this.postCamera = new THREE.OrthographicCamera(- 1, 1, 1, - 1, 0, 1);
         this.postMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
-            fragmentShader: self.shadows ? PostShader.fragmentShaderShadows(self.atmosphere, self.ocean, self.sunColor, !!self.globalElevation) : PostShader.fragmentShader(self.atmosphere, self.atmosphereThickness, self.ocean),
+            fragmentShader: self.shadows ? PostShader.fragmentShaderShadows(self.atmosphere, self.ocean, self.sunColor, !!self.globalElevation, self.rings, self.space) : PostShader.fragmentShader(self.atmosphere, self.ocean, self.rings, self.space),
             uniforms: {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
@@ -346,7 +382,11 @@ class Map {
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
                 projMatrixInv: { value: new THREE.Matrix4() },
                 viewMatrixInv: { value: new THREE.Matrix4() },
-                resolution: { value: new THREE.Vector2() }
+                resolution: { value: new THREE.Vector2() },
+                ringsPalette: { value: null},
+                starsTexture: {value: null},
+                nebulaTexture: {value: null},
+                nebulaPalette: {value: null},
             }
         });
         if (self.globalElevation) {
@@ -372,7 +412,25 @@ class Map {
             }
         );
 
-        if (this.shadows) {
+        loader.load(
+            // resource URL
+            ringsPalette,
+
+            // onLoad callback
+            function (texture) {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.magFilter = THREE.LinearFilter;
+                texture.minFilter = THREE.LinearFilter;
+                self.postMaterial.uniforms.ringsPalette.value = texture;
+            },
+            undefined,
+            function (err) {
+                console.error('An error happened: ' + err);
+            }
+        );
+
+        if (this.shadows && this.ocean) {
             loader.load(
                 // resource URL
                 water1,
@@ -404,6 +462,12 @@ class Map {
                     console.error('An error happened: ' + err);
                 }
             );
+            
+        }
+
+        
+
+        if(this.space){
             loader.load(
                 perlin,
                 function (texture) {
@@ -418,8 +482,49 @@ class Map {
                     console.error('An error happened: ' + err);
                 }
             );
+            loader.load(
+                stars,
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.starsTexture.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
+            loader.load(
+                nebula,
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.nebulaTexture.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
+            loader.load(
+                nebulaPalette,
+                function (texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    self.postMaterial.uniforms.nebulaPalette.value = texture;
+                },
+                undefined,
+                function (err) {
+                    console.error('An error happened: ' + err);
+                }
+            );
         }
-
 
         this.depthPassMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
@@ -507,7 +612,7 @@ class Map {
 
 
     _initCamera() {
-        const camera = new THREE.PerspectiveCamera(50, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
+        const camera = new THREE.PerspectiveCamera(40, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -689,7 +794,7 @@ class Map {
 
         this.camera.near = 0.1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
-        this.camera.far = Math.max(1000000, distanceToHorizon * 1.5);
+        this.camera.far = Math.max(2000000, distanceToHorizon * 1.5);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this._resetLogDepthBuffer();

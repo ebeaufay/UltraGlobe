@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ShaderColorLayer } from './ShaderColorLayer.js';
 import perlin from '../images/perlin.png';
-import palette from '../images/palette.png';
+import palette from '../images/palette2.png';
 import manifold from '../images/manifold.png';
 import manifold2 from '../images/manifold2.png';
 import melt from '../images/melt.png';
@@ -170,11 +170,11 @@ class PerlinTerrainColorShader extends ShaderColorLayer {
                 float normalizedHeight = ((llh.z - `+ min + `) / ` + range + `)*0.95; // Normalize to [0, 0.95]
     
                 // large scale
-                float f = pickFromTexture(perlin, llh,matrix1, 1.0);
-                //float noiseLarge = pickFromTexture(`+ largeNoiseMap + `, llh, matrix2, 157.0)*f + pickFromTexture(` + largeNoiseMap + `, llh, matrix3, 167.0)*(1.0-f);
-                //float noiseLarge= normalizedHeight*f*(0.5+f);
-                //float f2 = pickFromTexture(perlin, llh,matrix4, 4.0);
-                //vec3 large = texture2D(palette, vec2(noiseLarge, `+ palette1 + `)).xyz*f2+texture2D(palette, vec2(noiseLarge, ` + palette2 + `)).xyz*(1.0-f2);
+                float f = pickFromTexture(perlin, llh,matrix1, 5.0);
+                //float noiseLarge = pickFromTexture(`+ largeNoiseMap + `, llh, matrix2, 11.0)*f + pickFromTexture(` + largeNoiseMap + `, llh, matrix3, 13.0)*(1.0-f);
+                float noiseLarge= normalizedHeight*f*(0.5+f);
+                float f2 = pickFromTexture(perlin, llh,matrix4, 4.0);
+                vec3 large = texture2D(palette, vec2(noiseLarge, `+ palette1 + `)).xyz*f2+texture2D(palette, vec2(noiseLarge, ` + palette2 + `)).xyz*(1.0-f2);
 
                 // small scale
                 float fSmall = pickFromTexture(perlin, llh,matrix5, 8724.0);
@@ -186,7 +186,7 @@ class PerlinTerrainColorShader extends ShaderColorLayer {
                 float f2Small = dot2;
                 vec3 small = texture2D(palette, vec2(noiseSmall, `+ palette1 + `)).xyz*f2Small+texture2D(palette, vec2(noiseSmall, ` + palette2 + `)).xyz*(1.0-f2Small);
                 
-                return small;//(large+small*0.5)/1.5;
+                return (large+small*0.5);
                 
             }
 

@@ -36,7 +36,7 @@ class PerlinElevationLayer extends ElevationLayer {
         this.warpFactorMultiplier = Math.random() * 0.3 + 0.1;
         this.continentFrequency = 0.2+Math.random() * 2;
         this.turbulenceUp = 0.25+Math.random()*0.5;
-        this.freqSup = 1+Math.random()*1;
+        this.freqSup = 0.5+Math.random()*1;
     }
 
     getElevation(bounds, width, height, maxOctaves = 13) {
