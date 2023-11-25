@@ -5,7 +5,7 @@
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/faf594b0-988a-4b30-a512-dbc42ea4842c)
+
 
 
 The goal of this library is to provide a way to display geospatial data on a globe in threeJS without having a full fledged framework. Instead, the library is intended as a thin layer to allow threeJS developers to work with a geospatial environment while keeping access to lower level threeJS context.
