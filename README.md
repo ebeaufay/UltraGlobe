@@ -5,15 +5,18 @@
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/faf594b0-988a-4b30-a512-dbc42ea4842c)
 
 
-Displays the earth with level of detail, imagery, elevation and connection to OGC web services.
+The goal of this library is to provide a way to display geospatial data on a globe in threeJS without having a full fledged framework. Instead, the library is intended as a thin layer to allow threeJS developers to work with a geospatial environment while keeping access to lower level threeJS context.
 
-The earth model is wgs 84.
+The existing layer system can be used and extended to import data sources without implementing everything from scratch.
 
-Support for WMS and OGC 3DTiles.
+The earth model is wgs 84. and uses a modified UV-sphere for terrain tiles.
 
-Partial I3S support.
+There's support for WMS and OGC 3DTiles and partial I3S support. There are also a few custom layers allowing fancy visualizations.
+
+Vector Layers and physics are in the works.
 
 ## startup project
 Here's a simple getting started project: [ULTRAGLOBE getting started](https://drive.google.com/file/d/1ECn7C98WRZRlaNhz_CG5sVFWkwG4mvTb/view?usp=share_link)
@@ -26,6 +29,8 @@ npm install
 ```
 npm run dev
 ```
+
+and here's the same project in typescript: [ULTRAGLOBE getting started TypeScript](https://drive.google.com/file/d/1TPZiEL6xq_qNbfiWT-BE08S5SozcPc0S/view?usp=sharing)
 ## Documentation
 
 [jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
