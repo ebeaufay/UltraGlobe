@@ -67,7 +67,6 @@ module.exports = {
 
   module: {
     rules: [
-
       {
         test: /\.s[ac]ss$/,
         use: [
@@ -110,7 +109,7 @@ module.exports = {
         loader: 'webpack-glsl-loader'
       },
       {
-        test: /\.(png|svg|jpg|jpeg|gif|ktx2)$/i,
+        test: /\.(png|svg|jpg|jpeg|gif|ktx2|bin)$/i,
         type: 'asset/inline',
       },
       {

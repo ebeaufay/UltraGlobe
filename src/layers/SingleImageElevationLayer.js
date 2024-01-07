@@ -1,7 +1,7 @@
 import { ElevationLayer } from './ElevationLayer.js'
 
 const radiansToDegrees = 180 / Math.PI;
-const halfPI = Math.PI*0.5;
+const halfPI = Math.PI * 0.5;
 /**
  * Elevation from a single image (Equidistant Cylindrical).
  * @class
@@ -49,40 +49,78 @@ class SingleImageElevationLayer extends ElevationLayer {
         //var pixelData = canvas.getContext('2d').getImageData(event.offsetX, event.offsetY, 1, 1).data;
     }
 
-    getElevation(bounds, width, height) {
-        const self = this;
-        function request() {
-            var elevationArray = new Array(width * height).fill(0);
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    let lon = (bounds.min.x + (x * ((bounds.max.x - bounds.min.x) / (width - 1)))) ;
-                    let lat = -(bounds.min.y + (y * ((bounds.max.y - bounds.min.y) / (height - 1))));
 
-                    if (lat > halfPI) {
-                        lon += Math.PI;
-                        lat = halfPI - (lat - halfPI)
-                    }else if (lat < -halfPI) {
-                        lon += Math.PI;
-                        lat = -halfPI - (lat + halfPI)
+
+
+    getElevation(bounds, width, height, geometry, skirtGeometry) {
+        const self = this;
+        const extendedBounds = bounds.clone();
+        extendedBounds.min.x -= (bounds.max.x - bounds.min.x) / (width - 1);
+        extendedBounds.max.x += (bounds.max.x - bounds.min.x) / (width - 1);
+        extendedBounds.min.y -= (bounds.max.y - bounds.min.y) / (height - 1);
+        extendedBounds.max.y += (bounds.max.y - bounds.min.y) / (height - 1);
+
+        const meshGeneration = super._simpleMeshFromElevationAsync;
+        const trim = super._trimEdges;
+
+        const extendedWidth = width + 2;
+        const extendedHeight = height + 2;
+        function request() {
+            return new Promise((resolve, reject) => {
+                var elevationArray = new Array(extendedWidth * extendedHeight).fill(0);
+                for (let x = 0; x < extendedWidth; x++) {
+                    for (let y = 0; y < extendedHeight; y++) {
+                        let lon = (extendedBounds.min.x + (x * ((extendedBounds.max.x - extendedBounds.min.x) / (width - 1))));
+                        let lat = -(extendedBounds.min.y + (y * ((extendedBounds.max.y - extendedBounds.min.y) / (height - 1))));
+
+                        if (lat > halfPI) {
+                            lon += Math.PI;
+                            lat = halfPI - (lat - halfPI)
+                        } else if (lat < -halfPI) {
+                            lon += Math.PI;
+                            lat = -halfPI - (lat + halfPI)
+                        }
+                        if (lon > Math.PI) {
+                            lon = -Math.PI + (lon % Math.PI);
+                        }
+                        else if (lon < -Math.PI) {
+                            lon = Math.PI + (lon % Math.PI);
+                        }
+                        elevationArray[extendedWidth * y + x] = self.getElevationAtLocation(lon * radiansToDegrees, lat * radiansToDegrees);
                     }
-                    if(lon>Math.PI){
-                        lon = -Math.PI+(lon%Math.PI);
-                    }
-                    else if(lon<-Math.PI){
-                        lon = Math.PI+(lon%Math.PI);
-                    }
-                    elevationArray[width * y + x] = self.getElevationAtLocation(lon* radiansToDegrees, lat* radiansToDegrees);
                 }
-            }
-            return elevationArray;
+
+                
+                if (geometry && skirtGeometry) {
+
+                    meshGeneration(bounds, width, height, elevationArray, geometry, skirtGeometry).then(shift => {
+                        resolve({
+                            elevationArray: trim(elevationArray, width+2, height+2),
+                            shift: shift,
+                        });
+                    }, error => {
+                        reject(error);
+                    })
+
+                } else {
+                    resolve({
+                        elevationArray: trim(elevationArray, width, height),
+                        shift: undefined,
+                    });
+                }
+            });
+            
         }
         if (this.loaded) {
-            return Promise.resolve(request());
+            return request();
         } else {
             var onLoad;
             const promise = new Promise(resolve => {
                 onLoad = () => {
-                    resolve(request());
+                    request().then(result => {
+                        resolve(result);
+                    })
+
                 }
             })
             this.pendingRequests.push(onLoad);

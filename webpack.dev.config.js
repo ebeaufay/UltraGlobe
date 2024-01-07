@@ -11,7 +11,7 @@ const DEFAULT_WEBPACK_PORT = 3003;
 module.exports = {
   mode: "development",
   entry: './src/index.js',
-
+  devtool: 'source-map',
   output: {
     filename: "ultraglobe.js",
     path: path.resolve(__dirname, 'dist'),
@@ -42,7 +42,6 @@ module.exports = {
 
   module: {
     rules: [
-
       {
         test: /\.s[ac]ss$/,
         use: [
@@ -85,7 +84,7 @@ module.exports = {
         loader: 'webpack-glsl-loader'
       },
       {
-        test: /\.(png|svg|jpg|jpeg|gif|ktx2)$/i,
+        test: /\.(png|svg|jpg|jpeg|gif|ktx2|bin)$/i,
         type: 'asset/inline',
       },
       {
@@ -125,12 +124,13 @@ module.exports = {
     })]
   }, */
   devServer: {
+    
     hot: true,
     open: true,
     port: DEFAULT_WEBPACK_PORT
   },
   resolve: {
-    
+
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {
       "fs": false,
