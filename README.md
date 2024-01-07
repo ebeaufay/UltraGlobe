@@ -5,7 +5,6 @@
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
-<img width="1272" alt="image" src="https://github.com/ebeaufay/UltraGlobe/assets/16924300/d782a23f-25be-44f5-ad2d-92627b789095">
 
 
 
@@ -61,5 +60,17 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [More controls for selecting and moving 3DTiles tilesets](https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html)
 
 [Random planet](https://www.jdultra.com/random/index.html)
+
+## Latest development
+In the latest version, terrain tile geometries are generated in web workers. The frame rate improves a little and it's going to allow more interesting terrain layers in the future.
+
+I also spent time (more than I hoped to) on clouds, but they look decent, they're cheap and flexible. Here's a couple of videos playing with the settings. The guide an API contain a full description:
+
+https://github.com/ebeaufay/UltraGlobe/assets/16924300/2fbeb3ce-a000-4e52-a630-4bc060d758ad
+
+
+https://github.com/ebeaufay/UltraGlobe/assets/16924300/0478bb2d-a7ac-4d17-808c-403e5960fc4a
+
+
 
 
