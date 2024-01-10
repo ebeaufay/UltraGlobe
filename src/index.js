@@ -163,9 +163,9 @@ function setupMap(globalElevationMap) {
     
     let map = new Map({
         divID: 'screen',
-        shadows: false,
+        shadows: true,
         debug: false,
-        ocean: true,//generateLiquidColor(),
+        ocean: generateLiquidColor(),
         atmosphere: generateAtmosphereColor(),
         sun: generateSunColor(),
         //globalElevation: globalElevationMap,
@@ -173,7 +173,7 @@ function setupMap(globalElevationMap) {
         space: true,
         clouds: {
             color: new THREE.Vector3(1.0,1.0,1.0),
-            coverage: 0.82,
+            coverage: 0.75,
             scatterCoefficient: 0.85,
             biScatteringKappa: 0.75,
             density: 30,
@@ -204,7 +204,7 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.setDate(new Date(2023, 2, 21, 10, 0, 0, 0));
+    map.setDate(new Date(2023, 2, 21, 6, 0, 0, 0));
     let h = 20;
     let m = 0;
     let s = 0;

@@ -62,8 +62,8 @@ class Map {
     * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
     * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
     * @param {Boolean|Object} [properties.space = false] space properties, if undefined, no space is drawn
-    * @param {Number} [properties.space.starsIntensity=1] The intensity of stars
-    * @param {Number} [properties.space.gasCloudsIntensity=1] the intensity of nebula like gasClouds
+    * @param {Number} [properties.space.starsIntensity=0.75] The intensity of stars
+    * @param {Number} [properties.space.gasCloudsIntensity=0.25] the intensity of nebula like gasClouds
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
     * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
@@ -103,8 +103,8 @@ class Map {
         this.space = properties.space;
         if (this.space) {
             if (!(typeof this.space === 'object' && Array.isArray(this.space))) this.space = {};
-            if (!this.space.starsIntensity) this.space.starsIntensity = 0.25;
-            if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.2;//Math.random();
+            if (!this.space.starsIntensity) this.space.starsIntensity = 0.75;
+            if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.25;//Math.random();
             if (!this.space.colorMap) this.space.colorMap = Math.random();
             if (!this.space.texRotation1) this.space.texRotation1 = Math.random() * Math.PI;
             if (!this.space.texRotation2) this.space.texRotation2 = Math.random() * Math.PI;
@@ -322,7 +322,7 @@ class Map {
 
 
 
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.25));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.5));
 
             if (this.debug) {
                 this.csmHelper = new CSMHelper(this.csm);
@@ -387,6 +387,7 @@ class Map {
         this.target.depthBuffer = true;
         this.target.depthTexture = new THREE.DepthTexture();
         this.target.depthTexture.format = THREE.DepthFormat;
+        this.target.depthTexture.type = THREE.FloatType;
 
         // the depth render target is used to render depth to the main texture so that it can read retrieved on the CPU
         if (this.depthTarget) this.depthTarget.dispose();
