@@ -504,6 +504,43 @@ or with a bit more control:
 The result should look something like this
 ![planet6](https://github.com/ebeaufay/UltraGlobe/assets/16924300/0da89e6e-a692-463d-a505-12a220eb1dc8)
 
+Next we can add clouds.
+In a similar manner to the other postfx, the cloud are initialized at Map instantiation:
+```javascript
+    
+    let map = new Map({
+        divID: 'screen',
+        shadows: true,
+        debug: false,
+        ocean: new THREE.Vector3(0.7,0.3,0.1),
+        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
+        sun: new THREE.Vector3(0.75,0.8,1.0),
+        globalElevation: globalElevationMap,
+        space: true,
+        rings: true,
+        clouds: {
+            color: new THREE.Vector3(1.0,1.0,1.0),
+            coverage: 0.75,
+            scatterCoefficient: 0.85,
+            biScatteringKappa: 0.75,
+            density: 30,
+            luminance: 10,
+            showPanel: true,
+            quality: 0.5,
+            windSpeed: 0.1,
+            cloudsRadiusStart: 1.003,
+            cloudsRadiusEnd: 1.015
+        }
+    });
+}
+```
+Several of those properties may be self-evident but you can set the "showPanel" property to true to play around with the parameters.
+The Map will have a "clouds" object allowing these properties to be modified on the fly.
+
+<img width="785" alt="image" src="https://github.com/ebeaufay/UltraGlobe/assets/16924300/a51cf94e-f3df-4c83-b04f-203037e824c2">
+<img width="1272" alt="image" src="https://github.com/ebeaufay/UltraGlobe/assets/16924300/cfdc6687-257e-445d-a780-3c2b33dca290">
+
+
 Finally, you can add this somewhere to change the time of day and get nice sun-sets:
 
 ```
