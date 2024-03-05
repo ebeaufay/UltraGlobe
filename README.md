@@ -62,14 +62,9 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [Random planet](https://www.jdultra.com/random/index.html)
 
 ## Latest development
-In the latest version, terrain tile geometries are generated in web workers. The frame rate improves a little and it's going to allow more interesting terrain layers in the future.
+Let's replace the sun with a black-hole because, why not!
 
-I also spent time (more than I hoped to) on clouds, but they look decent, they're cheap and flexible. Here's a couple of videos playing with the settings. The guide an API contain a full description:
-
-https://github.com/ebeaufay/UltraGlobe/assets/16924300/2fbeb3ce-a000-4e52-a630-4bc060d758ad
-
-
-https://github.com/ebeaufay/UltraGlobe/assets/16924300/0478bb2d-a7ac-4d17-808c-403e5960fc4a
+https://github.com/ebeaufay/UltraGlobe/assets/16924300/6d71c7c0-dfea-44ce-8f20-80acee92c87e
 
 
 
