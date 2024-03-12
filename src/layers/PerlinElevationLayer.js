@@ -76,8 +76,8 @@ class PerlinElevationLayer extends ElevationLayer {
      */
     constructor(properties) {
         super(properties);
-        this.min = properties.minHeight ? this.minHeight : -10000 - Math.random() * 10000;
-        this.max = properties.maxHeight ? this.maxHeight : 10000 + Math.random() * 22000;
+        this.min = properties.minHeight ? this.minHeight : -100000;
+        this.max = properties.maxHeight ? this.maxHeight : 100000;
         this.maxOctaveSimplex = 3 + Math.random() * 3;
         this.gainSimplex = 0.2 + Math.random() * 0.3;//0.5 + Math.random() * 0.2;
         this.maxOctaveTurbulence = 3 + Math.random() * 2;
@@ -86,14 +86,41 @@ class PerlinElevationLayer extends ElevationLayer {
         this.continentFrequency = 0.2 + Math.random() * 2;
         this.turbulenceUp = 0.25 + Math.random() * 0.5;
         this.freqSup = 0.5 + Math.random() * 1;
+        this.gains = Array.from({ length: 20 }, () => 0.55+Math.random()*0.1);
+        this.shift = [Math.random()*360, Math.random()*360, Math.random()*360]
+        
+        this.lacunarities = [1+Math.random(), 20+Math.random()*70]/* [1+Math.random(), 1+Math.random()*20] */;//Array.from({ length: 20 }, () => 1.6+Math.random()*0.2);
+         let f = 1;
+        for(let i = 0; i<this.lacunarities.length; i++){
+            f*=this.lacunarities[i];
+        }
+        let l = Math.pow(200000/f, 1/(15-this.lacunarities.length));
+        this.lacunarities.push(l);
+        console.log(this.lacunarities)
+        this.noiseTypes = Array.from({ length: 20 }, () => Math.floor(Math.random()*3)); //0 normal, 1 ridged, 2 turbulent
+
+        
+        
+        this.biomRepLatitude = Math.random()+1;
+        this.biomRepLongitude = Math.random()+1;
     }
 
-    getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 13){
+    getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 16){
         const trim = super._trimEdges;
         return new Promise((resolve, reject) => {
-            sendWorkerTask({ bounds: bounds, resolution: width, min: this.min, max:this.max, maxOctaveSimplex: this.maxOctaveSimplex,
-                gainSimplex: this.gainSimplex, maxOctaveTurbulence: this.maxOctaveTurbulence, gainTurbulence: this.gainTurbulence,
-                warpFactorMultiplier: this.warpFactorMultiplier, continentFrequency: this.continentFrequency, turbulenceUp: this.turbulenceUp, freqSup: this.freqSup, maxOctaves:maxOctaves},
+            sendWorkerTask({ 
+                bounds: bounds, 
+                resolution: width, 
+                min: this.min, 
+                max:this.max, 
+                maxOctaves:maxOctaves,
+                lacunarities: this.lacunarities,
+                biomRepLongitude: this.biomRepLongitude,
+                biomRepLatitude: this.biomRepLatitude,
+                shift: this.shift,
+                gains:this.gains,
+                noiseTypes:this.noiseTypes},
+
                 (response) => {
                     geometry.setIndex(new THREE.Uint32BufferAttribute(new Int32Array(response.indices),1));
                     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(response.vertices), 3));
@@ -233,6 +260,65 @@ class PerlinElevationLayer extends ElevationLayer {
     
 
 
+}
+
+function generateRandomRotation() {
+    // Generate a random unit quaternion for a uniformly distributed rotation
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const u3 = Math.random();
+
+    
+    return [u1,u2,u3];
+}
+function generateRandomOrthogonalMatrix() {
+    // Generate a random unit quaternion for a uniformly distributed rotation
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const u3 = Math.random();
+
+    const q0 = Math.sqrt(1 - u1) * Math.sin(2 * Math.PI * u2);
+    const q1 = Math.sqrt(1 - u1) * Math.cos(2 * Math.PI * u2);
+    const q2 = Math.sqrt(u1) * Math.sin(2 * Math.PI * u3);
+    const q3 = Math.sqrt(u1) * Math.cos(2 * Math.PI * u3);
+
+    // Convert the quaternion to a 3x3 rotation matrix
+    const m = [
+        1 - 2 * (q2 * q2 + q3 * q3),
+        2 * (q1 * q2 - q0 * q3),
+        2 * (q1 * q3 + q0 * q2),
+
+        2 * (q1 * q2 + q0 * q3),
+        1 - 2 * (q1 * q1 + q3 * q3),
+        2 * (q2 * q3 - q0 * q1),
+
+        2 * (q1 * q3 - q0 * q2),
+        2 * (q2 * q3 + q0 * q1),
+        1 - 2 * (q1 * q1 + q2 * q2)
+    ];
+
+    return m;
+}
+function generateRandomMatrixAndScale() {
+    // Generate a random 3x3 matrix
+    let m = Array.from({ length: 9 }, () => Math.random() * 10 - 5); // Random values in [-1, 1]
+
+    // Calculate the magnitude of each row to determine the scale
+    let scales = [
+        Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]),
+        Math.sqrt(m[3] * m[3] + m[4] * m[4] + m[5] * m[5]),
+        Math.sqrt(m[6] * m[6] + m[7] * m[7] + m[8] * m[8]),
+    ];
+
+    // Adjust each row to normalize the scale to 1
+    for (let i = 0; i < 3; i++) {
+        let scale = scales[i];
+        for (let j = 0; j < 3; j++) {
+            m[i * 3 + j] /= scale;
+        }
+    }
+
+    return m;
 }
 
 export { PerlinElevationLayer };

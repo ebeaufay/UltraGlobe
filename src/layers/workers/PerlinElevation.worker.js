@@ -1,7 +1,8 @@
-import {common} from "./common.worker.js"
+import { common } from "./common.worker.js"
 
 const PerlinElevationWorker = {
-    getScript : () => {
+
+    getScript: () => {
         return `
         onmessage = function (e) {
             const id = e.data.id;
@@ -11,8 +12,169 @@ const PerlinElevationWorker = {
                 postMessage({ id: id, error: error });
             }
         };
+
+        function hash(x, y, z) {
+            let n = x * 3 + y * 113 + z * 311;
+            n = (n << 13) ^ n;
+            n = n * (n * 15731 + 789221) + 1376312589;
+            return -1.0 + 2.0 * (n & 0x0fffffff) / 0x0fffffff;
+        }
+        function noised(x, y, z) {
+            const floorX = Math.floor(x), floorY = Math.floor(y), floorZ = Math.floor(z);
+            const wX = x - floorX, wY = y - floorY, wZ = z - floorZ;
         
+            // Reduce the complexity of polynomial computations by pre-calculating repeated expressions
+            const wx2 = wX * wX, wy2 = wY * wY, wz2 = wZ * wZ;
+            const wx3 = wx2 * wX, wy3 = wy2 * wY, wz3 = wz2 * wZ;
+            const wx4 = wx3 * wX, wy4 = wy3 * wY, wz4 = wz3 * wZ;
+            const wx5 = wx4 * wX, wy5 = wy4 * wY, wz5 = wz4 * wZ;
+        
+            const uX = wx3 * (wX * (wX * 6 - 15) + 10);
+            const uY = wy3 * (wY * (wY * 6 - 15) + 10);
+            const uZ = wz3 * (wZ * (wZ * 6 - 15) + 10);
+        
+            // Optimize derivative calculations by directly using the pre-calculated power values
+            const duX = 30.0 * (wx4 - 2.0 * wx3 + wx2);
+            const duY = 30.0 * (wy4 - 2.0 * wy3 + wy2);
+            const duZ = 30.0 * (wz4 - 2.0 * wz3 + wz2);
+        
+            // Hash function calls remain the same
+            const a = hash(floorX, floorY, floorZ), b = hash(floorX + 1, floorY, floorZ),
+                  c = hash(floorX, floorY + 1, floorZ), d = hash(floorX + 1, floorY + 1, floorZ),
+                  e = hash(floorX, floorY, floorZ + 1), f = hash(floorX + 1, floorY, floorZ + 1),
+                  g = hash(floorX, floorY + 1, floorZ + 1), h = hash(floorX + 1, floorY + 1, floorZ + 1);
+        
+            // Linear interpolation factors and derivatives calculations
+            const k0 = a, k1 = b - a, k2 = c - a, k3 = e - a,
+                  k4 = a - b - c + d, k5 = a - c - e + g,
+                  k6 = a - b - e + f, k7 = -a + b + c - d + e - f - g + h;
+        
+            const value = k0 + k1 * uX + k2 * uY + k3 * uZ + k4 * uX * uY + k5 * uY * uZ + k6 * uZ * uX + k7 * uX * uY * uZ;
+            const derivative = [
+                duX * (k1 + k4 * uY + k6 * uZ + k7 * uY * uZ),
+                duY * (k2 + k5 * uZ + k4 * uX + k7 * uZ * uX),
+                duZ * (k3 + k6 * uX + k5 * uY + k7 * uX * uY)
+            ];
+        
+            return [value, ...derivative];
+        }
+        function noisedRidge(x, y, z) {
+            const val = noised(x,y,z);
+            val[0] = ((1-Math.abs(val[0]))*2)-1;
+            return val
+        }
+        function noisedTurbulent(x, y, z) {
+            const val = noised(x,y,z);
+            val[0] = ((Math.abs(val[0]))*2)-1;
+            return val
+        }
+
+        function multiplyMatrix3x3WithVector3(m, v) {
+            return [
+                m[0] * v[0] + m[1] * v[1] + m[2] * v[2], // Row 1
+                m[3] * v[0] + m[4] * v[1] + m[5] * v[2], // Row 2
+                m[6] * v[0] + m[7] * v[1] + m[8] * v[2]  // Row 3
+            ];
+        }
+
+        function multiplyMatrices3x3(m1, m2) {
+            let result = new Array(9);
+        
+            // Compute each element of the result matrix
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    result[row * 3 + col] =
+                        m1[row * 3] * m2[col] +
+                        m1[row * 3 + 1] * m2[col + 3] +
+                        m1[row * 3 + 2] * m2[col + 6];
+                }
+            }
+        
+            return result;
+        }
+        function fbm(a,b,c,amplitude,gain,frequency, lacunarities, numOctaves){
+            let h = 0;
+            let lacunarity = lacunarities;
+            if(Array.isArray(lacunarities)) {
+                if(lacunarity[0]){
+                    frequency = lacunarities[0];
+                }
+            }
+            let overallAmplitude = 0;
+            for(let i = 0; i<numOctaves; i++){
+                if(Array.isArray(lacunarities)) {
+                    if(lacunarity[i+1]){
+                        lacunarity = lacunarities[i+1];
+                    }
+                }
+                let n = noise(a*frequency, b*frequency, c*frequency);
+                h+=n*amplitude;
+                overallAmplitude+=amplitude;
+                amplitude *=gain;
+                frequency*=lacunarity;
+                if(frequency>200000) break;
+            }
+            return h/overallAmplitude;
+        }
+        function fbmAD(a,b,c,amplitude,gains, gainMultiplier,frequency, lacunarities, numOctaves, noiseTypes){ // analytical derivative
+            let noiseFunction = noised;
+            let v = [a,b,c];
+            let h = 0;
+            let d = [0,0,0];
+            let lacunarity = lacunarities;
+            if(Array.isArray(lacunarities)) {
+                if(lacunarity[0]){
+                    frequency = lacunarities[0];
+                }
+            }
+            let overallAmplitude = 0.0;
+            for(let i = 0; i<numOctaves; i++){
+                
+                if(Array.isArray(lacunarities)) {
+                    if(lacunarities[i]){
+                        lacunarity = lacunarities[i];
+                    }
+                }
+                noiseFunction = noised;
+                if(Array.isArray(noiseTypes)) {
+                    if(noiseTypes[i]){
+                        if(noiseTypes[i] == 1) noiseFunction = noisedRidge;
+                        if(noiseTypes[i] == 2) noiseFunction = noisedTurbulent;
+                    }
+                }
+                
+                let n = noiseFunction(v[0]*frequency,v[1]*frequency,v[2]*frequency);
+                //n[0] = 2*(1-Math.abs(n[0]))-1
+                d[0] +=n[1];
+                d[1] +=n[2];
+                d[2] +=n[3];
+                const xx =(1.0+(d[0]*d[0]+d[1]*d[1]+d[2]*d[2]));
+                h +=amplitude*n[0]/xx;
+                overallAmplitude+=amplitude/xx;
+                amplitude *=gains[i]*gainMultiplier;
+                frequency*=lacunarity;
+                if(frequency>200000) break;
+                
+            }
+            return h/overallAmplitude;
+        }
+
+        
+
+        function fbmDW(a,b,c,amplitude,gain,frequency, lacunarities, numOctaves){ // analytical derivative
+            let xWarp = fbm(a,b,c,amplitude,gain,frequency, lacunarities, numOctaves);
+            let yWarp = fbm(a+0.578,b+7.149,c+2.47841,amplitude,gain,frequency, lacunarities, numOctaves);
+            let zWarp = fbm(a+0.758,b+2.639,c+5.741,amplitude,gain,frequency, lacunarities, numOctaves);
+
+            return fbm(a+xWarp,b+yWarp,c+zWarp,amplitude,gain,frequency, lacunarities, numOctaves);
+        }
+
         function generateElevationAndMesh(params) {
+            return generateElevationAndMesh2D(params);
+        }
+        
+
+        function generateElevationAndMesh2D(params) {
 
             const extendedBounds =
             {
@@ -40,7 +202,23 @@ const PerlinElevationWorker = {
             var extendedElevationArrayBuffer = new ArrayBuffer(extendedWidth * extendedHeight * Float32Array.BYTES_PER_ELEMENT);
             var extendedElevation = new Float32Array(extendedElevationArrayBuffer);
             
-            let ampTotal = 0;
+            
+            elevation2DSFCT(extendedElevation, extendedWidth, extendedHeight, baseLat, baseLon, latStep, lonStep, params);
+        
+            
+            let result;
+            if (params.bounds.max.y >= 1.57079632) {
+                result = generateNorthPoleTile(params.resolution, params.bounds, extendedElevation);
+            } else if (params.bounds.min.y <= -1.57079632) {
+                result = generateSouthPoleTile(params.resolution, params.bounds, extendedElevation);
+            } else {
+                result = generateBaseTile(params.resolution, params.bounds, extendedElevation);
+            }
+            result.extendedElevationBuffer = extendedElevationArrayBuffer;
+            return result;
+        }
+
+        function elevation2DSFCT(extendedElevation, extendedWidth, extendedHeight, baseLat, baseLon, latStep, lonStep, params ){
             let lat = baseLat;
             for (let y = 0; y < extendedHeight; y++, lat += latStep) {
                 let lon = baseLon;
@@ -61,74 +239,23 @@ const PerlinElevationWorker = {
                         adjustedLon = Math.PI + (adjustedLon % Math.PI);
                     }
 
+                    let a = Math.cos(adjustedLat) * Math.cos(adjustedLon) +params.shift[0];
+                    let b = Math.cos(adjustedLat) * Math.sin(adjustedLon) +params.shift[1];
+                    let c = Math.sin(adjustedLat) +params.shift[2];
+
+                    let amplitude = 1.0;
+                    let frequency = 1;
+                    //const gainMultiplier = Math.max(0.0001,(1+fbm(a,b,c,1,0.75,2,5, 3))*0.5);
+                    let elevationMultiplier = Math.pow(Math.max(0.1,(1+fbmAD(a,b,c,1,[0.75,0.75,0.75,0.75],1.0,4,4.2, 4))*0.5),2.2);
                     
-                    let a = Math.cos(adjustedLat) * Math.cos(adjustedLon);
-                    let b = Math.cos(adjustedLat) * Math.sin(adjustedLon);
-                    let c = Math.sin(adjustedLat);
-        
-        
-                    const warpFactor = noise(a, b, c);
-                    const dx = warpFactor * noise(a + 0.57, b + 0.1248, c + 0.845);
-                    const dy = warpFactor * noise(a + 0.1111, b + 0.744, c + 0.154);
-                    const dz = warpFactor * noise(a + 0.287, b + 0.2678, c + 0.36698);
+                    const fractalAnalytic=fbmAD(a,b,c,amplitude, params.gains, 1, frequency, params.lacunarities, params.maxOctaves, params.noiseTypes);
+                    domainWarpNoise = 1-Math.max(0,fbmDW(a,b,c,amplitude, 0.75, 55, 1.9, 5))*0.002;
+                    extendedElevation[extendedWidth * y + x] = fractalAnalytic*domainWarpNoise*(params.max-params.min)*0.5*elevationMultiplier;
                     
-                    let p2 = 3 * (noise((a + 0.214) * params.continentFrequency, (b + 0.569) * params.continentFrequency, (c + 0.648) * params.continentFrequency));
-                    let p1 = 3 * (noise((a + 0.878) * params.continentFrequency, (b + 0.2456) * params.continentFrequency, (c + 0.211) * params.continentFrequency));
-                    //p1 = Math.sign(p1)*Math.sqrt(Math.abs(p1));
-                    //p2 = Math.sign(p2)*Math.sqrt(Math.abs(p2));
-        
-                    const teracingMax = (1 + (noise((a + 0.456) * 10.0, (b + 0.678) * 10.0, (c + 0.125) * 10.0)));
-                    const teracingMin = -(1 + (noise((a + 0.168) * 10.0, (b + 0.895) * 10.0, (c + 0.174) * 10.0)));
-                    
-                    let previousTurbulence = 1;
-                    
-                    for (let octave = 0; octave < params.maxOctaves; octave++) {
-                        const freq = Math.pow(5, octave + 1 + params.freqSup);
-                        const freqSimplex = freq * 0.02;
-                        
-                        if (octave < params.maxOctaveSimplex) {
-                            const ampSimplex = Math.pow(params.gainSimplex, octave + 1) * p2;
-                            extendedElevation[extendedWidth * y + x] += Math.max(teracingMin, Math.min(teracingMax, noise((a + 0.187 + dx) * freqSimplex, (b + 0.289 + dy) * freqSimplex, (c + 0.247 + dz) * freqSimplex))) * ampSimplex;
-                            
-                        }
-        
-                        if (octave < params.maxOctaveTurbulence) {
-                            
-                            const ampTurbulence = Math.pow(params.gainTurbulence, octave + 1) * (p1) * 2;
-                            //previousTurbulence = -(2.0 * (Math.max(teracingMin, Math.min(teracingMax, Math.abs(noise((a+0.966 + dx) * freq, (b+0.871 + dy) * freq, (c+0.498 + dz) * freq))))) - 1.0) * ampTurbulence * previousTurbulence;
-                            previousTurbulence = Math.max(teracingMin, Math.min(teracingMax, Math.abs(noise((a + 0.966 + dx) * freq, (b + 0.871 + dy) * freq, (c + 0.498 + dz) * freq)) - params.turbulenceUp)) * ampTurbulence * previousTurbulence;
-                            extendedElevation[extendedWidth * y + x] += previousTurbulence;
-                        }
-                    }
+
+
                 }
             }
-            for (let octave = 0; octave < 13; octave++) {
-                if (octave < params.maxOctaveSimplex) {
-                    ampTotal += Math.pow(params.gainSimplex, octave + 1);
-                }
-                if (octave < params.maxOctaveTurbulence) {
-                    ampTotal += Math.pow(params.gainTurbulence, octave + 1);
-                }
-            }
-        
-            
-            for (let x = 0; x < extendedWidth; x++) {
-                for (let y = 0; y < extendedHeight; y++) {
-                    extendedElevation[extendedWidth * y + x] = (((extendedElevation[extendedWidth * y + x] / ampTotal) + 1) * 0.5) * (params.max - params.min) + params.min;
-                }
-            }
-        
-            
-            let result;
-            if (params.bounds.max.y >= 1.57079632) {
-                result = generateNorthPoleTile(params.resolution, params.bounds, extendedElevation);
-            } else if (params.bounds.min.y <= -1.57079632) {
-                result = generateSouthPoleTile(params.resolution, params.bounds, extendedElevation);
-            } else {
-                result = generateBaseTile(params.resolution, params.bounds, extendedElevation);
-            }
-            result.extendedElevationBuffer = extendedElevationArrayBuffer;
-            return result;
         }
 
         const _p = [ 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10,
@@ -199,8 +326,8 @@ const PerlinElevationWorker = {
 			grad( _p[ BB + 1 ], xMinus1, yMinus1, zMinus1 ) ) ) );
 
 	}
-        `+common.getGenerateTerrainTile();
+        `+ common.getGenerateTerrainTile();
     }
 };
-export{PerlinElevationWorker};
+export { PerlinElevationWorker };
 

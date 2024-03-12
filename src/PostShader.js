@@ -88,6 +88,8 @@ const PostShader = {
 			uniform mat4 projMatrixInv;
 			uniform mat4 viewMatrixInv;
 			uniform float time;
+			uniform bool mobile;
+			uniform float atmosphereDensity;
 			float atmosphereRadius = 1.1;
 			`;
 		if (space) {
@@ -413,9 +415,10 @@ const PostShader = {
 					if(depth<0.99){ // ray touches earth
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						//return impactOpticalDepthY;
-						return min(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x,texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+						
+						return (1.0-exp(-length(impact-rayOrigin)*0.0000005*atmosphereDensity));
 					}else{ // ray to space
-						return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+						return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*atmosphereDensity;
 					}
 					
 				}
@@ -430,9 +433,9 @@ const PostShader = {
 						if(depth<0.99){ //ray touches earth
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							
-							return min(texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY)).x,texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.1;
+							return (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000005*atmosphereDensity));
 						}else{//ray enters atmosphere and exits to space 
-							return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x;
+							return texture2D( opticalDepth, vec2(opticalDepthX, opticalDepthY) ).x*atmosphereDensity;
 						}
 					}else{ // ray stays in space
 						return 0.0;
@@ -559,9 +562,13 @@ const PostShader = {
 			code += `
 					float waterVolume = oceanVolume(worldDir, impact);
 					vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/100.0)));
-					//float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/3000000.0));
+					waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.5);
+					float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/5000000.0));
+					if(mobile){
+						showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-100000.0)/300000.0));
+					}
 					float waterOpacity = min(0.7,max(0.0,waterVolume/200.0));
-					diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
+					diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity,showWater));
 					`;
 		}
 		if (clouds) {
@@ -618,10 +625,15 @@ const PostShader = {
 		if (!atmosphere || !atmosphere.isVector3) {
 			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
 		}
+		let blackHole = false;
+		let blackHoleNormal;
+		if(sun === false){
+			blackHole = true;
+		}
 		if (!sun || !sun.isVector3) {
 			sun = new THREE.Vector3(1.0, 0.9, 0.8);
 		}
-		const sunHighlight = new THREE.Vector3(Math.pow(sun.x, 2), sun.y, 2, Math.pow(sun.z, 2));
+		const sunHighlight = new THREE.Vector3(Math.pow(sun.x, 0.5), Math.pow(sun.y, 0.5), Math.pow(sun.z, 0.5));
 		const atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
 
 		let code = /* glsl */`
@@ -659,6 +671,9 @@ const PostShader = {
 			varying vec3 nearPlanePosition;
 			uniform vec3 sunLocation;
 			uniform float ldf;
+			uniform bool mobile;
+			uniform float time;
+			uniform float atmosphereDensity;
 			`;
 		if (globalElevation) {
 			code += `uniform sampler2D globalElevation;`
@@ -763,6 +778,30 @@ const PostShader = {
         		return vec2(t-x, t+x);
 			}
 
+			float intersectRaySphere(vec3 rayA, vec3 rayB, vec3 sphereOrigin, float sphereRadius) {
+				vec3 dir = rayB - rayA;
+				vec3 L = rayA - sphereOrigin;
+				float a = dot(dir, dir);
+				float b = 2.0 * dot(dir, L);
+				float c = dot(L, L) - sphereRadius * sphereRadius;
+			
+				float D = b * b - 4.0 * a * c;
+			
+				if (D < 0.0) {
+					return -1.0; // No intersection
+				}
+			
+				// Compute the nearest intersection point (smallest t)
+				float t = (-b - sqrt(D)) / (2.0 * a);
+			
+				// Check if the intersection is within the segment defined by A and B
+				if (t >= 0.0 && t <= 1.0) {
+					return t; // The ray intersects the sphere within the segment
+				}
+			
+				return -1.0; // Intersection outside the segment
+			}
+
 			vec2 rayEllipsoidIntersection(
 				in vec3 ellipsoidCenter, in vec3 rayOrigin, in vec3 normalizedRayDir, in float a, in float b, in float c
 			) {
@@ -838,6 +877,35 @@ const PostShader = {
 		}
 		if (space) {
 			code += `
+			
+			
+			vec4 intersectRayRing(vec3 rayOrigin, vec3 rayDirection, vec3 planeOrigin, vec3 planeNormal, float ringStartDistance, float ringEndDistance, out float t) {
+				// Step 1: Find intersection with the plane
+				vec3 diff = planeOrigin - rayOrigin;
+				float prod1 = dot(diff, planeNormal);
+				float prod2 = dot(rayDirection, planeNormal);
+				t = prod1 / prod2;
+				
+				// If the ray is parallel to the plane or points away from it, return no intersection
+				if (prod2 == 0.0 || t < 0.0) {
+					return vec4(0.0, 0.0, 0.0, -1.0); // No intersection, w = -1 indicates failure
+				}
+				
+				// Calculate the exact intersection point
+				vec3 intersection = rayOrigin + rayDirection * t;
+				
+				// Step 2: Check if the intersection point is within the ring bounds
+				float distanceFromOrigin = length(intersection - planeOrigin);
+				
+				if (distanceFromOrigin >= ringStartDistance && distanceFromOrigin <= ringEndDistance) {
+					// Inside the ring
+					return vec4(intersection, 1.0); // Intersection point, w = 1 indicates success
+				}
+				
+				// Outside the ring
+				return vec4(0.0, 0.0, 0.0, -1.0); // No intersection within the ring, w = -1 indicates failure
+			}
+
 			vec2 rotate90(vec2 longLat) {
                 
                 // Convert to Cartesian coordinates
@@ -901,12 +969,12 @@ const PostShader = {
 
 		code += `	
 
-			vec3 atmosphereCalc(
+			void atmosphereCalc(
 				in vec3 sphereOrigin,
 				in vec3 rayOrigin, in vec3 rayDirection,
 				in float depth, in vec3 impact, in vec3 sunVector,
 				out float atmosphereImpactDistance, out float atmosphereThickness, out float atmosphereThicknessForSun,
-				out float atmosphereCameraHeight
+				out float atmosphereCameraHeight, out float shade
 			) {
 				
 				vec3 sphereToRayOrigin = normalize(sphereOrigin - rayOrigin);
@@ -921,29 +989,19 @@ const PostShader = {
 						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
 						//vec3 rayMidPoint = mix(rayOriginOnAtmosphereSurface, rayExitOnAtmosphereSurface, 0.75);
-						float shade = max(0.0,max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector)));
+						shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector))));
 						
-						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
-						vec2 optical = texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).xy;
-						atmosphereThickness = optical.x*0.1;
-						atmosphereThicknessForSun = optical.y*0.1;
-						return vec3(
-							(texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.05*shade,
-							shade,0.0
-						);
+						atmosphereThickness = (1.0-exp(-length(impact-rayOrigin)*0.0000007*atmosphereDensity));
+						atmosphereThicknessForSun = 0.0;
 						
 					}else{ // sky
 						
-						//float shade = max(0.01, dot(normalize(rayOrigin), sunVector));
 						vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
-						//vec3 rayMidPoint = mix(rayOrigin, rayExitOnAtmosphereSurface, 0.75);
-						//float shade = max(0.01, dot(normalize(rayExitOnAtmosphereSurface), sunVector));
-						float shade = max(0.0,max(dot(normalize(rayOrigin), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector)));
+						shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
 						vec2 optical = texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).xy;
-						atmosphereThickness = optical.x;
-						atmosphereThicknessForSun = optical.y;
-						return vec3(texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight) ).x,shade,1.0);
+						atmosphereThickness = max(0.0,min(1.0,optical.x*atmosphereDensity));
+						atmosphereThicknessForSun = optical.y*atmosphereDensity;
 					}
 				}
 				
@@ -961,27 +1019,18 @@ const PostShader = {
 						float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 						
 						if(depth<0.99){ // hit ground
-							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
-							float shade = max(0.0,max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector)));
-							vec2 optical = texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).xy;
-							atmosphereThickness = optical.x*0.1;
-							atmosphereThicknessForSun = optical.y*0.1;
-							return vec3(
-								(texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).x + texture2D( opticalDepth, vec2(opticalDepthX, impactOpticalDepthY)).x)*0.05*shade,
-								shade, 0.0
-							);
+							shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector))));
+							atmosphereThickness = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000007*atmosphereDensity));
+							atmosphereThicknessForSun = 0.0;
+							
 						}else{ // to Space
-							float shade = max(0.0,max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector)));
+							shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
 							vec2 optical = texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight)).xy;
-							atmosphereThickness = optical.x;
-							atmosphereThicknessForSun = optical.y;
-							return vec3(texture2D( opticalDepth, vec2(opticalDepthX, atmosphereCameraHeight) ).x,shade,1.0);
+							atmosphereThickness = max(0.0,min(1.0,optical.x*atmosphereDensity));
+							atmosphereThicknessForSun = optical.y*atmosphereDensity;
 						}
-					}else{
-						return vec3(0.0,0.0,0.0);
 					}
 				}
-				return vec3(1.0,1.0,1.0);
 				
 			}
 			vec3 reflection(vec3 incident, vec3 normal){
@@ -1033,7 +1082,7 @@ const PostShader = {
 				vec3 normal =  normalize( vec3( normalColor.r * 2.0 - 1.0, normalColor.b,  normalColor.g * 2.0 - 1.0 ) );
 				return mix(normal, vec3(0.0,1.0,0.0), max(0.0,heightAboveSeaLevel/100000.0));
 			}
-			vec3 oceanCalc(vec3 rayDirection, vec3 impact, vec3 sunVector){
+			vec3 oceanCalc(vec3 rayDirection, vec3 impact, vec3 sunVector, float cameraDepth){
 				float waterVolume = 0.0;
 				float oceanIlumination = 0.0;
 				float oceanLightReflection = 0.0;
@@ -1047,7 +1096,7 @@ const PostShader = {
 				}else{
 					vec3 surfaceImpact = nonPostCameraPosition + rayDirection * intersection.x;
 					
-					float cameraDepth = -heightAboveEllipsoid(nonPostCameraPosition);
+					
 					float depthNonLinearized = texture2D( tDepth, vUv ).x;
 					if(depthNonLinearized<1.0){ // hit on planet surface
 						
@@ -1106,19 +1155,36 @@ const PostShader = {
 				
 				return vec3(waterVolume, oceanIlumination, oceanLightReflection);
 			}
-			vec4 fromAxisAngle(vec3 axis, float angle) {
+			vec4 normalizeQuaternion(vec4 q) {
+				float norm = sqrt(dot(q, q));
+				return q / norm;
+			}
+			vec4 createQuaternionFromAxisAngle(vec3 axis, float angle) {
 				float halfAngle = angle / 2.0;
 				float s = sin(halfAngle);
-				return vec4(normalize(axis) * s, cos(halfAngle));
+				return normalizeQuaternion(vec4(normalize(axis) * s, cos(halfAngle)));
 			}
 			
 			vec4 multiplyQuaternions(vec4 q1, vec4 q2) {
-				return vec4(
+				return normalizeQuaternion(vec4(
 					q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
 					q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x,
 					q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w,
 					q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z
-				);
+				));
+			}
+
+			vec4 halveQuaternionAngle(vec4 q) {
+				q = normalizeQuaternion(q); // Ensure q is normalized
+				float angle = 2.0 * acos(q.w); // Extract angle
+				float sinHalfAngleOriginal = sqrt(1.0 - q.w * q.w);
+				vec3 axis;
+				if (sinHalfAngleOriginal < 0.0001) {
+					axis = vec3(1, 0, 0); // Default axis if too small to compute
+				} else {
+					axis = vec3(q.x, q.y, q.z) / sinHalfAngleOriginal; // Extract axis
+				}
+				return createQuaternionFromAxisAngle(axis, angle * 0.5); // Create new quaternion with half the angle
 			}
 			
 			vec4 conjugate(vec4 q) {
@@ -1130,6 +1196,140 @@ const PostShader = {
 				vec4 rotatedQuat = multiplyQuaternions(multiplyQuaternions(q, vecQuat), conjugate(q));
 				return vec3(rotatedQuat.x, rotatedQuat.y, rotatedQuat.z);
 			}
+
+			
+			
+
+			vec4 quatFromTwoVectors(vec3 start, vec3 dest) {
+				start = normalize(start);
+				dest = normalize(dest);
+				float cosTheta = dot(start, dest);
+				vec3 rotationAxis;
+				float epsilon = 0.000001;
+			
+				if (cosTheta < -1.0 + epsilon) {
+					// start and dest point in opposite directions
+					rotationAxis = cross(vec3(0.0, 0.0, 1.0), start);
+					if (length(rotationAxis) < epsilon) // They were parallel, try another axis
+						rotationAxis = cross(vec3(1.0, 0.0, 0.0), start);
+					rotationAxis = normalize(rotationAxis);
+					return vec4(rotationAxis, 0.0); // 180 degree rotation
+				}
+			
+				rotationAxis = cross(start, dest);
+			
+				float s = sqrt((1.0 + cosTheta) * 2.0);
+				float invs = 1.0 / s;
+			
+				return vec4(rotationAxis.x * invs, rotationAxis.y * invs, rotationAxis.z * invs, s * 0.5);
+			}
+
+			vec3 rotateVectorAroundAxis(vec3 v, vec3 axis, float angle) {
+				float cosTheta = cos(angle);
+				float sinTheta = sin(angle);
+				vec3 crossProd = cross(axis, v);
+				float dotProd = dot(axis, v);
+				return v * cosTheta + crossProd * sinTheta + axis * dotProd * (1.0 - cosTheta);
+			}
+
+			vec3 adjustDirectionBH(vec3 dir, vec3 bhPos, out float lightAbsorption, out float lightAbsorption2) {
+
+				//vec3 dirBH = dir*length(bhPos);
+				
+				// Calculate the closest approach (simplified)
+				float distanceToBH = length(dir - bhPos);
+				
+				// Calculate bending angle (simplified formula and approach)
+				float angle = 12000000.0 / distanceToBH;
+
+				vec3 axis = normalize(cross(dir, bhPos - dir));
+				
+				// Assuming 'angle' is small, adjust direction
+				// This is a placeholder: actual vector rotation towards 'bhPos' is more complex
+				//vec3 newDir = dir + angle * normalize(bhPos - dir);
+				vec3 newDir = rotateVectorAroundAxis(dir, axis, angle);
+				lightAbsorption = step(angle, 0.48);
+
+				float distance = abs(angle - 0.48);
+				lightAbsorption2 = exp(-(500.0 + cos(time*3.49783)*55.0 + cos(time*7.187935)*74.3) * distance * distance);
+
+				return normalize(newDir);
+			}
+
+			float gravitationalBendingEffect(vec3 rayPosition, vec3 blackHolePosition, float blackHoleMass) {
+				// Placeholder constants for the gravitational constant and the speed of light.
+				// In reality, these values would need to be adapted to work within the shader's limitations and the scene's scale.
+				float G = 8e-17; // Adjusted for scale in the shader's universe
+				float c = 1.0; // Similarly adjusted
+			
+				vec3 toBlackHole = blackHolePosition - rayPosition;
+				float distance = length(toBlackHole);
+			
+				// Calculate the Schwarzschild radius of the black hole for a simplified gravitational effect
+				float rs = 2.0 * G * blackHoleMass / (c * c);
+			
+				// Adjust bending effect based on distance and Schwarzschild radius
+				// This formula is inspired by physical principles but significantly simplified for use in shaders
+				float bendingFactor = rs / distance*distance*distance;
+			
+				// Normalize to prevent excessive bending while ensuring the effect becomes noticeable as the ray approaches the black hole
+				bendingFactor = clamp(bendingFactor, 0.0, 0.082); // Clamp the effect to prevent excessive bending and adjust based on visual needs
+			
+				return bendingFactor;
+			}
+			float intersectRayDisk(vec3 positionA, vec3 positionB, vec3 diskCenter, vec3 planeNormal, float ringStartDistance, float ringEndDistance) {
+				vec3 rayDirection = normalize(positionB - positionA);
+				float maxT = length(positionB - positionA);
+				vec3 diff = diskCenter - positionA;
+				float prod1 = dot(diff, planeNormal);
+				float prod2 = dot(rayDirection, planeNormal);
+				float t = prod1 / prod2;
+			
+				// Check if the intersection is within the segment and plane
+				if (prod2 == 0.0 || t < 0.0 || t > maxT) {
+					return 0.0; // No intersection with the plane in the segment
+				}
+			
+				// Calculate the actual intersection point
+				vec3 intersectionPoint = positionA + rayDirection * t;
+				// Check if the intersection point is within the disk's radii
+				float distanceFromCenter = length(intersectionPoint - diskCenter);
+				if (distanceFromCenter >= ringStartDistance && distanceFromCenter <= ringEndDistance) {
+					return (distanceFromCenter-ringStartDistance)/(ringEndDistance-ringStartDistance); // Intersection within the disk
+				}
+			
+				return 0.0; // Intersection outside the disk boundaries
+			}
+			float accretionDiskIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 blackHolePosition, float blackHoleWeight, float eventHorizonRadius, vec3 accretionDiskNormal, float accretionDiskMinRadius, float accretionDiskMaxRadius, float stepSize) {
+				vec3 currentPos = rayOrigin;
+				vec3 modifiedRayDir = rayDirection;
+			
+				for (int i = 0; i < 50; ++i) {
+					float bendingFactor = gravitationalBendingEffect(currentPos, blackHolePosition, blackHoleWeight);
+			
+					// Adjust ray direction based on bending factor
+					vec3 towardsBH = normalize(blackHolePosition - currentPos);
+					modifiedRayDir = normalize(modifiedRayDir + towardsBH * bendingFactor);
+			
+					vec3 nextPos = currentPos + modifiedRayDir * stepSize;
+			
+					float rayDiskIntersection = intersectRayDisk(currentPos, nextPos, blackHolePosition, accretionDiskNormal, accretionDiskMinRadius, accretionDiskMaxRadius);
+					if (rayDiskIntersection > 0.0) {
+						return rayDiskIntersection; // Intersection found
+					}
+					if (length(nextPos - blackHolePosition) > accretionDiskMaxRadius*2.5) {
+						return 0.0; // ray to space
+					}
+					if (intersectRaySphere(currentPos, nextPos, blackHolePosition, eventHorizonRadius) >= 0.0) {
+						return 0.0; // ray swallowed by black hole
+					}
+			
+					currentPos = nextPos;
+				}
+			
+				return 0.0; // No intersection found
+			}
+
 			void main() {
 				vec3 sunVector = normalize(sunLocation);
 				vec3 diffuse = texture2D( tDiffuse, vUv ).rgb;
@@ -1143,9 +1343,10 @@ const PostShader = {
 				float atmosphereThickness = 0.0;
 				float atmosphereThicknessForSun = 0.0;
 				float atmosphereCameraHeight = 0.0;
-				vec3 atmosphereMeasures = atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector, atmosphereImpactDistance, atmosphereThickness, atmosphereThicknessForSun, atmosphereCameraHeight);
+				float shade = 0.0;
+				atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector, atmosphereImpactDistance, atmosphereThickness, atmosphereThicknessForSun, atmosphereCameraHeight, shade);
 				atmosphereThickness = pow(atmosphereThickness,2.0);
-				float shade = atmosphereMeasures.y;
+				
 				vec3 atmosphereColor = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), shade);
 				
 				
@@ -1158,38 +1359,92 @@ const PostShader = {
 					if(depth >= 0.9999){
 
 						vec3 sunReference = vec3(1.0, 0.0, 0.0);
-						vec3 rotationAxis = cross(sunReference, sunVector);
-						float rotationAngle = -acos(dot(sunReference, sunVector));
-						vec4 rotationQuat1 = fromAxisAngle(rotationAxis, rotationAngle);
-						vec3 upVector = vec3(0.0,0.0,1.0);
-						vec3 rotatedUp = rotateVectorUsingQuaternion(upVector, rotationQuat1);
+						
+						vec3 upVector = vec3(0.0, 0.0, 1.0);
+						vec3 projectedSunVector =normalize(vec3(sunVector.x, sunVector.y, 0.0));
+						float angle = acos(dot(sunReference, projectedSunVector)) * -sign(dot(upVector, cross(sunReference, projectedSunVector)));
+						
 
-						vec4 rotationQuat2 = fromAxisAngle(cross(rotatedUp, upVector), 
-                                             acos(dot(normalize(rotatedUp), normalize(upVector))));
+						vec3 rotatedVector = rotateVectorAroundAxis(rayDirection, upVector, angle);
+						vec3 rotatedSunVector = rotateVectorAroundAxis(sunVector, upVector, angle);
+						
 
-						vec4 combinedQuat = multiplyQuaternions(rotationQuat2, rotationQuat1);
-						vec3 rotatedVector = rotateVectorUsingQuaternion(rayDirection, combinedQuat);
+
+						`;
+						if(blackHole){
+							code+=`
+						vec3 blackHoleCenter = rotatedSunVector*8e8+nonPostCameraPosition;
+						vec3 blackHoleCenterRelativeCamera = blackHoleCenter+nonPostCameraPosition;
+						//blackHoleCenter += nonPostCameraPosition;
+						float lightAbsorption = 1.0;
+						float lightAbsorption2 = 1.0;
+						vec3 accretionDiskNormal = normalize(vec3(0.02,0.025,1.0));
+						
+						vec3 rayOrigin = rotatedVector * (length(blackHoleCenter)-6e7);
+						float lightAbsorption3 = accretionDiskIntersection(rayOrigin, rotatedVector, blackHoleCenter, 2e7, 3.2e7/1.8, accretionDiskNormal, 0e7, 5.4e7, 8.0e6);
+						vec3 accretionColor = mix(vec3(0.6,0.8,3.0), vec3(3.0,2.0,1.0), lightAbsorption3);
+						if(lightAbsorption3>0.0){
+							if (lightAbsorption3 < 0.5) {
+								lightAbsorption3 =  1.0 / (1.0 + exp(-(32.0 + cos(time*9.487)*2.0 + cos(time*4.948)*1.7) * (lightAbsorption3 - 0.25)));
+							} else {
+								lightAbsorption3 =  1.0 - (1.0 / (1.0 + exp(-(35.0 + cos(time*7.0)*1.7 + cos(time*4.24)*2.0) * (lightAbsorption3 - 0.75))));
+							}
+							accretionColor*=lightAbsorption3;
+						}
+						
+						rotatedVector = adjustDirectionBH(rotatedVector*length(blackHoleCenter), blackHoleCenter, lightAbsorption, lightAbsorption2);
+						
+							`;
+						}
+						code+=`
+						
 						vec2 lonlat = vec2(atan(rotatedVector.y, rotatedVector.x),asin(rotatedVector.z));
+
+						vec2 sunLonlat = vec2(atan(rotatedSunVector.y, rotatedSunVector.x),asin(rotatedSunVector.z));
+						
+						
 						
 						// stars
 						float starsIntensity = pickFromTextureStars(starsTexture, lonlat,texRotation1, 15.0)*0.5;
 						starsIntensity += pickFromTextureStars(starsTexture, lonlat,texRotation2, 10.0)*0.5;
 						starsIntensity *= 2.0*`+ space.starsIntensity.toFixed(5) + `;
 
-						float nebulaIntensity1 = pickFromTextureX(nebulaTexture, lonlat,texRotation1, 5.0);
-						float nebulaIntensity2 = 1.0-pickFromTextureX(nebulaTexture, lonlat,texRotation2, 4.0);
+						float nebulaIntensity1 = pickFromTextureX(nebulaTexture, lonlat,texRotation1, 1.5);
+						float nebulaIntensity2 = pickFromTextureX(nebulaTexture, lonlat,texRotation2, 1.78);
 						float perlin1= pickFromTextureX(perlin, lonlat,texRotation2, 2.0);
-						float perlin2= pickFromTextureX(perlin, lonlat,texRotation1, 1.5);
+						float perlin2= pickFromTextureX(nebulaTexture, lonlat,texRotation1, 0.3);
 						float perlin3= pickFromTextureX(perlin, lonlat,texRotation1, 4.5);
-						nebulaIntensity1*= pow(nebulaIntensity1,0.1);
-						nebulaIntensity2*= pow(nebulaIntensity2,0.1);
-						nebulaIntensity1*=perlin1*`+ space.gasCloudsIntensity.toFixed(5) + `;
-						nebulaIntensity2*=perlin1*`+ space.gasCloudsIntensity.toFixed(5) + `;
+						//nebulaIntensity1*= pow(nebulaIntensity1,0.1);
+						//nebulaIntensity2*= pow(nebulaIntensity2,0.1);
+						nebulaIntensity1*=`+ space.gasCloudsIntensity.toFixed(5) + `;
+						nebulaIntensity2*=`+ space.gasCloudsIntensity.toFixed(5) + `;
 						vec3 nebulaColor1 = texture2D(nebulaPalette, vec2(nebulaIntensity1*0.2,`+ space.colorMap.toFixed(5) + `)).xyz * nebulaIntensity2;
 						vec3 nebulaColor2 = texture2D(nebulaPalette, vec2(nebulaIntensity1*0.2+0.5,`+ space.colorMap.toFixed(5) + `)).xyz * nebulaIntensity1;
 						diffuse.rgb = mix(nebulaColor1,nebulaColor2,perlin2)+vec3(starsIntensity*(0.5+0.5*perlin1*perlin3));
-						//diffuse.rgb*=min(1.0,max(atmosphereCameraHeight,1.0-shade));
-						//diffuse.rgb = vec3(lonlat.x/(2.0*PI)+0.5, lonlat.y/PI+0.5, 1.0);
+						//diffuse.rgb = vec3(nebulaIntensity2);
+						`;
+						if(!blackHole){
+							code+=`
+							float deltaLon = lonlat.x - sunLonlat.x;
+							float cosDistance = sin(sunLonlat.y) * sin(lonlat.y) + cos(sunLonlat.y) * cos(lonlat.y) * cos(deltaLon);
+							float angularDistance = 1.0-(acos(clamp(cosDistance, -1.0, 1.0))/PI);
+							float gaussianFactor = exp(-1.0 / (angularDistance * (1.0 - angularDistance) + 0.0001));
+							diffuse.rgb = mix(diffuse.rgb, vec3(pow(`+sunHighlight.x.toFixed(2)+`,0.5),pow(`+sunHighlight.y.toFixed(2)+`,0.5),pow(`+sunHighlight.z.toFixed(2)+`,0.5)), 1.0 / (1.0 + exp(-2000.0 * (angularDistance - 0.996))));
+							
+							`; 
+						}else{
+							code+=`
+							
+							diffuse.rgb = mix(diffuse.rgb, mix(vec3(1.0,0.5,0.5), vec3(2.0,2.0,2.0), lightAbsorption2), lightAbsorption2);
+							diffuse.rgb = mix(diffuse.rgb, vec3(0.0,0.0,0.0), 1.0-lightAbsorption);
+							diffuse.rgb = mix(diffuse.rgb, accretionColor, lightAbsorption3);
+							`; 
+						}
+						
+						
+						code+=`
+
+						
 						
 					}
 					`;
@@ -1198,9 +1453,9 @@ const PostShader = {
 
 		code += `
 				float s = max(0.0,dot(cameraSun, rayDirection));
-				float atm = pow(1.0-atmosphereThicknessForSun*0.5,4.0);
+				float atm = pow(1.0-atmosphereThicknessForSun*0.5,4.0)*(1.0/atmosphereDensity);
 				float sunVisibility = (depth>=0.9999?(pow(s,10.0*atm)):0.0)*(1.0-min(1.0,atmosphereCameraHeight));
-				float atmosphereOpacity = min(1.0,atmosphereThickness*shade+sunVisibility);
+				float atmosphereOpacity = min(1.0,(atmosphereThickness*atmosphereDensity)*shade+sunVisibility);
 				atmosphereColor.x = mix(atmosphereColor.x,0.6+shade,pow(s,80.0*atm));
 				atmosphereColor.y = mix(atmosphereColor.y,0.5+shade,pow(s,60.0*atm));
 				atmosphereColor.z = mix(atmosphereColor.z,0.4+shade,pow(s,10.0*atm));
@@ -1223,18 +1478,32 @@ const PostShader = {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			const specularOcean = new THREE.Vector3(Math.sqrt(shallowOcean.x), Math.sqrt(shallowOcean.y), Math.sqrt(shallowOcean.z));
 			code += `
-							
-							vec3 oceanMeasures = oceanCalc(rayDirection, impact, sunVector);
+							float cameraDepth = -heightAboveEllipsoid(nonPostCameraPosition);
+							vec3 oceanMeasures = oceanCalc(rayDirection, impact, sunVector, cameraDepth);
 								float waterVolume = oceanMeasures.x;
 								float oceanIlumination = max(0.2,oceanMeasures.y) ;
 								
 								float oceanLightReflection = max(0.2,pow(oceanMeasures.z,1.0));
 								vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/1000.0)))*oceanIlumination;
 								waterColor = mix(waterColor, vec3(`+ specularOcean.x.toFixed(3) + `,` + specularOcean.y.toFixed(3) + `,` + specularOcean.z.toFixed(3) + `), pow(oceanLightReflection,3.0));
-								//float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/3000000.0));
-								float waterOpacity = min(0.7,max(0.0,waterVolume/200.0));
+								
+								//vec3 waterColorATM = mix(waterColor, atmosphereColor, atmosphereThickness*0.5*shade);
+								//waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.5*shade);
+
+								float impactDepth = -heightAboveEllipsoid(impact);
+								waterColor = mix(waterColor, waterColor*0.5, max(0.0,min(1.0,pow(waterVolume*0.000001,0.1))));
+								waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.25*shade*(1.0-sign(cameraDepth)));
+								
+								float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/5000000.0));
+								if(mobile){
+									showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-100000.0)/300000.0));
+								}
+								float waterOpacity = pow(min(1.0,max(0.0,max(0.0,waterVolume/10000.0))),0.1);
 								waterOpacity *= max(1.0,oceanLightReflection);
-								diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
+								///waterOpacity = step(0.01, waterVolume);
+								//diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
+								diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity, showWater));
+								diffuse.rgb = mix(diffuse,vec3(waterColor)*0.5,max(0.0,min(1.0,impactDepth*0.0004)));
 							`;
 		}
 		if (clouds) {
@@ -1285,7 +1554,6 @@ const PostShader = {
 		}
 		code += `
 		
-		//diffuse.rgb = vec3(shade);
 						gl_FragColor.rgb = diffuse;
 						gl_FragColor.a = 1.0;
 					}`;

@@ -243,20 +243,7 @@ const common = {
                 skirtUVs: skirtUVsSharedbuffer
             }
         
-            /* geometry.setIndex(indices);
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-        
-            skirtGeometry.setIndex(skirtIndices);
-            skirtGeometry.setAttribute('position', new THREE.Float32BufferAttribute(skirts, 3));
-            skirtGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(skirtNormals, 3));
-            skirtGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(skirtUVs, 2));
-        
-            geometry.computeBoundingSphere();
-            geometry.computeBoundingBox();
-            skirtGeometry.computeBoundingSphere();
-            return shift; */
+            
         
         };
         generateSouthPoleTile = function (resolution, bounds, elevation) {
@@ -507,22 +494,6 @@ const common = {
                 skirtNormals: skirtNormalsSharedbuffer,
                 skirtUVs: skirtUVsSharedbuffer
             }
-        
-        
-            /* geometry.setIndex(indices);
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-        
-            skirtGeometry.setIndex(skirtIndices);
-            skirtGeometry.setAttribute('position', new THREE.Float32BufferAttribute(skirts, 3));
-            skirtGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(skirtNormals, 3));
-            skirtGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(skirtUVs, 2));
-            //geometry.computeVertexNormals();
-            geometry.computeBoundingSphere();
-            geometry.computeBoundingBox();
-            skirtGeometry.computeBoundingSphere();
-            return shift; */
         
         };
         generateBaseTile = function (resolution, bounds, elevation) {

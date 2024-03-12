@@ -9,7 +9,7 @@ import { TerrainMeshGenerator } from './TerrainMeshGenerator';
 
 const terrainMeshGenerator = new TerrainMeshGenerator();
 const TILE_SIZE = 32;
-const MAX_LEVEL = 15;
+const MAX_LEVEL = 16;
 const TILE_IMAGERY_SIZE = 256;
 const defaultTexture = buildZeroTexture();
 const defaultImageTexture = generateDefaultImageTexture();
@@ -271,8 +271,6 @@ class PlanetTile extends Mesh {
         self.position.add(self.shift);
         if (self.parent.shift) {
             self.position.sub(self.parent.shift)
-        }else{
-            console.log("mlkjbhnmkljh")
         }
         self.skirt.position.add(self.shift);
         self.planet.add(self.skirt);
@@ -641,14 +639,14 @@ class PlanetTile extends Mesh {
 
             const localRadius = this.planet.radius;
 
-            var log = -(Math.log(distance * (isMobileDevice() ? 10000 / 50 * camera.fov : 2500 / 50 * camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
+            var log = -(Math.log(distance * (isMobileDevice() ? 10000 / 50 * camera.fov : 5000 / 50 * camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
             const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001));
 
             if (isNaN(metric)) {
                 return this.level;
             }
             self.priority = (distance) * this.level;
-            return metric;
+            return Math.max(3,metric);
         } catch (e) {
             return 1;
         }

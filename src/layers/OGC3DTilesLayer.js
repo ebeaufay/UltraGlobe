@@ -198,12 +198,14 @@ class OGC3DTilesLayer extends Layer {
             renderer: map.renderer,
             maxCachedItems: 200,
             meshCallback: mesh => {
-                //mesh.material = new THREE.MeshLambertMaterial();
+                //mesh.material = new THREE.MeshLambertMaterial({color: new THREE.Color("rgb("+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+")")});
                 if(mesh.material.isMeshBasicMaterial){
                     const newMat = new THREE.MeshStandardMaterial();
                     newMat.map = mesh.material.map;
                     mesh.material = newMat;
                 }
+                /* mesh.material.color.copy(new THREE.Color("rgb("+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+"))+"));
+                mesh.material.needsUpdate = true */
                 if(mesh.material.map){
                     mesh.material.map.colorSpace = THREE.LinearSRGBColorSpace;
                 }

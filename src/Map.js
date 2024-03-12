@@ -22,8 +22,10 @@ import { CSM } from './csm/CSM.js';
 import { CSMHelper } from 'three/addons/csm/CSMHelper.js';
 import ringsPalette from './images/ringsPalette.png';
 import stars from './images/stars.png';
-import nebula from './images/nebula.png';
+import nebula from './images/nebula2.png';
 import nebulaPalette from './images/paletteNebula.png';
+import perlinWorley3D from './images/perlinWorley3D_128.bin';
+import { ultraClock } from './controls/clock';
 
 
 // reused variables
@@ -51,7 +53,8 @@ class Map {
     * @param {Boolean} [properties.debug=false] Display debug information.
     * @param {Boolean} [properties.shadows=false] Display sunlight and shadows.
     * @param {THREE.Vector3} [properties.atmosphere=false] An atmosphere color. By thefault a blueish atmosphere is displayed
-    * @param {THREE.Vector3} [properties.sun=false] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true.
+    * @param {Number} [properties.atmosphereDensity=1.0] An atmosphere density.
+    * @param {THREE.Vector3|Boolean} [properties.sun=true] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true. An explicitely "false" value switches the sun for a black hole (queue theremin music).
     * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
     * @param {THREE.DataTexture} [properties.globalElevation=false] A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects.
     * @param {Boolean|Object} [properties.rings = false] Rings properties, if undefined, no rings are drawn 
@@ -79,10 +82,15 @@ class Map {
     * @param {Boolean} [properties.clouds.showPanel = false] show tuning panel. cannot be changed dynamically
     * @param {Number} [properties.clouds.quality = 0.5] Resolution multiplier for clouds. cannot be changed dynamically.
     * @param {Number} [properties.clouds.windSpeed = 0.01] cloud movement speed
+    * @param {Boolean|Object} [properties.clock = false] add a clock
+    * @param {Boolean} [properties.clock.timezone = false] add time-zone select
+    * @param {Boolean} [properties.clock.dateTimePicker = false] add time-zone select
     * 
     */
     constructor(properties) {
 
+        const self = this;
+        self.isMobile = _isMobileDevice();
         this.previousCameraPosition = new THREE.Vector3();
         this.previousCameraRotation = new THREE.Euler();
 
@@ -104,7 +112,7 @@ class Map {
         if (this.space) {
             if (!(typeof this.space === 'object' && Array.isArray(this.space))) this.space = {};
             if (!this.space.starsIntensity) this.space.starsIntensity = 0.75;
-            if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.25;//Math.random();
+            if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.5;//Math.random();
             if (!this.space.colorMap) this.space.colorMap = Math.random();
             if (!this.space.texRotation1) this.space.texRotation1 = Math.random() * Math.PI;
             if (!this.space.texRotation2) this.space.texRotation2 = Math.random() * Math.PI;
@@ -130,12 +138,13 @@ class Map {
 
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
+        this.atmosphereDensity = properties.atmosphereDensity?properties.atmosphereDensity:1.0;
         this.sunColor = properties.sun;
         this.clouds = properties.clouds;
         if (this.clouds === true) {
             this.clouds = {}
         } if (this.clouds) {
-            if (!this.clouds.color) this.clouds.color = new Vector3(1.0, 1.0, 1.0);
+            if (!this.clouds.color) this.clouds.color = new THREE.Vector3(1.0, 1.0, 1.0);
             if (!this.clouds.coverage) this.clouds.coverage = 0.81;
             if (!this.clouds.scatterCoefficient) this.clouds.scatterCoefficient = 0.85;
             if (!this.clouds.biScatteringKappa) this.clouds.biScatteringKappa = 0.75;
@@ -144,10 +153,21 @@ class Map {
             if (!this.clouds.cloudsRadiusStart) this.clouds.startRadius = 1.010;
             if (!this.clouds.cloudsRadiusEnd) this.clouds.endRadius = 1.015;
             if (!this.clouds.quality) this.clouds.quality = 0.5;
+            //if(this.isMobile) this.clouds.quality /= 2;
             if (!this.clouds.windSpeed) this.clouds.windSpeed = 0.01;
         }
 
-        
+        if (properties.clock) {
+            if (properties.clock === true) {
+                self.ultraClock = ultraClock();
+
+            } else {
+                self.ultraClock = ultraClock(properties.clock);
+            }
+            self.ultraClock.addListener(date => self.setDate(date));
+        }
+
+
         this._initRenderer(properties.shadows);
         this._initLabelRenderer();
 
@@ -157,7 +177,7 @@ class Map {
         this._setupRenderTarget();
         this._setupPostScene();
         this._setupPostMaterial();
-        this._setupBlurMaterials();
+
         this._setupCloudsOpacityAdjustmentShader();
         if (this.clouds) {
             this._setupCloudsPassMaterial();
@@ -300,7 +320,7 @@ class Map {
                 },
                 fade: true,
                 parent: scene,
-                shadowMapSize: _isMobileDevice() ? 1024 : 2048,
+                shadowMapSize: this.isMobile ? 1024 : 2048,
                 lightIntensity: 2.0,
                 lightDirection: this.sunPosition.clone().negate(),
                 lightMargin: 500000,
@@ -482,28 +502,16 @@ class Map {
     }
     _setupBlurMaterials() {
 
-        this.blurMaterial = new THREE.ShaderMaterial({
-            vertexShader: CloudsBlurShader.vertexShader(),
-            fragmentShader: CloudsBlurShader.fragmentShader(),
-            uniforms: {
-                offset: { value: new THREE.Vector2() },
-                image: { value: null },
-                mask: { value: null },
-                preserveMaxOpacity: { value: 0.0 }
-            },
-            premultipliedAlpha: false,
-            depthTest: false,
-            depthWrite: false
-        });
+
     }
     _setupCloudsPassMaterial() {
         const self = this;
-        this.cloudsMaterial = new THREE.ShaderMaterial({
+        self.cloudsMaterial = new THREE.ShaderMaterial({
             vertexShader: CloudsShader.vertexShader(),
             fragmentShader: self.shadows ? CloudsShader.fragmentShaderShadows(!!self.ocean) : CloudsShader.fragmentShader(!!self.ocean),
             uniforms: {
-                cameraNear: { value: this.camera.near },
-                cameraFar: { value: this.camera.far },
+                cameraNear: { value: self.camera.near },
+                cameraFar: { value: self.camera.far },
                 tDepth: { value: null },
                 radius: { value: 0 },
                 xfov: { value: 0 },
@@ -518,8 +526,8 @@ class Map {
                 noise2D: { value: null },
                 ldf: { value: 0 },
                 time: { value: 0.0 },
-                numSamples: { value: 15.0 },
-                numSamplesToLight: { value: 2.0 },
+                numSamples: { value: self.isMobile?2.0:25.0 },
+                numSamplesToLight: { value: self.isMobile?2.0:5.0 },
                 lengthMultiplier: { value: 20.0 },
                 sunlight: { value: 10.0 },
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
@@ -536,9 +544,25 @@ class Map {
             depthWrite: false
         });
 
-        CloudsShader.generatePerlinWorleyTexture().then(texture => {
-            this.cloudsMaterial.uniforms.perlinWorley.value = texture;
+        self.blurMaterial = new THREE.ShaderMaterial({
+            vertexShader: CloudsBlurShader.vertexShader(),
+            fragmentShader: CloudsBlurShader.fragmentShader(self.domContainer.offsetWidth, self.domContainer.offsetHeight),
+            uniforms: {
+                offset: { value: new THREE.Vector2() },
+                image: { value: null },
+                mask: { value: null },
+                noise2D: { value: null },
+                preserveMaxOpacity: { value: 0.0 }
+            },
+            premultipliedAlpha: false,
+            depthTest: false,
+            depthWrite: false
+        });
+
+        CloudsShader.loadPerlinWorley(perlinWorley3D).then(texture => {
+            self.cloudsMaterial.uniforms.perlinWorley.value = texture;
         })
+        
 
         loader.load(
             perlin,
@@ -548,6 +572,7 @@ class Map {
                 texture.magFilter = THREE.LinearFilter;
                 texture.minFilter = THREE.LinearFilter;
                 self.cloudsMaterial.uniforms.noise2D.value = texture;
+                self.blurMaterial.uniforms.noise2D.value = texture;
             },
             undefined,
             function (err) {
@@ -577,6 +602,7 @@ class Map {
                 tDiffuse: { value: null },
                 tDepth: { value: null },
                 radius: { value: 0 },
+                mobile:{ value: this.isMobile},
                 xfov: { value: 0 },
                 yfov: { value: 0 },
                 planetPosition: { value: new THREE.Vector3(0, 0, 0) },
@@ -601,6 +627,7 @@ class Map {
                 nebulaPalette: { value: null },
                 tClouds: { value: null },
                 time: { value: 0.0 },
+                atmosphereDensity: { value: this.atmosphereDensity}
             },
             depthTest: false,
             depthWrite: false
@@ -769,7 +796,7 @@ class Map {
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
-            if (_isMobileDevice()) {
+            if (self.isMobile) {
                 self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             } else {
                 self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -816,6 +843,24 @@ class Map {
             self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
         }
         setTimeout(onWindowResize, 1000);
+
+        if(self.debug){
+            const gl = self.renderer.getContext(); // Get the underlying WebGL context
+
+            // WebGL provides a few parameters that can help us infer depth precision
+            // Although not directly specifying the depth buffer precision, these can offer some insights
+            const depthBits = gl.getParameter(gl.DEPTH_BITS);
+            console.log(`Depth Bits: ${depthBits}`);
+    
+            // Additionally, you can check for the presence of certain WebGL extensions
+            const depthTextureExtension = gl.getExtension('WEBGL_depth_texture');
+            if (depthTextureExtension) {
+                console.log('Depth texture extension supported.');
+            } else {
+                console.log('Depth texture extension not supported.');
+            }
+        }
+        
     }
 
     _initLabelRenderer() {
@@ -834,7 +879,7 @@ class Map {
 
 
     _initCamera() {
-        const camera = new THREE.PerspectiveCamera(50, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
+        const camera = new THREE.PerspectiveCamera(36.286238472798956, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -990,7 +1035,7 @@ class Map {
                     self.cloudsMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
                     self.cloudsMaterial.uniforms.viewCenterNear.value.multiplyScalar(self.camera.near).add(self.camera.position);
                     //self.cloudsMaterial.uniforms.previous.value = self.cloudsTarget.texture;
-                    if(self.shadows){
+                    if (self.shadows) {
                         self.cloudsMaterial.uniforms.sunLocation.value.copy(self.sunPosition);
                     }
                     self.cloudsMaterial.uniforms.temporalDeNoiseAlpha.value = !self.previousCameraPosition.equals(self.camera.position) || !self.previousCameraRotation.equals(self.camera.rotation) ? 0.6 : 0.1;
@@ -1025,8 +1070,8 @@ class Map {
                     self.postQuad.material = self.blurMaterial;
                     self.renderer.setRenderTarget(self.cloudsBlur2);
                     self.renderer.render(self.postScene, self.postCamera);
-
-                    for (let p = 0; p < 3; p++) {
+                    const passes = self.isMobile?2:2;
+                    for (let p = 0; p < passes; p++) {
                         self.blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
                         self.blurMaterial.uniforms.image.value = self.cloudsBlur2.texture;
                         self.blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
@@ -1043,14 +1088,14 @@ class Map {
                         self.renderer.render(self.postScene, self.postCamera);
                     }
 
-                    self.cloudsOpacityAdjustmentShader.uniforms.clouds.value = self.cloudsBlur2.texture;
+                    /* self.cloudsOpacityAdjustmentShader.uniforms.clouds.value = self.cloudsBlur2.texture;
                     self.cloudsOpacityAdjustmentShader.uniforms.cloudsOpacityMultiplier.value = self.cloudsTarget.texture[1];
 
                     self.postQuad.material = self.cloudsOpacityAdjustmentShader;
                     self.renderer.setRenderTarget(self.cloudsBlur1);
-                    self.renderer.render(self.postScene, self.postCamera);
+                    self.renderer.render(self.postScene, self.postCamera); */
 
-                    self.postMaterial.uniforms.tClouds.value = self.cloudsBlur1.texture;
+                    self.postMaterial.uniforms.tClouds.value = self.cloudsBlur2.texture;
                 }
 
 
@@ -1343,8 +1388,8 @@ class Map {
 
         // Define labels and ranges
         const elements = [
-            { label: 'density', min: 0, max: 300, value: self.clouds.density, step: 0.1, action: (val) => { self.clouds.density = val; } },
-            { label: 'luminance', min: 0, max: 50, value: self.clouds.luminance, step: 0.1, action: (val) => { self.clouds.luminance = val; } },
+            { label: 'density', min: 0, max: 200, value: self.clouds.density, step: 0.1, action: (val) => { self.clouds.density = val; } },
+            { label: 'luminance', min: 0, max: 10, value: self.clouds.luminance, step: 0.1, action: (val) => { self.clouds.luminance = val; } },
             { label: 'scatterCoefficient', min: 0, max: 1, value: self.clouds.scatterCoefficient, step: 0.01, action: (val) => { self.clouds.scatterCoefficient = val; } },
             { label: 'biScatteringKappa', min: 0, max: 1, value: self.clouds.biScatteringKappa, step: 0.01, action: (val) => { self.clouds.biScatteringKappa = val; } },
             { label: 'coverage', min: 0, max: 1, value: self.clouds.coverage, step: 0.01, action: (val) => { self.clouds.coverage = val; } },
@@ -1352,7 +1397,7 @@ class Map {
             { label: 'g', min: 0, max: 1, value: self.clouds.color.y, step: 0.01, action: (val) => { self.clouds.color.y = val; } },
             { label: 'b', min: 0, max: 1, value: self.clouds.color.z, step: 0.01, action: (val) => { self.clouds.color.z = val; } },
             { label: 'wind speed', min: 0, max: 1, value: self.clouds.windSpeed, step: 0.01, action: (val) => { self.clouds.windSpeed = val; } }
-            
+
         ];
 
 
@@ -1459,7 +1504,7 @@ class Map {
             lowCloudsSlider.value = this.clouds.cloudsRadiusStart;
             lowCloudsValueDisplay.textContent = lowCloudsSlider.value.toString();
         };
-        
+
 
 
         document.body.appendChild(panel);

@@ -172,7 +172,8 @@ export class CSM {
 
 			for ( let i = 1; i < amount; i ++ ) {
 
-				target.push( ( near * ( far / near ) ** ( i / amount ) ) / far );
+				//target.push( ( near * ( far / near ) ** ( i / amount ) ) / far );
+				target.push( Math.pow( near * ( far / near ), ( i / amount ) ) / far );
 
 			}
 

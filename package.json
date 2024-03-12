@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "4.2.1",
+    "version": "4.2.4",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
@@ -33,7 +33,7 @@
     "author": "Emeric Beaufays",
     "license": "MIT",
     "dependencies": {
-        "@jdultra/threedtiles": "^9.2.2",
+        "@jdultra/threedtiles": "^9.2.12",
         "epsg-index": "^1.0.0",
         "fast-simplex-noise": "^4.0.0",
         "gltf-validator": "^2.0.0-dev.3.9",
@@ -41,8 +41,10 @@
         "path-browserify": "^1.0.1",
         "proj4": "^2.9.0",
         "regenerator-runtime": "^0.13.11",
-        "three": "^0.156.0",
-        "tooloud": "^2.0.4"
+        "three": "^0.162.0",
+        "tooloud": "^2.0.4",
+        "moment": "^2.29.4",
+        "moment-timezone": "^0.5.43"
     },
     "devDependencies": {
         "@babel/core": "^7.21.3",

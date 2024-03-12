@@ -10,7 +10,7 @@ import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer.js';
 import { WMSLayer } from './layers/WMSLayer';
 import { SingleImageImageryLayer } from './layers/SingleImageImageryLayer';
 import { GoogleMap3DTileLayer } from './layers/GoogleMap3DTileLayer.js';
-import { PerlinTerrainColorShader } from './layers/PerlinTerrainColorShader.js'
+import { PerlinTerrainColorShader } from './layers/PerlinTerrainColorShader.js';
 import { HoveringVehicle } from "./vehicles/HoveringVehicle.js";
 import { ThirdPersonCameraController } from "./controls/ThirdPersonCameraController.js";
 import { VerletSystem } from "./physics/VerletSystem.js";
@@ -22,14 +22,7 @@ import { SimpleElevationLayer } from "./layers/SimpleElevationLayer.js";
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
 
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter' || e.keyCode === 13) {
-        const cam = map.camera;
-        let p = new THREE.Vector3();
-        cam.getWorldDirection(p).normalize();
-        console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
-    }
-});
+
 
 
 const domContainer = document.getElementById('screen');
@@ -41,15 +34,16 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
- var googleMaps3DTiles = new GoogleMap3DTileLayer({
+ /* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "AIzaSyBOLRNQ24e0PXdaMgupzi3B8fGGy7ZHRA4",
-    loadOutsideView: true,
+    apiKey: "",
+    loadOutsideView: false,
     displayCopyright: true,
-    flatShading: false
-}); 
+    flatShading: false,
+    geometricErrorMultiplier:0.5
+}); */
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -74,7 +68,7 @@ var earthElevation = new SingleImageElevationLayer({
     //layer: "1",
     visible: true,
     min: 0,
-    max: 8800
+    max: 0
 });
 var wmsLayer = new WMSLayer({
     id: 20,
@@ -97,7 +91,7 @@ var wmsLayer2 = new WMSLayer({
     version: "1.3.0",
     visible: true,
     imageSize: 256
-})
+});
 var imagery = new SingleImageImageryLayer({
     id: 5,
     name: "imagery",
@@ -110,14 +104,14 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: "jhvbg",
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/ayutthaya/tiledWithSkirts/tileset.json",
-    longitude: 40.5877,
-    latitude: 14.3692,
-    height: 16,
-    //rotationY: 0.5,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/mm3D_b/tileset.json",
+    longitude: 4.91845,
+    latitude: 52.37385,
     rotationX: -1.57,
-    scale: 10000.0,
-    geometricErrorMultiplier: 1,
+    rotationY: -0.05,
+    scale:0.4,
+    height: 44,
+    geometricErrorMultiplier: 4,
     loadOutsideView: true,
     flatShading: false
 });
@@ -127,8 +121,8 @@ var ogc3dTiles2 = new OGC3DTilesLayer({
     name: "OGC 3DTiles",
     visible: true,
     url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    longitude: 13.42,
-    latitude: 52.4895,
+    longitude: 4.918021,
+    latitude: 52.373724,
     height: 1000,
     rotationY: 0.72,
     rotationX: 3.1416,
@@ -167,25 +161,34 @@ function setupMap(globalElevationMap) {
         debug: false,
         ocean: generateLiquidColor(),
         atmosphere: generateAtmosphereColor(),
-        sun: generateSunColor(),
-        //globalElevation: globalElevationMap,
-        rings:true,
+        atmosphereDensity: 0.8+Math.random()*0.4,
+        sun: Math.random()<0.25?false:generateSunColor(),
+        globalElevation: globalElevationMap,
+        rings:Math.random()<0.25?true:false,
         space: true,
+        clock: true,
         clouds: {
-            color: new THREE.Vector3(1.0,1.0,1.0),
+            color: generateCloudsColor(),
             coverage: 0.75,
             scatterCoefficient: 0.85,
             biScatteringKappa: 0.75,
-            density: 30,
-            luminance: 10,
-            showPanel: true,
+            density: 60,
+            luminance: Math.random()*10,
+            showPanel: false,
             quality: 0.5,
-            windSpeed: 0.1,
-            cloudsRadiusStart: 1.003,
-            cloudsRadiusEnd: 1.015
+            windSpeed: Math.random(),
+            cloudsRadiusStart: 1.0015+Math.random()*0.003,
+            cloudsRadiusEnd: 1.0045+Math.random()*0.01
         }
     });
-
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            const cam = map.camera;
+            let p = new THREE.Vector3();
+            cam.getWorldDirection(p).normalize();
+            console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
+        }
+    });
     const t = new THREE.Vector3(6301200,50,50);
     clock.getDelta();
     for(let i = 0; i<1000000; i++){
@@ -204,7 +207,7 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.setDate(new Date(2023, 2, 21, 6, 0, 0, 0));
+    map.ultraClock.setDate(new Date(2023, 2, 21, 6, 0, 0, 0));
     let h = 20;
     let m = 0;
     let s = 0;
@@ -220,14 +223,17 @@ function setupMap(globalElevationMap) {
         }
         map.setDate(new Date(2023, 2, 21, h, m, s, 0));
     },10);*/
-
-    //map.moveAndLookAt({ x: 0.0, y: 0.0000, z: 10000000 }, { x: 0, y: 1, z: 170 });
+    //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
+    //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
+    map.moveAndLookAt({ x: 4.918021, y: 6.36, z: 20000000 }, { x: 4.918021, y: 6.37, z: 0 });
 
     map.setLayer(perlinElevation, 0);
     map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
+    //map.setLayer(earthElevation, 5);
+    //map.setLayer(wmsLayer, 4);
 
 
     /* document.addEventListener('keyup', (e) => {
@@ -400,7 +406,7 @@ function isMobileDevice() {
 
 function generateLiquidColor() {
     let hue = Math.floor(Math.random() * 360);
-    let saturation = 25 + Math.random() * 50;
+    let saturation = 50 + Math.random() * 10;
     let lightness = 30 + Math.random() * 40;
 
     return hslToRgb(hue, saturation, lightness);
@@ -410,6 +416,14 @@ function generateAtmosphereColor() {
     let hue = Math.floor(60+Math.random()* 180);
     let saturation = 50+Math.random() * 25;
     let lightness = 50 + Math.random() * 25;
+    
+    return hslToRgb(hue, saturation, lightness);
+    
+}
+function generateCloudsColor() {
+    let hue = Math.floor(60+Math.random()* 180);
+    let saturation = 50+Math.random() * 25;
+    let lightness = 75 + Math.random() * 25;
     
     return hslToRgb(hue, saturation, lightness);
     
