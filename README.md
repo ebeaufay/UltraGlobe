@@ -62,9 +62,12 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [Random planet](https://www.jdultra.com/random/index.html)
 
 ## Latest development
-Let's replace the sun with a black-hole because, why not!
+Clouds are becomming robust so, I can play with the parameters and get some decent alien looking skies.
 
-https://github.com/ebeaufay/UltraGlobe/assets/16924300/6d71c7c0-dfea-44ce-8f20-80acee92c87e
+
+https://github.com/ebeaufay/UltraGlobe/assets/16924300/2ec76923-6cbf-4c04-b658-88297be085c8
+
+
 
 
 
