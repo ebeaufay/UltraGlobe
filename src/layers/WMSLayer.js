@@ -39,7 +39,7 @@ class WMSLayer extends ImageryLayer {
         self.version = properties.version;
         self.format = properties.format ? properties.format : "jpeg";
         self.textureLoader = new CancellableTextureLoader();
-        self.imageSize = properties.imageSize ? properties.imageSize : 128;
+        self.imageSize = properties.imageSize ? properties.imageSize : 512;
         self.maxLOD = properties.maxLOD ? properties.maxLOD : 20;
 
         self.downloads = [];

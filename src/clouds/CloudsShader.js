@@ -27,6 +27,32 @@ function common() {
 		float a = 6378137.0;
 		float b = 6356752.3142451794975639665996337;
 
+		vec4 blendBackToFront(vec4 back, vec4 front) {
+			float alpha = 1.0 - (1.0 - front.a) * (1.0 - back.a); // Combined alpha
+			vec3 color;
+			if (alpha == 0.0) {
+				color = vec3(0.0); // Completely transparent; color is irrelevant
+			} else {
+				color = (front.rgb * front.a + back.rgb * back.a * (1.0 - front.a)) / alpha;
+			}
+			return vec4(color, alpha);
+		}
+		float blendOpacityBackToFront(float back, float front) {
+			return 1.0 - (1.0 - front) * (1.0 - back);
+		}
+		float sampleDensity(vec3 samplePosition, vec3 offsetPosition, float cloudsRadiusStartMeters, float cloudsRadiusEndMeters){
+			float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
+			float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
+			vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
+			float localDensity = pow(max(0.0,texture(perlinWorley, offsetPosition*1e-7+offset*0.8).r-coverage-(1.0-sm)),3.0);
+			if(localDensity<=0.0) return -1.0;
+			localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-6).r-coverage-(1.0-sm)),1.0);
+			if(localDensity<=0.0) return -1.0;
+			localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*5e-6).r-(1.0-sm)),1.0);
+			if(localDensity<=0.0) return -1.0;
+			localDensity *= 50.0;
+			return localDensity;
+		}
 		vec2 shift(in vec2 shift, in vec2 lonlat){
 			vec2 lonlatShifted = vec2(shift.x+lonlat.x, shift.y+lonlat.y);
 			if (lonlatShifted.y > 1.57080) {
@@ -428,7 +454,9 @@ const CloudsShader = {
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 	}`,
 
-	fragmentShader: (ocean) => {
+	fragmentShader: (ocean, atmosphere, sunColor) => {
+
+		
 		//ocean = false;
 		let code = /* glsl */`
 		precision highp sampler3D;
@@ -479,11 +507,9 @@ const CloudsShader = {
 			float depth = readDepth( tDepth, vUv );
 			vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
 			vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
-			vec4 random = texture2D(noise2D, (lonlat)*0.1);
+			vec4 random = texture(noise2D, (lonlat)*10.0);
 			
-			//worldDir = randomDirectionInCone(worldDir, 0.001, random.z, random.w);
 
-			//worldDir= normalize(worldDir+rand1*0.4);
 			vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 			float lengthToEarthImpact = length(impact-nonPostCameraPosition);
 			
@@ -595,94 +621,83 @@ const CloudsShader = {
 			
 
 				
-			float rand = 1.0*texture(perlinWorley, mix(traverse1Exit, traverse1Entry,0.5)).x;
-			//float rand = random.z;
+			float rand = random.b;
 
 			
-			float opacity1 = 0.0;
-			float opacity2 = 0.0;
+			float density1 = 0.0;
+			float density2 = 0.0;
 			
 
 			vec3 light1 = vec3(0.0);
 			vec3 light2 = vec3(0.0);
 
 
+
+			
 			float length1 = length(traverse1Entry-traverse1Exit)/cloudsDepthMeters;
 			float numSamplesLocal = numSamples*length1;
 			float theta = time*windSpeed*0.01;
 			for(float i = 0.0; i<numSamplesLocal; i++){
-				if(opacity1>=1.0) break;
 				float fraction = (i+rand)/numSamplesLocal;
 				vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 				vec3 samplePositionNormalized = normalize(samplePosition);
 				
 				vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
 				
-				float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-				float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
-				vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-				float localOpacity= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-9+offset*0.6).r-coverage-(1.0-sm)),4.0);
-				if(localOpacity<=0.0) continue;
-				localOpacity*= max(0.0,texture(perlinWorley, offsetPosition*6e-7+offset*0.357).r-coverage-(1.0-sm));
-				if(localOpacity<=0.0) continue;
-				localOpacity *= pow(max(0.0,texture(perlinWorley, offsetPosition*4e-6).r),2.0);
-				opacity1 += localOpacity*lengthMultiplier;
+				
+				float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+				if(localDensity<=0.0) continue;
+				
+				
+				density1 += localDensity;
+				
 
 				///// compute light to sample
 				vec3 lightExit = samplePositionNormalized*cloudsRadiusEndMeters;
 
 				float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 				float densityToLight = 0.0;
-				//float numSamplesLocalToLight = min(numSamplesToLight*2.0,numSamplesToLight*length1);
+				
+				
 				for(float j = 0.0; j<numSamplesToLight; j++){
-					float fractionToLight = (j+rand)/numSamplesToLight;
+					float fractionToLight = (j+0.5)/numSamplesToLight;
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
 				
-					float secondHeight = (length(secondSamplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-					float smToLight= smoothstep(0.0,0.2,secondHeight) * (smoothstep(1.0,0.8,secondHeight));
-					vec3 secondOffset = vec3(texture(perlinWorley, secondSamplePosition*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-					float localDensityToLight=  pow(max(0.0,texture(perlinWorley, secondOffsetPosition*1e-9+secondOffset*0.6).r-coverage-(1.0-smToLight)),4.0);
-					
-					if(localDensityToLight<=0.0) break;
-					localDensityToLight*= max(0.0,texture(perlinWorley, secondOffsetPosition*6e-7+secondOffset*0.357).r-coverage-(1.0-smToLight));
-					if(localDensityToLight<=0.0) break;
-					localDensityToLight *= pow(max(0.0,texture(perlinWorley, secondOffsetPosition*4e-6).r),2.0);
-					
-					
-					densityToLight += localDensityToLight*lengthMultiplier;
+					float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					if(localDensityToLight<=0.0) continue;
+					densityToLight +=localDensityToLight;
 				}
-				float lightToSample = multiOctaveBeer((sunlight*(1.0+length1)),densityToLight/numSamplesToLight, lengthToLight*lengthMultiplier, 
-					scatterCoef, biScatteringKappa, dot(worldDir, samplePositionNormalized));
+				
+
+				float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
+					scatterCoef, biScatteringKappa, 1.0)/numSamplesToLight;
+				lightToSample*= 25.0*pow(localDensity,0.5);
 
 				float lengthToCamera = length(traverse1Entry-samplePosition)/cloudsDepthMeters;
-				lightToSample = beer(lightToSample, (opacity1/(i+1.0)), lengthToCamera);
+				lightToSample = beer(lightToSample, (density1/(i+1.0))*lengthToCamera, lengthMultiplier*100.0)/numSamples;
+				lightToSample*= 25.0;
 
 				light1 += vec3(min(1.0,lightToSample));
 			}
-			
+			density1/=numSamples;
 			float length2 = 0.0;
-			if(secondTraverse /*&& opacity1>=1.0*/){
+			if(secondTraverse && density1<1.0){
 				length2 = length(traverse2Entry-traverse2Exit)/cloudsDepthMeters;
 				float numSamplesLocal = numSamples*length2;
 				for(float i = 0.0; i< numSamplesLocal; i++){
-					if(opacity2>1.0) break;
 					float fraction = (i+rand)/numSamplesLocal;
 					vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
-					
+				
 					vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
 				
-					float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-					float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
-					vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-					float localOpacity= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-9+offset*0.6).r-coverage-(1.0-sm)),4.0);
-					if(localOpacity<=0.0) continue;
-					localOpacity*= max(0.0,texture(perlinWorley, offsetPosition*6e-7+offset*0.357).r-coverage-(1.0-sm));
-					if(localOpacity<=0.0) continue;
-					localOpacity *= pow(max(0.0,texture(perlinWorley, offsetPosition*4e-6).r),2.0);
-					opacity2 += localOpacity*lengthMultiplier;
+				
+					float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					if(localDensity<=0.0) continue;
+
+					density2 += localDensity;
 					
 				
 					///// compute light to sample
@@ -692,46 +707,43 @@ const CloudsShader = {
 					float densityToLight = 0.0;
 
 					for(float j = 0.0; j<numSamplesToLight; j++){
-						float fractionToLight = (j+rand)/numSamplesToLight;
-						
+						float fractionToLight = (j+0.5)/numSamplesToLight;
+					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
 				
-						float secondHeight = (length(secondSamplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-						float smToLight= smoothstep(0.0,0.2,secondHeight) * (smoothstep(1.0,0.8,secondHeight));
-						vec3 secondOffset = vec3(texture(perlinWorley, secondSamplePosition*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-						float localDensityToLight=  pow(max(0.0,texture(perlinWorley, secondOffsetPosition*1e-9+secondOffset*0.6).r-coverage-(1.0-smToLight)),4.0);
-						if(localDensityToLight<=0.0) break;
-						localDensityToLight*= max(0.0,texture(perlinWorley, secondOffsetPosition*6e-7+secondOffset*0.357).r-coverage-(1.0-smToLight));
-						if(localDensityToLight<=0.0) break;
-						localDensityToLight *= pow(max(0.0,texture(perlinWorley, secondOffsetPosition*4e-6).r),2.0);
-						
-						
-						densityToLight += localDensityToLight*lengthMultiplier;
+						float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						if(localDensityToLight<=0.0) continue;
+						densityToLight +=localDensityToLight;
 					}
 					
-					float lightToSample = multiOctaveBeer((sunlight*(1.0+length2)),densityToLight/numSamplesToLight, lengthToLight*lengthMultiplier, 
-					scatterCoef, biScatteringKappa, dot(worldDir, samplePositionNormalized));
+					float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
+					scatterCoef, biScatteringKappa, 1.0)/numSamplesToLight;
+					lightToSample*= 25.0*pow(localDensity,0.5);
 
 					float lengthToCamera = length(traverse2Entry-samplePosition)/cloudsDepthMeters;
-					lightToSample = beer(lightToSample, (opacity2/(i+1.0)), lengthToCamera);
+					lightToSample = beer(lightToSample, (density2/(i+1.0))*lengthToCamera, lengthMultiplier*100.0)/numSamples;
+					lightToSample*= 25.0;
 
 					light2 += vec3(min(1.0,lightToSample));
 
 
 					
 				}
+				density2/= numSamples;
 			}
+			density1 = min(1.0, density1*100.0);
+			density2 = min(1.0, density2*100.0);
 			
-			opacity1 = min(1.0, opacity1);
-			opacity2 = min(1.0, opacity2);
-				
-				
-			float finalOpacity = min(1.0,opacity1 + opacity2);
-			vec3 finalLight = mix(light2, light1, opacity1)*color*0.9+vec3(0.10);
-			pc_fragColor = vec4(finalLight,finalOpacity);
-			//pc_fragColor = vec4(1.0,0.0,0.0,opacity1);
+			float dotLight = 1.0;
+			vec3 fullDarkColor = vec3(`+atmosphere.x.toFixed(2)+`,`+atmosphere.y.toFixed(2)+`,`+atmosphere.z.toFixed(2)+`) * dotLight*0.5;
+			vec3 fullLightColor = color;
+
+			pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
+			pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
 			gMask = vec4(Pack24(min(1.0,max(length1,length2)*lengthMultiplier/100.0)),step(0.999,depth));
+
+
 
 	}`;
 
@@ -741,7 +753,7 @@ const CloudsShader = {
 		return code;
 	},
 
-	fragmentShaderShadows: (ocean) => {
+	fragmentShaderShadows: (ocean, atmosphere, sunColor) => {
 		let code = /* glsl */`
 		
 
@@ -794,9 +806,9 @@ const CloudsShader = {
 				float depth = readDepth( tDepth, vUv );
 				vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
 				vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
-				vec4 random = texture2D(noise2D, (lonlat)*1000.0);
+				vec4 random = texture(noise2D, (lonlat)*10.0);
 				
-				//worldDir = randomDirectionInCone(worldDir, 0.001, random.z, random.w);
+				//worldDir = randomDirectionInCone(worldDir, 0.01, random.z, random.w);
 
 				//worldDir= normalize(worldDir+rand1*0.4);
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
@@ -907,12 +919,11 @@ const CloudsShader = {
 				
 
 					
-				//float rand = 1.0*texture(perlinWorley, mix(traverse1Exit, traverse1Entry,0.5)).x;
-				float rand = random.z;
-
+				float rand =random.b;
+				//float rand = 0.5;
 				
-				float opacity1 = 0.0;
-				float opacity2 = 0.0;
+				float density1 = 0.0;
+				float density2 = 0.0;
 				
 
 				vec3 light1 = vec3(0.0);
@@ -923,128 +934,113 @@ const CloudsShader = {
 				float numSamplesLocal = numSamples*length1;
 				float theta = time*windSpeed*0.01;
 				for(float i = 0.0; i<numSamplesLocal; i++){
-					if(opacity1>=1.0) break;
 					float fraction = (i+rand)/numSamplesLocal;
 					vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
 					
 					vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
 					
-					float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-					float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
-					vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-					float localOpacity= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-9+offset*0.6).r-coverage-(1.0-sm)),4.0);
-					if(localOpacity<=0.0) continue;
-					localOpacity*= max(0.0,texture(perlinWorley, offsetPosition*6e-7+offset*0.357).r-coverage-(1.0-sm));
-					if(localOpacity<=0.0) continue;
-					localOpacity *= pow(max(0.0,texture(perlinWorley, offsetPosition*4e-6).r),2.0);
-					opacity1 += localOpacity*lengthMultiplier;
-
+					
+					float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					if(localDensity<=0.0) continue;
+					
+					
+					density1 += localDensity;
+					
+					
 					///// compute light to sample
 					float dotLight = dot(sunLocation, samplePositionNormalized);
-					if(dotLight<=-0.2) continue;
-					vec3 lightExit = samplePosition + samplePositionNormalized*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
+					if(raySphereIntersection(planetPosition, radius, samplePosition, sunLocation).x>=0.0) continue;
+					vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
 
 					float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 					float densityToLight = 0.0;
-					//float numSamplesLocalToLight = min(numSamplesToLight*2.0,numSamplesToLight*length1);
 					for(float j = 0.0; j<numSamplesToLight; j++){
-						float fractionToLight = (j+rand)/numSamplesToLight;
+						float fractionToLight = (j+0.5)/numSamplesToLight;
 						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
 					
-						float secondHeight = (length(secondSamplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-						float smToLight= smoothstep(0.0,0.2,secondHeight) * (smoothstep(1.0,0.8,secondHeight));
-						vec3 secondOffset = vec3(texture(perlinWorley, secondSamplePosition*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-						float localDensityToLight=  pow(max(0.0,texture(perlinWorley, secondOffsetPosition*1e-9+secondOffset*0.6).r-coverage-(1.0-smToLight)),4.0);
-						if(localDensityToLight<=0.0) break;
-						localDensityToLight*= max(0.0,texture(perlinWorley, secondOffsetPosition*6e-7+secondOffset*0.357).r-coverage-(1.0-smToLight));
-						if(localDensityToLight<=0.0) break;
-						localDensityToLight *= pow(max(0.0,texture(perlinWorley, secondOffsetPosition*4e-6).r),2.0);
-						
-						
-						densityToLight += localDensityToLight*lengthMultiplier;
+						float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						if(localDensityToLight<=0.0) continue;
+						densityToLight +=localDensityToLight;
 					}
-					float lightToSample = multiOctaveBeer((sunlight*(1.0+length1)),densityToLight/numSamplesToLight, lengthToLight*lengthMultiplier, 
-						scatterCoef, biScatteringKappa, dot(worldDir, samplePositionNormalized));
+					float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
+						scatterCoef, biScatteringKappa, dot(sunLocation, worldDir))/numSamplesToLight;
+					lightToSample*= 25.0*pow(localDensity,0.5);
 
 					float lengthToCamera = length(traverse1Entry-samplePosition)/cloudsDepthMeters;
-					lightToSample = beer(lightToSample, (opacity1/(i+1.0)), lengthToCamera);
+					lightToSample = beer(lightToSample, (density1/(i+1.0))*lengthToCamera, lengthMultiplier*100.0)/numSamples;
+					lightToSample*= 25.0;
 
-					light1 += vec3(min(1.0,lightToSample*(dotLight+0.2)), min(1.0,lightToSample*pow((dotLight+0.2),1.2)), min(1.0,lightToSample*pow((dotLight+0.2),1.4)));
+					// light1 += vec3(min(1.0,`+Math.pow(atmosphere.x,0.2).toFixed(2)+`*lightToSample*max(dotLight,0.0)), min(1.0,`+Math.pow(atmosphere.y,0.2).toFixed(2)+`*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,`+Math.pow(atmosphere.z,0.2).toFixed(2)+`*lightToSample*pow(max(dotLight,0.0),1.4)));
+					light1 += vec3(min(1.0,pow(color.x,0.5)*lightToSample*max(dotLight,0.0)), min(1.0,pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4)));
 				}
+				density1/=numSamples;
 				float length2 = 0.0;
-				if(secondTraverse /*&& opacity1>=1.0*/){
+				if(secondTraverse && density1<1.0){
 					length2 = length(traverse2Entry-traverse2Exit)/cloudsDepthMeters;
 					float numSamplesLocal = numSamples*length2;
 					for(float i = 0.0; i< numSamplesLocal; i++){
-						if(opacity2>1.0) break;
 						float fraction = (i+rand)/numSamplesLocal;
 						vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 						vec3 samplePositionNormalized = normalize(samplePosition);
-						
+					
 						vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
 					
-						float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-						float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
-						vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-						float localOpacity= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-9+offset*0.6).r-coverage-(1.0-sm)),4.0);
-						if(localOpacity<=0.0) continue;
-						localOpacity*= max(0.0,texture(perlinWorley, offsetPosition*6e-7+offset*0.357).r-coverage-(1.0-sm));
-						if(localOpacity<=0.0) continue;
-						localOpacity *= pow(max(0.0,texture(perlinWorley, offsetPosition*4e-6).r),2.0);
-						opacity2 += localOpacity*lengthMultiplier;
+					
+						float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						if(localDensity<=0.0) continue;
+						density2 += localDensity;
 						
 					
 						///// compute light to sample
 						float dotLight = dot(sunLocation, samplePositionNormalized);
-						if(dotLight<=-0.2) continue;
-						vec3 lightExit = samplePosition + samplePositionNormalized*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
-	
+						if(raySphereIntersection(planetPosition, radius, samplePosition, sunLocation).x>=0.0) continue;
+						vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
+
 						float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 						float densityToLight = 0.0;
+						
 
 						for(float j = 0.0; j<numSamplesToLight; j++){
-							float fractionToLight = (j+rand)/numSamplesToLight;
-							
+							float fractionToLight = (j+0.5)/numSamplesToLight;
+						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 							vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
 					
-							float secondHeight = (length(secondSamplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
-							float smToLight= smoothstep(0.0,0.2,secondHeight) * (smoothstep(1.0,0.8,secondHeight));
-							vec3 secondOffset = vec3(texture(perlinWorley, secondSamplePosition*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (secondOffsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
-							float localDensityToLight=  pow(max(0.0,texture(perlinWorley, secondOffsetPosition*1e-9+secondOffset*0.6).r-coverage-(1.0-smToLight)),4.0);
-							if(localDensityToLight<=0.0) break;
-							localDensityToLight*= max(0.0,texture(perlinWorley, secondOffsetPosition*6e-7+secondOffset*0.357).r-coverage-(1.0-smToLight));
-							if(localDensityToLight<=0.0) break;
-							localDensityToLight *= pow(max(0.0,texture(perlinWorley, secondOffsetPosition*4e-6).r),2.0);
-							
-							
-							densityToLight += localDensityToLight*lengthMultiplier;
+							float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+							if(localDensityToLight<=0.0) continue;
+							densityToLight +=localDensityToLight;
 						}
 						
-						float lightToSample = multiOctaveBeer((sunlight*(1.0+length2)),densityToLight/numSamplesToLight, lengthToLight*lengthMultiplier, 
-						scatterCoef, biScatteringKappa, dot(worldDir, samplePositionNormalized));
-
-						float lengthToCamera = length(traverse2Entry-samplePosition)/cloudsDepthMeters;
-						lightToSample = beer(lightToSample, (opacity2/(i+1.0)), lengthToCamera);
-
-						light2 += vec3(min(1.0,lightToSample*(dotLight+0.2)), min(1.0,lightToSample*pow((dotLight+0.2),1.2)), min(1.0,lightToSample*pow((dotLight+0.2),1.4)));
-
 
 						
+						float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
+						scatterCoef, biScatteringKappa, dot(sunLocation, worldDir))/numSamplesToLight;
+						lightToSample*= 25.0*pow(localDensity,0.5);
+
+						float lengthToCamera = length(traverse2Entry-samplePosition)/cloudsDepthMeters;
+						lightToSample = beer(lightToSample, (density2/(i+1.0))*lengthToCamera, lengthMultiplier*100.0)/numSamples;
+						lightToSample*= 25.0;
+						
+
+						
+
+						light2 += vec3(min(1.0,pow(color.x,0.5)*lightToSample*max(dotLight,0.0)), min(1.0,pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4)));
+
 					}
+					density2/= numSamples;
 				}
+				density1 = min(1.0, density1*100.0);
+				density2 = min(1.0, density2*100.0);
 				
-				opacity1 = min(1.0, opacity1);
-				opacity2 = min(1.0, opacity2);
-				
-				
-				float finalOpacity = min(1.0,opacity1 + opacity2);
-				vec3 finalLight = mix(light2, light1, opacity1)*color*0.9+vec3(0.10);
-				pc_fragColor = vec4(finalLight,finalOpacity);
-				//pc_fragColor = vec4(1.0,0.0,0.0,opacity1);
+				float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
+				vec3 fullDarkColor = vec3(`+atmosphere.x.toFixed(2)+`,`+atmosphere.y.toFixed(2)+`,`+atmosphere.z.toFixed(2)+`) * dotLight*0.5;
+				vec3 fullLightColor = color;
+
+				pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
+				pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
 				gMask = vec4(Pack24(min(1.0,max(length1,length2)*lengthMultiplier/100.0)),step(0.999,depth));
 
 		}`;
@@ -1094,23 +1090,26 @@ const CloudsShader = {
 
 				for (let x = 0; x < size; x++) {
 
+					
 					vector.set(x, y, z).divideScalar(size);
 
 					let perlinFBM = perlin.noise((x + 0.1579) * 1, (y + 0.7432) * 1, (z + 0.4699) * 1, size) * 0.6
 						+ perlin.noise((x + 0.1579) * 2, (y + 0.7432) * 2, (z + 0.4699) * 2, size) * 0.3
-						+ perlin.noise((x + 0.1579) * 3, (y + 0.7432) * 3, (z + 0.4699) * 3, size) * 0.1;
+						+ perlin.noise((x + 0.1579) * 4, (y + 0.7432) * 4, (z + 0.4699) * 4, size) * 0.1;
 
-					let worleyFBM = worley3D.noise({ x: x*10, y: y*10, z: z*10 }, Worley.EuclideanDistance, size * 10, size * 10, size * 10)[0] * 0.6 +
-						worley3D.noise({ x: x * 20, y: (y) * 20, z: (z) * 20 }, Worley.EuclideanDistance, size * 20, size * 20, size * 20)[0] * 0.3 +
-						worley3D.noise({ x: x * 30, y: (y) * 30, z: (z) * 30 }, Worley.EuclideanDistance, size * 30, size * 30, size * 30)[0] * 0.1;
+					let worleyFBM = worley3D.noise({ x: x, y: y, z: z }, Worley.EuclideanDistance, size , size , size )[0] * 0.6 +
+						worley3D.noise({ x: x * 2, y: (y) * 2, z: (z) * 2 }, Worley.EuclideanDistance, size , size , size )[0] * 0.3 +
+						worley3D.noise({ x: x * 4, y: (y) * 4, z: (z) * 4 }, Worley.EuclideanDistance, size , size , size )[0] * 0.1;
 
-					const clouds = remap(perlinFBM, worleyFBM-1, 1.0,0.0,1.0)
+
+					const clouds = remap(perlinFBM, 0, 1.0,worleyFBM,1.0)
+					//const clouds = remap(perlinFBM, worleyFBM-1, 1.0,worleyFBM,1.0)
 					if(clouds<min) min = clouds;
 					if(clouds>max) max = clouds;
 					
 					//clouds = 1 - (clouds * 2 - 1);
 					//const cloud = Math.max(0.0, Math.min(1.0, remap(perlinFBM, clouds - 1, 1, 0, 1) + 0.5));
-					dataFloat[i++] = worleyFBM;//(Math.pow(clouds,0.5)/2+0.5) * 256;
+					dataFloat[i++] = clouds;//(Math.pow(clouds,0.5)/2+0.5) * 256;
 
 				}
 

@@ -49,9 +49,6 @@ const PostShader = {
 		if (!!ocean && !ocean.isVector3) {
 			ocean = new THREE.Vector3(0.1, 0.2, 0.7);
 		}
-		if (!atmosphere || !atmosphere.isVector3) {
-			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
-		}
 
 		const atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
 		let code = /* glsl */`
@@ -537,14 +534,27 @@ const PostShader = {
 				
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 				float atmosphereImpactDistance = -1.0;
-				float atmosphereThickness = pow(getOpticalDepth(planetPosition, nonPostCameraPosition, worldDir, depth, impact, atmosphereImpactDistance),2.0);
+				`;
+				if(!!atmosphere){
+					code+=`
+					float atmosphereThickness = pow(getOpticalDepth(planetPosition, nonPostCameraPosition, worldDir, depth, impact, atmosphereImpactDistance),2.0);
 				
-				//vec3 atmosphereColor = mix(vec3(0.1,0.3,1.0), vec3(0.32,0.72,1.0), atmosphereThickness);
-				vec3 atmosphereColor = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), atmosphereThickness);
+					vec3 atmosphereColor = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), atmosphereThickness);
+					
+					diffuse = mix(diffuse,atmosphereColor,atmosphereThickness);
+	
+					`;
+				}else{
+					code+=`
+					float atmosphereThickness = 0.0;
 				
-				diffuse = mix(diffuse,atmosphereColor,atmosphereThickness);
+					vec3 atmosphereColor = vec3(0.0);
+				
+					diffuse = mix(diffuse,atmosphereColor,atmosphereThickness);
 
 				`;
+				}
+				
 
 
 		if (clouds) {
@@ -622,7 +632,7 @@ const PostShader = {
 		if (!!ocean && !ocean.isVector3) {
 			ocean = new THREE.Vector3(0.1, 0.2, 0.5);
 		}
-		if (!atmosphere || !atmosphere.isVector3) {
+		if (!!atmosphere && !atmosphere.isVector3) {
 			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
 		}
 		let blackHole = false;
@@ -1339,21 +1349,31 @@ const PostShader = {
 				
 				vec3 cameraSun = normalize(sunLocation*999999999999.0 - nonPostCameraPosition);
 				//rayDirection = vec3(rayDirection.x, rayDirection.z, -rayDirection.y);
-				float atmosphereImpactDistance = -1.0;
-				float atmosphereThickness = 0.0;
-				float atmosphereThicknessForSun = 0.0;
-				float atmosphereCameraHeight = 0.0;
-				float shade = 0.0;
-				atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector, atmosphereImpactDistance, atmosphereThickness, atmosphereThicknessForSun, atmosphereCameraHeight, shade);
-				atmosphereThickness = pow(atmosphereThickness,2.0);
-				
-				vec3 atmosphereColor = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), shade);
-				
-				
-				
-				
+				`;
+				if(!!atmosphere){
+					code+=`
+					float atmosphereImpactDistance = -1.0;
+					float atmosphereThickness = 0.0;
+					float atmosphereThicknessForSun = 0.0;
+					float atmosphereCameraHeight = 0.0;
+					float shade = 0.0;
+					atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector, atmosphereImpactDistance, atmosphereThickness, atmosphereThicknessForSun, atmosphereCameraHeight, shade);
+					atmosphereThickness = pow(atmosphereThickness,2.0);
+					
+					vec3 atmosphereColor = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), shade);
+					
+					`;
+				}else{
+					code+=`
+					float atmosphereThickness = 0.0;
+					float atmosphereThicknessForSun = 0.0;
+					float shade = 0.0;
+					float atmosphereCameraHeight = 1.0;
+					vec3 atmosphereColor = vec3(0,0,0);
 				
 				`;
+				}
+				
 		if (space) {
 			code += `
 					if(depth >= 0.9999){
@@ -1456,9 +1476,9 @@ const PostShader = {
 				float atm = pow(1.0-atmosphereThicknessForSun*0.5,4.0)*(1.0/atmosphereDensity);
 				float sunVisibility = (depth>=0.9999?(pow(s,10.0*atm)):0.0)*(1.0-min(1.0,atmosphereCameraHeight));
 				float atmosphereOpacity = min(1.0,(atmosphereThickness*atmosphereDensity)*shade+sunVisibility);
-				atmosphereColor.x = mix(atmosphereColor.x,0.6+shade,pow(s,80.0*atm));
-				atmosphereColor.y = mix(atmosphereColor.y,0.5+shade,pow(s,60.0*atm));
-				atmosphereColor.z = mix(atmosphereColor.z,0.4+shade,pow(s,10.0*atm));
+				atmosphereColor.x = mix(atmosphereColor.x,0.6+shade,pow(s,160.0*atm));
+				atmosphereColor.y = mix(atmosphereColor.y,0.5+shade,pow(s,120.0*atm));
+				atmosphereColor.z = mix(atmosphereColor.z,0.4+shade,pow(s,20.0*atm));
 				diffuse = mix(diffuse, atmosphereColor,atmosphereOpacity);
 				`;
 

@@ -104,13 +104,13 @@ var ogc3dTiles = new OGC3DTilesLayer({
     id: "jhvbg",
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/mm3D_b/tileset.json",
-    longitude: 4.91845,
+    url: "http://localhost:8080/tileset.json",
+    /* longitude: 4.91845,
     latitude: 52.37385,
     rotationX: -1.57,
     rotationY: -0.05,
     scale:0.4,
-    height: 44,
+    height: 44, */
     geometricErrorMultiplier: 4,
     loadOutsideView: true,
     flatShading: false
@@ -157,26 +157,27 @@ function setupMap(globalElevationMap) {
     
     let map = new Map({
         divID: 'screen',
-        shadows: true,
+        shadows: false,
         debug: false,
-        ocean: generateLiquidColor(),
-        atmosphere: generateAtmosphereColor(),
-        atmosphereDensity: 0.8+Math.random()*0.4,
-        sun: Math.random()<0.25?false:generateSunColor(),
-        globalElevation: globalElevationMap,
-        rings:Math.random()<0.25?true:false,
-        space: true,
+        detailMultiplier: 0.1,
+        //ocean: generateLiquidColor(),
+        atmosphere: true,//generateAtmosphereColor(),
+        //atmosphereDensity: 0.8+Math.random()*0.4,
+        //sun: Math.random()<0.25?false:new THREE.Vector3(Math.random(), Math.random(), Math.random()),
+        //globalElevation: globalElevationMap,
+        //rings:Math.random()<0.25?true:false,
+        space: new THREE.Color(0.05,0.05,0.2),
         clock: true,
         clouds: {
-            color: generateCloudsColor(),
-            coverage: 0.75,
-            scatterCoefficient: 0.85,
-            biScatteringKappa: 0.75,
-            density: 60,
-            luminance: Math.random()*10,
-            showPanel: false,
-            quality: 0.5,
-            windSpeed: Math.random(),
+            color: new THREE.Vector3(Math.random(), Math.random(), Math.random()),
+            coverage: 0.6,
+            //scatterCoefficient: 0.85,
+            //biScatteringKappa: 0.75,
+            //density: 60,
+            //luminance: 0.45+Math.random()*0.1,
+            showPanel: true,
+            //quality: 0.5,
+            windSpeed: Math.random()*0.1,
             cloudsRadiusStart: 1.0015+Math.random()*0.003,
             cloudsRadiusEnd: 1.0045+Math.random()*0.01
         }
@@ -207,12 +208,16 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.ultraClock.setDate(new Date(2023, 2, 21, 6, 0, 0, 0));
+    map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
     let h = 20;
     let m = 0;
     let s = 0;
-    /*setInterval(()=>{
-        s++;
+    /* setInterval(()=>{
+        const d = map.ultraClock.getDate();
+        h = d.getHours();
+        m = d.getMinutes();
+        s = d.getSeconds();
+        s+=10;
         if(s==60){
             m++;
             s=0;
@@ -221,19 +226,22 @@ function setupMap(globalElevationMap) {
             m=0;
             h = (h+1)%24
         }
-        map.setDate(new Date(2023, 2, 21, h, m, s, 0));
-    },10);*/
+        map.ultraClock.setDate(new Date(2023, 2, 21, h, m, s, 0));
+    },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x: 4.918021, y: 6.36, z: 20000000 }, { x: 4.918021, y: 6.37, z: 0 });
+    map.moveAndLookAt({ x: 2.488548, y: 25, z: 35000000 }, { x: 2.488548, y: 25.2, z: 0 });
 
-    map.setLayer(perlinElevation, 0);
-    map.setLayer(shaderLayer, 1);
+    //map.setLayer(perlinElevation, 0);
+    //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    //map.setLayer(earthElevation, 5);
-    //map.setLayer(wmsLayer, 4);
+    map.setLayer(earthElevation, 5);
+    map.setLayer(wmsLayer, 4);
+    map.sunPosition.set(0,0,1);
+    map.sunPosition.normalize();
+    map.csm.lightDirection.copy(map.sunPosition).negate();
 
 
     /* document.addEventListener('keyup', (e) => {
@@ -407,7 +415,7 @@ function isMobileDevice() {
 function generateLiquidColor() {
     let hue = Math.floor(Math.random() * 360);
     let saturation = 50 + Math.random() * 10;
-    let lightness = 30 + Math.random() * 40;
+    let lightness = 60 + Math.random() * 40;
 
     return hslToRgb(hue, saturation, lightness);
 }

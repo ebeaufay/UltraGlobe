@@ -16,6 +16,7 @@ import opticalDepth from './images/optical_depth.png';
 import water1 from './images/Water_1_M_Normal.jpg';
 import water2 from './images/Water_2_M_Normal.jpg';
 import perlin from './images/noise2.png';
+import blueNoise from './images/blueNoise.png';
 import { Controller } from "./controls/Controller.js";
 import { getSunPosition } from "./Sun";
 import { CSM } from './csm/CSM.js';
@@ -24,7 +25,7 @@ import ringsPalette from './images/ringsPalette.png';
 import stars from './images/stars.png';
 import nebula from './images/nebula2.png';
 import nebulaPalette from './images/paletteNebula.png';
-import perlinWorley3D from './images/perlinWorley3D_128.bin';
+import perlinWorley3D from "./images/perlinWorley3D_128.bin"
 import { ultraClock } from './controls/clock';
 
 
@@ -52,7 +53,7 @@ class Map {
     * @param {String} properties.divID A div ID.
     * @param {Boolean} [properties.debug=false] Display debug information.
     * @param {Boolean} [properties.shadows=false] Display sunlight and shadows.
-    * @param {THREE.Vector3} [properties.atmosphere=false] An atmosphere color. By thefault a blueish atmosphere is displayed
+    * @param {THREE.Vector3} [properties.atmosphere=new THREE.Vector3(0.1, 0.4, 1.0)] An atmosphere color. By thefault a blueish atmosphere is displayed
     * @param {Number} [properties.atmosphereDensity=1.0] An atmosphere density.
     * @param {THREE.Vector3|Boolean} [properties.sun=true] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true. An explicitely "false" value switches the sun for a black hole (queue theremin music).
     * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
@@ -64,7 +65,7 @@ class Map {
     * @param {Number} [properties.rings.outerRadius=this.rings.innerRadius+(0.1+Math.random())*6378137.0] the rings outer radius
     * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
     * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
-    * @param {Boolean|Object} [properties.space = false] space properties, if undefined, no space is drawn
+    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Number} [properties.space.starsIntensity=0.75] The intensity of stars
     * @param {Number} [properties.space.gasCloudsIntensity=0.25] the intensity of nebula like gasClouds
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
@@ -72,19 +73,23 @@ class Map {
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Boolean|Object} [properties.clouds = false] display clouds or not. May be an object with optional clouds related properties. If truthy, the Map object will have a "clouds" property allowing the cloud options to be tuned on the fly.
     * @param {THREE.Vector3} [properties.clouds.color = new THREE.Vector3(1.0,1.0,1.0)] base cloud color.
-    * @param {Number} [properties.clouds.density = 10] clouds density
-    * @param {Number} [properties.clouds.luminosity = 2] luminosity multiplier
-    * @param {Number} [properties.clouds.scatterCoefficient = 0.85] henyey-greenstein scatter coefficient.
+    * @param {Number} [properties.clouds.density = 100] clouds density
+    * @param {Number} [properties.clouds.luminosity = 0.2] luminosity multiplier
+    * @param {Number} [properties.clouds.scatterCoefficient = 0.66] henyey-greenstein scatter coefficient.
     * @param {Number} [properties.clouds.biScatteringKappa = 0.75] forward-back scattering kappa coefficient.
     * @param {Number} [properties.clouds.coverage = 0.5] Average earth cloud coverage
     * @param {Number} [properties.clouds.startRadius = 1.010] the lowest height at which clouds may appear in planet radius units
     * @param {Number} [properties.clouds.endRadius = 1.015] the highest radius at which clouds may appear in planet radius units
     * @param {Boolean} [properties.clouds.showPanel = false] show tuning panel. cannot be changed dynamically
-    * @param {Number} [properties.clouds.quality = 0.5] Resolution multiplier for clouds. cannot be changed dynamically.
+    * @param {Number} [properties.clouds.resolution = 0.5] Resolution multiplier for clouds. cannot be changed dynamically.
+    * @param {Number} [properties.clouds.numSamples = 15] number of samples. defaults to 15 for desktop and 2 for mobile
+    * @param {Number} [properties.clouds.numSamplesToLight = 5] number of samples to light. defaults to 5 for desktop and 2 for mobile
+    * @param {Number} [properties.clouds.numBlurPasses = 1] number of kawase blur passes. there is always at least one blur pass but this parameter allows specifying extra passes. defaults to 4 for mobile and 1 for desktop.
     * @param {Number} [properties.clouds.windSpeed = 0.01] cloud movement speed
     * @param {Boolean|Object} [properties.clock = false] add a clock
     * @param {Boolean} [properties.clock.timezone = false] add time-zone select
     * @param {Boolean} [properties.clock.dateTimePicker = false] add time-zone select
+    * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
     * 
     */
     constructor(properties) {
@@ -94,6 +99,7 @@ class Map {
         this.previousCameraPosition = new THREE.Vector3();
         this.previousCameraRotation = new THREE.Euler();
 
+        this.detailMultiplier = properties.detailMultiplier? properties.detailMultiplier:1.0;
         this.layerManager = new LayerManager();
         this.debug = properties.debug;
         this.shadows = properties.shadows;
@@ -108,15 +114,8 @@ class Map {
             if (!this.rings.colorMap) this.rings.colorMap = Math.random();
             if (!this.rings.colorMapDisplace) this.rings.colorMapDisplace = Math.random();
         }
-        this.space = properties.space;
-        if (this.space) {
-            if (!(typeof this.space === 'object' && Array.isArray(this.space))) this.space = {};
-            if (!this.space.starsIntensity) this.space.starsIntensity = 0.75;
-            if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.5;//Math.random();
-            if (!this.space.colorMap) this.space.colorMap = Math.random();
-            if (!this.space.texRotation1) this.space.texRotation1 = Math.random() * Math.PI;
-            if (!this.space.texRotation2) this.space.texRotation2 = Math.random() * Math.PI;
-        }
+        
+        
 
         this.globalElevation = properties.globalElevation;
         if (!!properties.domContainer) {
@@ -128,6 +127,22 @@ class Map {
         }
         this.camera = !!properties.camera ? properties.camera : this._initCamera();
         this.scene = !!properties.scene ? properties.scene : this._initScene(properties.shadows);
+        
+        if(properties.space && properties.space.isColor){
+            this.space = false;
+            this.scene.background = properties.space;
+        }else{
+            this.space = properties.space;
+            if (this.space) {
+                if (!(typeof this.space === 'object' && Array.isArray(this.space))) this.space = {};
+                if (!this.space.starsIntensity) this.space.starsIntensity = 0.75;
+                if (!this.space.gasCloudsIntensity) this.space.gasCloudsIntensity = 0.5;//Math.random();
+                if (!this.space.colorMap) this.space.colorMap = Math.random();
+                if (!this.space.texRotation1) this.space.texRotation1 = Math.random() * Math.PI;
+                if (!this.space.texRotation2) this.space.texRotation2 = Math.random() * Math.PI;
+            }
+        }
+
         this._resetLogDepthBuffer();
 
         if (properties.debug) {
@@ -138,6 +153,7 @@ class Map {
 
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
+        if(!!this.atmosphere&&!this.atmosphere.isVector3) this.atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
         this.atmosphereDensity = properties.atmosphereDensity?properties.atmosphereDensity:1.0;
         this.sunColor = properties.sun;
         this.clouds = properties.clouds;
@@ -145,15 +161,17 @@ class Map {
             this.clouds = {}
         } if (this.clouds) {
             if (!this.clouds.color) this.clouds.color = new THREE.Vector3(1.0, 1.0, 1.0);
-            if (!this.clouds.coverage) this.clouds.coverage = 0.81;
-            if (!this.clouds.scatterCoefficient) this.clouds.scatterCoefficient = 0.85;
+            if (!this.clouds.coverage) this.clouds.coverage = 0.6;
+            if (!this.clouds.scatterCoefficient) this.clouds.scatterCoefficient = 0.66;
             if (!this.clouds.biScatteringKappa) this.clouds.biScatteringKappa = 0.75;
-            if (!this.clouds.density) this.clouds.density = 25;
-            if (!this.clouds.luminance) this.clouds.luminance = 10;
+            if (!this.clouds.density) this.clouds.density = 1;
+            if (!this.clouds.luminance) this.clouds.luminance = 0.2;
             if (!this.clouds.cloudsRadiusStart) this.clouds.startRadius = 1.010;
             if (!this.clouds.cloudsRadiusEnd) this.clouds.endRadius = 1.015;
-            if (!this.clouds.quality) this.clouds.quality = 0.5;
-            //if(this.isMobile) this.clouds.quality /= 2;
+            if (!this.clouds.resolution) this.clouds.resolution = 0.5;
+            if (!this.clouds.numSamples) this.clouds.numSamples = self.isMobile?2:12;
+            if (!this.clouds.numSamplesToLight) this.clouds.numSamplesToLight = self.isMobile?2:4;
+            if (!this.clouds.numBlurPasses) this.clouds.numBlurPasses = self.isMobile?4:1;
             if (!this.clouds.windSpeed) this.clouds.windSpeed = 0.01;
         }
 
@@ -321,7 +339,7 @@ class Map {
                 fade: true,
                 parent: scene,
                 shadowMapSize: this.isMobile ? 1024 : 2048,
-                lightIntensity: 2.0,
+                lightIntensity: 3.5,
                 lightDirection: this.sunPosition.clone().negate(),
                 lightMargin: 500000,
                 shadowBias: -0.000001,
@@ -438,7 +456,7 @@ class Map {
 
 
             this.cloudsTarget = new THREE.WebGLMultipleRenderTargets(
-                Math.floor(this.domContainer.offsetWidth * this.clouds.quality), Math.floor(this.domContainer.offsetHeight * this.clouds.quality),
+                Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution),
                 2
             );
             this.cloudsTarget.stencilBuffer = false;
@@ -462,7 +480,7 @@ class Map {
 
             if (this.cloudsBlur1) this.cloudsBlur1.dispose();
 
-            this.cloudsBlur1 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.quality), Math.floor(this.domContainer.offsetHeight * this.clouds.quality));
+            this.cloudsBlur1 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution));
             this.cloudsBlur1.texture.format = THREE.RGBAFormat;
             this.cloudsBlur1.texture.colorSpace = THREE.SRGBColorSpace;
             this.cloudsBlur1.texture.minFilter = THREE.NearestFilter;
@@ -474,7 +492,7 @@ class Map {
 
             if (this.cloudsBlur2) this.cloudsBlur1.dispose();
 
-            this.cloudsBlur2 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.quality), Math.floor(this.domContainer.offsetHeight * this.clouds.quality));
+            this.cloudsBlur2 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution));
             this.cloudsBlur2.texture.format = THREE.RGBAFormat;
             this.cloudsBlur2.texture.colorSpace = THREE.SRGBColorSpace;
             this.cloudsBlur2.texture.minFilter = THREE.NearestFilter;
@@ -508,7 +526,7 @@ class Map {
         const self = this;
         self.cloudsMaterial = new THREE.ShaderMaterial({
             vertexShader: CloudsShader.vertexShader(),
-            fragmentShader: self.shadows ? CloudsShader.fragmentShaderShadows(!!self.ocean) : CloudsShader.fragmentShader(!!self.ocean),
+            fragmentShader: self.shadows ? CloudsShader.fragmentShaderShadows(!!self.ocean, self.atmosphere, self.sunColor) : CloudsShader.fragmentShader(!!self.ocean, self.atmosphere, self.sunColor),
             uniforms: {
                 cameraNear: { value: self.camera.near },
                 cameraFar: { value: self.camera.far },
@@ -526,8 +544,8 @@ class Map {
                 noise2D: { value: null },
                 ldf: { value: 0 },
                 time: { value: 0.0 },
-                numSamples: { value: self.isMobile?2.0:25.0 },
-                numSamplesToLight: { value: self.isMobile?2.0:5.0 },
+                numSamples: { value: self.clouds.numSamples },
+                numSamplesToLight: { value: self.clouds.numSamplesToLight },
                 lengthMultiplier: { value: 20.0 },
                 sunlight: { value: 10.0 },
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
@@ -559,13 +577,16 @@ class Map {
             depthWrite: false
         });
 
+        /* CloudsShader.generatePerlinWorleyTexture().then(texture => {
+            self.cloudsMaterial.uniforms.perlinWorley.value = texture;
+        }) */
         CloudsShader.loadPerlinWorley(perlinWorley3D).then(texture => {
             self.cloudsMaterial.uniforms.perlinWorley.value = texture;
         })
         
 
         loader.load(
-            perlin,
+            blueNoise,
             function (texture) {
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
@@ -835,9 +856,9 @@ class Map {
             self.depthTarget.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.target2.setSize(Math.floor(self.domContainer.offsetWidth * 1.0), Math.floor(self.domContainer.offsetHeight * 1.0));
             if (self.clouds) {
-                self.cloudsTarget.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.quality), Math.floor(self.domContainer.offsetHeight * self.clouds.quality));
-                self.cloudsBlur1.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.quality), Math.floor(self.domContainer.offsetHeight * self.clouds.quality));
-                self.cloudsBlur2.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.quality), Math.floor(self.domContainer.offsetHeight * self.clouds.quality));
+                self.cloudsTarget.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
+                self.cloudsBlur1.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
+                self.cloudsBlur2.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
             }
             self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
@@ -879,7 +900,7 @@ class Map {
 
 
     _initCamera() {
-        const camera = new THREE.PerspectiveCamera(36.286238472798956, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
+        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -897,7 +918,8 @@ class Map {
             center: new THREE.Vector3(0, 0, 0),
             shadows: this.csm,
             layerManager: this.layerManager,
-            renderer: this.renderer
+            renderer: this.renderer,
+            detailMultiplier: this.detailMultiplier
         });
         this.resetCameraNearFar();
     }
@@ -1070,7 +1092,7 @@ class Map {
                     self.postQuad.material = self.blurMaterial;
                     self.renderer.setRenderTarget(self.cloudsBlur2);
                     self.renderer.render(self.postScene, self.postCamera);
-                    const passes = self.isMobile?2:2;
+                    const passes = self.clouds.numBlurPasses;//self.isMobile?2:2;
                     for (let p = 0; p < passes; p++) {
                         self.blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
                         self.blurMaterial.uniforms.image.value = self.cloudsBlur2.texture;
@@ -1388,8 +1410,8 @@ class Map {
 
         // Define labels and ranges
         const elements = [
-            { label: 'density', min: 0, max: 200, value: self.clouds.density, step: 0.1, action: (val) => { self.clouds.density = val; } },
-            { label: 'luminance', min: 0, max: 10, value: self.clouds.luminance, step: 0.1, action: (val) => { self.clouds.luminance = val; } },
+            { label: 'density', min: 0, max: 10, value: self.clouds.density, step: 0.1, action: (val) => { self.clouds.density = val; } },
+            { label: 'sun strength', min: 0, max: 10, value: self.clouds.luminance, step: 0.01, action: (val) => { self.clouds.luminance = val; } },
             { label: 'scatterCoefficient', min: 0, max: 1, value: self.clouds.scatterCoefficient, step: 0.01, action: (val) => { self.clouds.scatterCoefficient = val; } },
             { label: 'biScatteringKappa', min: 0, max: 1, value: self.clouds.biScatteringKappa, step: 0.01, action: (val) => { self.clouds.biScatteringKappa = val; } },
             { label: 'coverage', min: 0, max: 1, value: self.clouds.coverage, step: 0.01, action: (val) => { self.clouds.coverage = val; } },

@@ -260,7 +260,7 @@ class MapTile {
 
         if (emptyChildren && self.users.size == 0) {
             if (self.texture) {
-                self.texture.abort();
+                if(self.texture.abort) self.texture.abort();
                 self.texture.dispose();
                 self.texture = undefined;
             }
@@ -277,7 +277,7 @@ class MapTile {
             self.callbacks.length = 0;
         }, error => {
             if (self.texture) {
-                self.texture.abort();
+                if(self.texture.abort) self.texture.abort();
                 self.texture.dispose();
                 self.texture = undefined;
             }

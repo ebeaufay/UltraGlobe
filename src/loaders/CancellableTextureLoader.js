@@ -1,64 +1,70 @@
-// @ts-nocheck
 import * as THREE from 'three';
 import { RGBAFormat } from 'three/src/constants.js';
 import { ImageLoader } from 'three/src/loaders/ImageLoader.js';
 import { Texture } from 'three/src/textures/Texture.js';
 import { Loader } from 'three/src/loaders/Loader.js';
 
-
 class CancellableTextureLoader extends Loader {
-
     constructor(manager) {
-
         super(manager);
-        const self = this;
         this.loader = new ImageLoader(this.manager);
         this.loader.setCrossOrigin(this.crossOrigin);
-
+        this.activeDownloads = 0;
+        this.downloadQueue = [];
+        this.maxSimultaneousDownloads = 8;
     }
 
+    processQueue() {
+        if (this.downloadQueue.length > 0 && this.activeDownloads < this.maxSimultaneousDownloads) {
+            const nextDownload = this.downloadQueue.shift();
+            // Start the download for the first item in the queue
+            this.startDownload(nextDownload.texture, nextDownload.url, nextDownload.onLoad, nextDownload.onProgress, nextDownload.onError);
+        }
+    }
 
-
-    load(url, onLoad, onProgress, onError) {
-
-        const texture = new Texture();
+    startDownload(texture, url, onLoad, onProgress, onError) {
+        this.activeDownloads++;
         let aborted = false;
-        const image = this.loader.load(url, function (image) {
-            if (aborted) {
-                return;
-            }
+        const self = this;
+        const image = this.loader.load(url, function(image) {
+            if (aborted) return;
             texture.image = image;
-
-            // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
-            //const isJPEG = url.search(/\.jpe?g($|\?)/i) > 0 || url.search(/^data\:image\/jpeg/) === 0;
-
             texture.format = RGBAFormat;
-            texture.wrapS = THREE.ClampToEdgeWrapping;
-            texture.wrapT = THREE.ClampToEdgeWrapping;
-            texture.magFilter = THREE.LinearFilter;
-            texture.minFilter = THREE.LinearFilter;
+            texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.magFilter = texture.minFilter = THREE.LinearFilter;
             texture.needsUpdate = true;
             texture.isReady = true;
             if (onLoad !== undefined) {
-
                 onLoad(texture);
-
             }
-
+            self.activeDownloads--;
+            self.processQueue();
         }, onProgress, onError);
 
-        texture.abort = function () {
-            if (image && typeof image.hasAttribute === 'function') {
-                image.src = '';
+        texture.abort = function() {
+            if (!aborted) {
+                aborted = true;
+                if (image && typeof image.hasAttribute === 'function') {
+                    image.src = '';
+                }
+                self.activeDownloads--;
+                self.processQueue();
             }
         };
-
-
-        return texture;
-
     }
 
-}
+    load(url, onLoad, onProgress, onError) {
+        const texture = new Texture();
 
+        if (this.activeDownloads >= this.maxSimultaneousDownloads) {
+            // Store the request in the queue with the texture object
+            this.downloadQueue.push({ texture, url, onLoad, onProgress, onError });
+        } else {
+            this.startDownload(texture, url, onLoad, onProgress, onError);
+        }
+
+        return texture;
+    }
+}
 
 export { CancellableTextureLoader };

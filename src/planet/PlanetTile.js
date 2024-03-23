@@ -123,6 +123,7 @@ class PlanetTile extends Mesh {
         self.elevationArray = defaultElevation;
         self.extendedElevationArray = defaultExtendedElevation;
         self.layerDataMap = {};
+        self.detailMultiplier = properties.detailMultiplier?properties.detailMultiplier:1.0;
         ///// Important, a tile cannot be made visible while "loaded" is false.
         self.loaded = false;
         self.loading = 0;
@@ -215,6 +216,7 @@ class PlanetTile extends Mesh {
 
                             self.shift = elevationAndShift.shift;
                             self._endLoading(self);
+                            
                         }
 
                         /*self.position.set(0, 0, 0);
@@ -308,6 +310,7 @@ class PlanetTile extends Mesh {
 
     update(camera, frustum, renderer) {
         const self = this;
+        if(!self.loaded) return;
         if (self.needsMaterialRebuild) {
             self.buildMaterial(self);
             self.needsMaterialRebuild = false;
@@ -367,12 +370,14 @@ class PlanetTile extends Mesh {
                         {
                             bounds: new THREE.Box2(self.bounds.min, new THREE.Vector2(self.bounds.max.x, halfY)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, self.bounds.min.y + (self.bounds.max.y - self.bounds.min.y) * 0.5), self.bounds.max),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
 
@@ -383,24 +388,28 @@ class PlanetTile extends Mesh {
                         {
                             bounds: new THREE.Box2(self.bounds.min, boundsCenter),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(boundsCenter, self.bounds.max),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
+                            detailMultiplier: self.detailMultiplier
                         }
                     ));
                 }
@@ -639,7 +648,7 @@ class PlanetTile extends Mesh {
 
             const localRadius = this.planet.radius;
 
-            var log = -(Math.log(distance * (isMobileDevice() ? 10000 / 50 * camera.fov : 5000 / 50 * camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
+            var log = -(Math.log(distance * (isMobileDevice() ? (10000/this.detailMultiplier) / 50 * camera.fov : (5000/this.detailMultiplier) / 50 * camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
             const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001));
 
             if (isNaN(metric)) {

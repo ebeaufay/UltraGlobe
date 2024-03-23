@@ -10,7 +10,7 @@ function ultraClock(properties) {
   canvas.id = 'canvas';
   canvas.width = 200;
   canvas.height = 200;
-  canvas.style = 'position: absolute; bottom: 80px; left: 2%;';
+  canvas.style = 'position: absolute; bottom: 120px; left: 2%;';
   var ctx = canvas.getContext("2d");
   var radius = canvas.height / 2;
 
@@ -19,7 +19,7 @@ function ultraClock(properties) {
   radius = radius * 0.90
   const hiddenCanvas = document.createElement('canvas');
   hiddenCanvas.id = 'hiddenCanvas';
-  hiddenCanvas.style = 'position: absolute; bottom: 80px; left: 2%; filter: blur(5px); pointer-events: none;';
+  hiddenCanvas.style = 'position: absolute; bottom: 120px; left: 2%; filter: blur(5px); pointer-events: none;';
 
   hiddenCanvas.width = canvas.width;
   hiddenCanvas.height = canvas.height;
@@ -128,7 +128,7 @@ function ultraClock(properties) {
     const datetimePickerElement = document.createElement('input');
     datetimePickerElement.id = 'datetime-picker';
     datetimePickerElement.type = 'text';
-    datetimePickerElement.style = 'position: absolute; bottom: 80px; left: 2%; display: none;';
+    datetimePickerElement.style = 'position: absolute; bottom: 120px; left: 2%; display: none;';
     document.body.appendChild(datetimePickerElement);
   
     const flatpickrCSS = document.createElement('link');
@@ -236,8 +236,11 @@ function ultraClock(properties) {
     date = aDate;
     drawClock();
   }
+  function getDate() {
+    return date;
+  }
 
-  return { addListener: addListener, setDate: setDate }
+  return { addListener: addListener, setDate: setDate, getDate: getDate }
 }
 
 export { ultraClock };
