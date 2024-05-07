@@ -7,9 +7,6 @@ import { RotateController } from './controls/RotateController.js';
 import { ZoomController } from './controls/ZoomController.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { PostShader } from './PostShader.js';
-import { CloudsShader } from './clouds/CloudsShader.js';
-import { CloudsBlurShader } from './clouds/CloudsBlurShader.js';
-import { CloudsOpacityAdjustmentShader } from './clouds/CloudsOpacityAdjustmentShader';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth.png';
@@ -71,21 +68,6 @@ class Map {
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
     * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
-    * @param {Boolean|Object} [properties.clouds = false] display clouds or not. May be an object with optional clouds related properties. If truthy, the Map object will have a "clouds" property allowing the cloud options to be tuned on the fly.
-    * @param {THREE.Vector3} [properties.clouds.color = new THREE.Vector3(1.0,1.0,1.0)] base cloud color.
-    * @param {Number} [properties.clouds.density = 100] clouds density
-    * @param {Number} [properties.clouds.luminosity = 0.2] luminosity multiplier
-    * @param {Number} [properties.clouds.scatterCoefficient = 0.66] henyey-greenstein scatter coefficient.
-    * @param {Number} [properties.clouds.biScatteringKappa = 0.75] forward-back scattering kappa coefficient.
-    * @param {Number} [properties.clouds.coverage = 0.5] Average earth cloud coverage
-    * @param {Number} [properties.clouds.startRadius = 1.010] the lowest height at which clouds may appear in planet radius units
-    * @param {Number} [properties.clouds.endRadius = 1.015] the highest radius at which clouds may appear in planet radius units
-    * @param {Boolean} [properties.clouds.showPanel = false] show tuning panel. cannot be changed dynamically
-    * @param {Number} [properties.clouds.resolution = 0.5] Resolution multiplier for clouds. cannot be changed dynamically.
-    * @param {Number} [properties.clouds.numSamples = 15] number of samples. defaults to 15 for desktop and 2 for mobile
-    * @param {Number} [properties.clouds.numSamplesToLight = 5] number of samples to light. defaults to 5 for desktop and 2 for mobile
-    * @param {Number} [properties.clouds.numBlurPasses = 1] number of kawase blur passes. there is always at least one blur pass but this parameter allows specifying extra passes. defaults to 4 for mobile and 1 for desktop.
-    * @param {Number} [properties.clouds.windSpeed = 0.01] cloud movement speed
     * @param {Boolean|Object} [properties.clock = false] add a clock
     * @param {Boolean} [properties.clock.timezone = false] add time-zone select
     * @param {Boolean} [properties.clock.dateTimePicker = false] add time-zone select
@@ -101,6 +83,7 @@ class Map {
 
         this.detailMultiplier = properties.detailMultiplier? properties.detailMultiplier:1.0;
         this.layerManager = new LayerManager();
+        this.layerManager.addListener("mapEnvLayerListener", this._layersChangedListener());
         this.debug = properties.debug;
         this.shadows = properties.shadows;
         this.rings = properties.rings;
@@ -151,40 +134,16 @@ class Map {
             this.scene.add(axesHelper);
         }
 
+        self.ultraClock = ultraClock(properties.clock);
+        self.ultraClock.addListener(date => self.setDate(date));
+
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
         if(!!this.atmosphere&&!this.atmosphere.isVector3) this.atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
         this.atmosphereDensity = properties.atmosphereDensity?properties.atmosphereDensity:1.0;
         this.sunColor = properties.sun;
-        this.clouds = properties.clouds;
-        if (this.clouds === true) {
-            this.clouds = {}
-        } if (this.clouds) {
-            if (!this.clouds.color) this.clouds.color = new THREE.Vector3(1.0, 1.0, 1.0);
-            if (!this.clouds.coverage) this.clouds.coverage = 0.6;
-            if (!this.clouds.scatterCoefficient) this.clouds.scatterCoefficient = 0.66;
-            if (!this.clouds.biScatteringKappa) this.clouds.biScatteringKappa = 0.75;
-            if (!this.clouds.density) this.clouds.density = 1;
-            if (!this.clouds.luminance) this.clouds.luminance = 0.2;
-            if (!this.clouds.cloudsRadiusStart) this.clouds.startRadius = 1.010;
-            if (!this.clouds.cloudsRadiusEnd) this.clouds.endRadius = 1.015;
-            if (!this.clouds.resolution) this.clouds.resolution = 0.5;
-            if (!this.clouds.numSamples) this.clouds.numSamples = self.isMobile?2:12;
-            if (!this.clouds.numSamplesToLight) this.clouds.numSamplesToLight = self.isMobile?2:4;
-            if (!this.clouds.numBlurPasses) this.clouds.numBlurPasses = self.isMobile?4:1;
-            if (!this.clouds.windSpeed) this.clouds.windSpeed = 0.01;
-        }
-
-        if (properties.clock) {
-            if (properties.clock === true) {
-                self.ultraClock = ultraClock();
-
-            } else {
-                self.ultraClock = ultraClock(properties.clock);
-            }
-            self.ultraClock.addListener(date => self.setDate(date));
-        }
-
+        
+        
 
         this._initRenderer(properties.shadows);
         this._initLabelRenderer();
@@ -196,13 +155,7 @@ class Map {
         this._setupPostScene();
         this._setupPostMaterial();
 
-        this._setupCloudsOpacityAdjustmentShader();
-        if (this.clouds) {
-            this._setupCloudsPassMaterial();
-            if (properties.debug || this.clouds.showPanel) {
-                this._createCloudsDebugPanel();
-            }
-        }
+        
         this._setupDepthPassMaterial();
 
 
@@ -310,6 +263,28 @@ class Map {
      */
     getLayerByID(id) {
         return this.layerManager.getLayerByID(id);
+    }
+
+    _layersChangedListener(){
+        const self = this;
+        return ()=>{
+            let cloudsLayerEncountered  = false;
+            self.layerManager.getLayers().forEach(layer=>{
+                if(layer.isCloudsLayer && !cloudsLayerEncountered){
+                    if(layer.visible){
+                        cloudsLayerEncountered = true;
+                        if(!self.cloudsLayer || self.cloudsLayer != layer){
+                            self.cloudsLayer = layer;
+                            self.cloudsLayer.init(self);
+                            console.log("new clouds layer loaded");
+                        }
+                    }
+                    
+                    
+                }
+            })
+        }
+
     }
     _initScene() {
         const scene = new THREE.Scene();
@@ -419,7 +394,7 @@ class Map {
         this.target.texture.colorSpace = THREE.SRGBColorSpace;
         this.target.texture.minFilter = THREE.NearestFilter;
         this.target.texture.magFilter = THREE.NearestFilter;
-        this.target.texture.premultiplyAlpha = false;
+        this.target.texture.premultiplyAlpha = true;
         this.target.texture.generateMipmaps = false;
         this.target.stencilBuffer = false;
         this.target.depthBuffer = true;
@@ -451,158 +426,16 @@ class Map {
         this.target2.stencilBuffer = false;
         this.target2.depthBuffer = false;
 
-        if (this.clouds) {
-            if (this.cloudsTarget) this.cloudsTarget.dispose();
-
-
-            this.cloudsTarget = new THREE.WebGLMultipleRenderTargets(
-                Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution),
-                2
-            );
-            this.cloudsTarget.stencilBuffer = false;
-            this.cloudsTarget.depthBuffer = false;
-
-            this.cloudsTarget.texture[0].format = THREE.RGBAFormat;
-            this.cloudsTarget.texture[0].colorSpace = THREE.SRGBColorSpace;
-            this.cloudsTarget.texture[0].minFilter = THREE.NearestFilter;
-            this.cloudsTarget.texture[0].magFilter = THREE.LinearFilter;
-            this.cloudsTarget.texture[0].generateMipmaps = false;
-            this.cloudsTarget.texture[0].premultiplyAlpha = false;
-
-            this.cloudsTarget.texture[1].format = THREE.RGBAFormat;
-            this.cloudsTarget.texture[1].colorSpace = THREE.SRGBColorSpace;
-            this.cloudsTarget.texture[1].minFilter = THREE.NearestFilter;
-            this.cloudsTarget.texture[1].magFilter = THREE.NearestFilter;
-            this.cloudsTarget.texture[1].generateMipmaps = false;
-            this.cloudsTarget.texture[1].premultiplyAlpha = false;
-
-
-
-            if (this.cloudsBlur1) this.cloudsBlur1.dispose();
-
-            this.cloudsBlur1 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution));
-            this.cloudsBlur1.texture.format = THREE.RGBAFormat;
-            this.cloudsBlur1.texture.colorSpace = THREE.SRGBColorSpace;
-            this.cloudsBlur1.texture.minFilter = THREE.NearestFilter;
-            this.cloudsBlur1.texture.magFilter = THREE.LinearFilter;
-            this.cloudsBlur1.texture.generateMipmaps = false;
-            this.cloudsBlur1.stencilBuffer = false;
-            this.cloudsBlur1.depthBuffer = false;
-            this.cloudsBlur1.texture.premultiplyAlpha = false;
-
-            if (this.cloudsBlur2) this.cloudsBlur1.dispose();
-
-            this.cloudsBlur2 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * this.clouds.resolution), Math.floor(this.domContainer.offsetHeight * this.clouds.resolution));
-            this.cloudsBlur2.texture.format = THREE.RGBAFormat;
-            this.cloudsBlur2.texture.colorSpace = THREE.SRGBColorSpace;
-            this.cloudsBlur2.texture.minFilter = THREE.NearestFilter;
-            this.cloudsBlur2.texture.magFilter = THREE.LinearFilter;
-            this.cloudsBlur2.texture.generateMipmaps = false;
-            this.cloudsBlur2.stencilBuffer = false;
-            this.cloudsBlur2.depthBuffer = false;
-            this.cloudsBlur2.texture.premultiplyAlpha = false;
-        }
+        
 
     }
 
-    _setupCloudsOpacityAdjustmentShader() {
-        this.cloudsOpacityAdjustmentShader = new THREE.ShaderMaterial({
-            vertexShader: CloudsOpacityAdjustmentShader.vertexShader(),
-            fragmentShader: CloudsOpacityAdjustmentShader.fragmentShader(),
-            uniforms: {
-                clouds: { value: null },
-                cloudsOpacityMultiplier: { value: null }
-            },
-            premultipliedAlpha: false,
-            depthTest: false,
-            depthWrite: false
-        })
-    }
+    
     _setupBlurMaterials() {
 
 
     }
-    _setupCloudsPassMaterial() {
-        const self = this;
-        self.cloudsMaterial = new THREE.ShaderMaterial({
-            vertexShader: CloudsShader.vertexShader(),
-            fragmentShader: self.shadows ? CloudsShader.fragmentShaderShadows(!!self.ocean, self.atmosphere, self.sunColor) : CloudsShader.fragmentShader(!!self.ocean, self.atmosphere, self.sunColor),
-            uniforms: {
-                cameraNear: { value: self.camera.near },
-                cameraFar: { value: self.camera.far },
-                tDepth: { value: null },
-                radius: { value: 0 },
-                xfov: { value: 0 },
-                yfov: { value: 0 },
-                planetPosition: { value: new THREE.Vector3(0, 0, 0) },
-                nonPostCameraPosition: { value: new THREE.Vector3(0, 0, 0) },
-                viewCenterFar: { value: new THREE.Vector3(0, 0, 0) },
-                viewCenterNear: { value: new THREE.Vector3(0, 0, 0) },
-                up: { value: new THREE.Vector3(0, 0, 0) },
-                right: { value: new THREE.Vector3(0, 0, 0) },
-                perlinWorley: { value: null },
-                noise2D: { value: null },
-                ldf: { value: 0 },
-                time: { value: 0.0 },
-                numSamples: { value: self.clouds.numSamples },
-                numSamplesToLight: { value: self.clouds.numSamplesToLight },
-                lengthMultiplier: { value: 20.0 },
-                sunlight: { value: 10.0 },
-                sunLocation: { value: new THREE.Vector3(0, 0, 0) },
-                scatterCoef: { value: 0.8 },
-                biScatteringKappa: { value: 0.65 },
-                color: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
-                coverage: { value: 0.2 },
-                cloudsRadiusStart: { value: 1.003 },
-                cloudsRadiusEnd: { value: 1.015 },
-                windSpeed: { value: 0.01 },
-                temporalDeNoiseAlpha: { value: 0.5 }
-            },
-            depthTest: false,
-            depthWrite: false
-        });
-
-        self.blurMaterial = new THREE.ShaderMaterial({
-            vertexShader: CloudsBlurShader.vertexShader(),
-            fragmentShader: CloudsBlurShader.fragmentShader(self.domContainer.offsetWidth, self.domContainer.offsetHeight),
-            uniforms: {
-                offset: { value: new THREE.Vector2() },
-                image: { value: null },
-                mask: { value: null },
-                noise2D: { value: null },
-                preserveMaxOpacity: { value: 0.0 }
-            },
-            premultipliedAlpha: false,
-            depthTest: false,
-            depthWrite: false
-        });
-
-        /* CloudsShader.generatePerlinWorleyTexture().then(texture => {
-            self.cloudsMaterial.uniforms.perlinWorley.value = texture;
-        }) */
-        CloudsShader.loadPerlinWorley(perlinWorley3D).then(texture => {
-            self.cloudsMaterial.uniforms.perlinWorley.value = texture;
-        })
-        
-
-        loader.load(
-            blueNoise,
-            function (texture) {
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.wrapT = THREE.RepeatWrapping;
-                texture.magFilter = THREE.LinearFilter;
-                texture.minFilter = THREE.LinearFilter;
-                self.cloudsMaterial.uniforms.noise2D.value = texture;
-                self.blurMaterial.uniforms.noise2D.value = texture;
-            },
-            undefined,
-            function (err) {
-                console.error('An error happened: ' + err);
-            }
-        );
-
-
-    }
+    
     _setupPostScene() {
         const postPlane = new THREE.PlaneGeometry(2, 2);
         this.postQuad = new THREE.Mesh(postPlane);
@@ -616,7 +449,7 @@ class Map {
 
         this.postMaterial = new THREE.ShaderMaterial({
             vertexShader: PostShader.vertexShader(),
-            fragmentShader: self.shadows ? PostShader.fragmentShaderShadows(self.atmosphere, self.ocean, self.sunColor, !!self.globalElevation, self.rings, self.space, self.clouds) : PostShader.fragmentShader(self.atmosphere, self.ocean, self.rings, self.space, self.clouds),
+            fragmentShader: self.shadows ? PostShader.fragmentShaderShadows(self.atmosphere, self.ocean, self.sunColor, !!self.globalElevation, self.rings, self.space, true) : PostShader.fragmentShader(self.atmosphere, self.ocean, self.rings, self.space, true),
             uniforms: {
                 cameraNear: { value: this.camera.near },
                 cameraFar: { value: this.camera.far },
@@ -855,11 +688,11 @@ class Map {
             self.target.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.depthTarget.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.target2.setSize(Math.floor(self.domContainer.offsetWidth * 1.0), Math.floor(self.domContainer.offsetHeight * 1.0));
-            if (self.clouds) {
-                self.cloudsTarget.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
-                self.cloudsBlur1.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
-                self.cloudsBlur2.setSize(Math.floor(self.domContainer.offsetWidth * self.clouds.resolution), Math.floor(self.domContainer.offsetHeight * self.clouds.resolution));
+            if (self.cloudsLayer) {
+                self.cloudsLayer.changeSize(self.domContainer);
+                
             }
+            
             self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
         }
@@ -900,7 +733,7 @@ class Map {
 
 
     _initCamera() {
-        const camera = new THREE.PerspectiveCamera(30, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
+        const camera = new THREE.PerspectiveCamera(40, this.domContainer.offsetWidth / this.domContainer.offsetHeight, 0.01, 50000000);
         camera.position.set(40000000, 0, 0);
         camera.up.set(0, 0, 1)
         camera.lookAt(new THREE.Vector3(-0, 0, 10000));
@@ -997,6 +830,12 @@ class Map {
 
         function animate() {
             requestAnimationFrame(animate);
+            self.planet.update();
+            self.layerManager.layers.forEach(layer=>{
+                if(layer.isOGC3DTilesLayer){
+                    layer.update(self.camera);
+                }
+            })
             if (self.shadows) {
                 self.csm.update(self.camera.matrix);
 
@@ -1024,101 +863,13 @@ class Map {
                 self.renderer.render(self.postScene, self.postCamera);
 
                 /// clouds
-                if (self.clouds) {
-                    const context = self.renderer.getContext();
-                    context.clearDepth(1.0); // Set the depth to the farthest
-                    context.clear(context.DEPTH_BUFFER_BIT); // Clear the depth buffer
-                    context.depthMask(true)
-                    //self._switchCloudRenderTarget();
-                    self.cloudsMaterial.uniforms.tDepth.value = self.target.depthTexture;
-                    self.cloudsMaterial.uniforms.cameraNear.value = self.camera.near;
-                    self.cloudsMaterial.uniforms.cameraFar.value = self.camera.far;
-                    self.cloudsMaterial.uniforms.radius.value = self.planet.radius;
-                    self.cloudsMaterial.uniforms.xfov.value = 2 * Math.atan(Math.tan(self.camera.fov * Math.PI / 180 / 2) * self.camera.aspect) * 180 / Math.PI;
-                    self.cloudsMaterial.uniforms.yfov.value = self.camera.fov;
-                    self.cloudsMaterial.uniforms.planetPosition.value = self.planet.position;
-                    self.cloudsMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
-                    self.cloudsMaterial.uniforms.ldf.value = self.logDepthBufFC;
-
-                    self.cloudsMaterial.uniforms.lengthMultiplier.value = self.clouds.density;
-                    self.cloudsMaterial.uniforms.sunlight.value = self.clouds.luminance;
-                    self.cloudsMaterial.uniforms.scatterCoef.value = self.clouds.scatterCoefficient;
-                    self.cloudsMaterial.uniforms.biScatteringKappa.value = self.clouds.biScatteringKappa;
-                    self.cloudsMaterial.uniforms.coverage.value = 1.0 - self.clouds.coverage;
-                    self.cloudsMaterial.uniforms.color.value = self.clouds.color;
-                    self.cloudsMaterial.uniforms.cloudsRadiusStart.value = self.clouds.cloudsRadiusStart;
-                    self.cloudsMaterial.uniforms.cloudsRadiusEnd.value = self.clouds.cloudsRadiusEnd;
-                    self.cloudsMaterial.uniforms.windSpeed.value = self.clouds.windSpeed;
-
-                    self.camera.getWorldDirection(self.cloudsMaterial.uniforms.viewCenterFar.value).normalize();
-                    self.cloudsMaterial.uniforms.viewCenterNear.value.copy(self.cloudsMaterial.uniforms.viewCenterFar.value);
-                    self.cloudsMaterial.uniforms.up.value = self.camera.up.normalize();
-                    self.cloudsMaterial.uniforms.right.value.crossVectors(self.camera.up, self.cloudsMaterial.uniforms.viewCenterFar.value);
-                    self.cloudsMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-                    self.cloudsMaterial.uniforms.viewCenterNear.value.multiplyScalar(self.camera.near).add(self.camera.position);
-                    //self.cloudsMaterial.uniforms.previous.value = self.cloudsTarget.texture;
-                    if (self.shadows) {
-                        self.cloudsMaterial.uniforms.sunLocation.value.copy(self.sunPosition);
-                    }
-                    self.cloudsMaterial.uniforms.temporalDeNoiseAlpha.value = !self.previousCameraPosition.equals(self.camera.position) || !self.previousCameraRotation.equals(self.camera.rotation) ? 0.6 : 0.1;
-
-                    self.previousCameraPosition.copy(self.camera.position);
-                    self.previousCameraRotation.copy(self.camera.rotation);
-
-                    self.cloudsMaterial.uniforms.time.value = clock.elapsedTime;
-
-                    self.renderer.setRenderTarget(self.cloudsTarget);
-                    self.postQuad.material = self.cloudsMaterial;
-                    self.renderer.render(self.postScene, self.postCamera);
-
-
-                    /// clouds blur
-                    let texelSizeVertical = 1 / self.target2.height;
-                    let texelSizeHorizontal = 1 / self.target2.width;
-                    let mul = 0.5;
-
-                    self.blurMaterial.uniforms.mask.value = self.cloudsTarget.texture[1];
-                    self.blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
-                    self.blurMaterial.uniforms.image.value = self.cloudsTarget.texture[0];
-                    self.blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-                    mul += 1;
-                    self.postQuad.material = self.blurMaterial;
-                    self.renderer.setRenderTarget(self.cloudsBlur1);
-                    self.renderer.render(self.postScene, self.postCamera);
-
-                    self.blurMaterial.uniforms.image.value = self.cloudsBlur1.texture;
-                    self.blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-                    mul += 1;
-                    self.postQuad.material = self.blurMaterial;
-                    self.renderer.setRenderTarget(self.cloudsBlur2);
-                    self.renderer.render(self.postScene, self.postCamera);
-                    const passes = self.clouds.numBlurPasses;//self.isMobile?2:2;
-                    for (let p = 0; p < passes; p++) {
-                        self.blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
-                        self.blurMaterial.uniforms.image.value = self.cloudsBlur2.texture;
-                        self.blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-                        mul += 1;
-                        self.postQuad.material = self.blurMaterial;
-                        self.renderer.setRenderTarget(self.cloudsBlur1);
-                        self.renderer.render(self.postScene, self.postCamera);
-
-                        self.blurMaterial.uniforms.image.value = self.cloudsBlur1.texture;
-                        self.blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-                        mul += 1;
-                        self.postQuad.material = self.blurMaterial;
-                        self.renderer.setRenderTarget(self.cloudsBlur2);
-                        self.renderer.render(self.postScene, self.postCamera);
-                    }
-
-                    /* self.cloudsOpacityAdjustmentShader.uniforms.clouds.value = self.cloudsBlur2.texture;
-                    self.cloudsOpacityAdjustmentShader.uniforms.cloudsOpacityMultiplier.value = self.cloudsTarget.texture[1];
-
-                    self.postQuad.material = self.cloudsOpacityAdjustmentShader;
-                    self.renderer.setRenderTarget(self.cloudsBlur1);
-                    self.renderer.render(self.postScene, self.postCamera); */
-
-                    self.postMaterial.uniforms.tClouds.value = self.cloudsBlur2.texture;
+                if(self.cloudsLayer){
+                    self.cloudsLayer.updateUniforms(self);
+                    self.cloudsLayer.render(self);
+                    self.postMaterial.uniforms.tClouds.value = self.cloudsLayer.getOutputTexture();
                 }
+
+                
 
 
                 /// post final
@@ -1412,8 +1163,6 @@ class Map {
         const elements = [
             { label: 'density', min: 0, max: 10, value: self.clouds.density, step: 0.1, action: (val) => { self.clouds.density = val; } },
             { label: 'sun strength', min: 0, max: 10, value: self.clouds.luminance, step: 0.01, action: (val) => { self.clouds.luminance = val; } },
-            { label: 'scatterCoefficient', min: 0, max: 1, value: self.clouds.scatterCoefficient, step: 0.01, action: (val) => { self.clouds.scatterCoefficient = val; } },
-            { label: 'biScatteringKappa', min: 0, max: 1, value: self.clouds.biScatteringKappa, step: 0.01, action: (val) => { self.clouds.biScatteringKappa = val; } },
             { label: 'coverage', min: 0, max: 1, value: self.clouds.coverage, step: 0.01, action: (val) => { self.clouds.coverage = val; } },
             { label: 'r', min: 0, max: 1, value: self.clouds.color.x, step: 0.01, action: (val) => { self.clouds.color.x = val; } },
             { label: 'g', min: 0, max: 1, value: self.clouds.color.y, step: 0.01, action: (val) => { self.clouds.color.y = val; } },
@@ -1473,7 +1222,7 @@ class Map {
         lowCloudsSlider.min = 1.0;
         lowCloudsSlider.max = 1.1;
         lowCloudsSlider.step = 0.001;
-        lowCloudsSlider.value = self.clouds.cloudsRadiusStart;
+        lowCloudsSlider.value = self.clouds.startRadius;
 
         const lowCloudsValueDisplay = document.createElement('span');
         lowCloudsValueDisplay.style.minWidth = '50px';
@@ -1500,7 +1249,7 @@ class Map {
         highCloudsSlider.min = 1.0;
         highCloudsSlider.max = 1.1;
         highCloudsSlider.step = 0.001;
-        highCloudsSlider.value = self.clouds.cloudsRadiusEnd;
+        highCloudsSlider.value = self.clouds.endRadius;
 
         const highCloudsValueDisplay = document.createElement('span');
         highCloudsValueDisplay.style.minWidth = '50px';
@@ -1514,16 +1263,16 @@ class Map {
 
         lowCloudsSlider.oninput = () => {
             lowCloudsValueDisplay.textContent = lowCloudsSlider.value.toString();
-            this.clouds.cloudsRadiusStart = lowCloudsSlider.value;
-            this.clouds.cloudsRadiusEnd = Math.max(this.clouds.cloudsRadiusEnd, lowCloudsSlider.value);
-            highCloudsSlider.value = this.clouds.cloudsRadiusEnd;
+            this.clouds.startRadius = lowCloudsSlider.value;
+            this.clouds.endRadius = Math.max(this.clouds.endRadius, lowCloudsSlider.value);
+            highCloudsSlider.value = this.clouds.endRadius;
             highCloudsValueDisplay.textContent = highCloudsSlider.value.toString();
         };
         highCloudsSlider.oninput = () => {
             highCloudsValueDisplay.textContent = highCloudsSlider.value.toString();
-            this.clouds.cloudsRadiusEnd = highCloudsSlider.value;
-            this.clouds.cloudsRadiusStart = Math.min(this.clouds.cloudsRadiusStart, highCloudsSlider.value);
-            lowCloudsSlider.value = this.clouds.cloudsRadiusStart;
+            this.clouds.endRadius = highCloudsSlider.value;
+            this.clouds.startRadius = Math.min(this.clouds.startRadius, highCloudsSlider.value);
+            lowCloudsSlider.value = this.clouds.startRadius;
             lowCloudsValueDisplay.textContent = lowCloudsSlider.value.toString();
         };
 

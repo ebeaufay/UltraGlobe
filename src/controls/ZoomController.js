@@ -58,7 +58,8 @@ class ZoomController extends Controller {
 	touchMove(e) {
         if(e.touches.length == 2){
             this.newDist = Math.sqrt(Math.pow(e.touches[0].clientX-e.touches[1].clientX,2)+Math.pow(e.touches[0].clientY-e.touches[1].clientY,2));
-            this.zoom = -(this.newDist - this.touchDist)*0.5;
+            this.zoom = -(this.newDist - this.touchDist)*0.1;
+            
         }else{
             this.touchEnd();
         }
@@ -66,7 +67,7 @@ class ZoomController extends Controller {
 	}
 
     mouseWheel(e) {
-        this.zoom += Math.sign(e.deltaY) * 2;
+        this.zoom += Math.sign(e.deltaY) * 4;
         this.zoomLocation = e;
         //this.map.screenPixelRayCast(e.x, e.y, this.mouseRayCast);
     }
@@ -75,7 +76,8 @@ class ZoomController extends Controller {
         if (this.zoom != 0) {
             this.zoomAction();
             this.straighten();
-            this.zoom = 0;
+            this.zoom = 0.0;
+            //if(Math.abs(this.zoom)<0.01) this.zoom = 0.0;
             this.touchDist = this.newDist;
             this.map.moveCameraAboveSurface();
             this.map.resetCameraNearFar();

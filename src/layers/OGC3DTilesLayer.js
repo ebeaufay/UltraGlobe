@@ -248,22 +248,21 @@ class OGC3DTilesLayer extends Layer {
     }
     setPlanet(planet) {
         this.planet = planet;
-        this.update();
+        this.updateLocation();
     }
 
     addToScene(scene, camera) {
         this.scene = scene;
         this.camera = camera;
         scene.add(this.tileset);
-        const self = this;
-        self.updateInterval = setIntervalAsync(function () {
-            if (!self.pause) {
-                self.tileset.update(camera);
-            }
-        }, 25);
+        
     }
 
-    update() {
+    update(camera){
+        this.tileset.update(camera);
+        this.tileset.tileLoader.update();
+    }
+    updateLocation() {
         
         if(!this.planet){
             return;
@@ -330,24 +329,3 @@ class OGC3DTilesLayer extends Layer {
 }
 export { OGC3DTilesLayer }
 
-function setIntervalAsync(fn, delay) {
-    let timeout;
-
-    const run = async () => {
-        const startTime = Date.now();
-        try {
-            await fn();
-        } catch (err) {
-            console.error(err);
-        } finally {
-            const endTime = Date.now();
-            const elapsedTime = endTime - startTime;
-            const nextDelay = elapsedTime >= delay ? 0 : delay - elapsedTime;
-            timeout = setTimeout(run, nextDelay);
-        }
-    };
-
-    timeout = setTimeout(run, delay);
-
-    return { clearInterval: () => clearTimeout(timeout) };
-}

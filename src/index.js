@@ -14,15 +14,67 @@ import { PerlinTerrainColorShader } from './layers/PerlinTerrainColorShader.js';
 import { HoveringVehicle } from "./vehicles/HoveringVehicle.js";
 import { ThirdPersonCameraController } from "./controls/ThirdPersonCameraController.js";
 import { VerletSystem } from "./physics/VerletSystem.js";
-
+import { realtimeweather } from "./layers/environment/NOAA/RealtimeWeather.js";
 import earthElevationImage from "./images/earth_elevation.jpg"
 import equidistant from "./images/equidistant.jpg"
 import { Vector3 } from "three";
 import { SimpleElevationLayer } from "./layers/SimpleElevationLayer.js";
+import { EnvironmentLayer } from "./layers/environment/EnvironmentLayer.js";
+import { NOAAGFSCloudsLayer } from "./layers/environment/NOAA/NOAAGFSCloudsLayer.js";
+import Worley from "./layers/environment/shaders/Worley"
+import Perlin from "./layers/environment/shaders/Perlin2"
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
 
+/* function remap(x, a, b, c, d) {
+    return (((x - a) / (b - a)) * (d - c)) + c;
+}
+generateImage()
+function generateImage() {
+    const worley3D = new Worley();
+    const perlin = new Perlin(40);
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.createImageData(size, size);
 
+    for (let x = 0; x < size; x++) {
+        for (let y = 0; y < size; y++) {
+
+            const w = 1 - (worley3D.noise({ x: (x / size) * 4, y: (y / size) * 4, z: 0.5 }, Worley.EuclideanDistance, 4, 4, 4)[0] * 0.65 +
+                worley3D.noise({ x: (x / size) * 8, y: (y / size) * 8, z: 0.5 }, Worley.EuclideanDistance, 8, 8, 8)[0] * 0.25 +
+                worley3D.noise({ x: (x / size) * 16, y: (y / size) * 16, z: 0.5 }, Worley.EuclideanDistance, 16, 16, 16)[0] * 0.1);
+
+            let p = perlin.noise((x / size) * 4, (y / size) * 4, 0.5, 4) * 0.6
+                + perlin.noise((x / size) * 8, (y / size) * 8, 0.5, 8) * 0.3
+                + perlin.noise((x / size) * 16, (y / size) * 16, 0.5, 16) * 0.1;
+
+            p += 0.5;
+            p = Math.abs(p * 2. - 1.);
+            let value = remap(p, 0, 1, w, 1)
+            const color = Math.floor(value * 255); // Scale value to [0, 255]
+            const index = (x + y * size) * 4;
+            imageData.data[index + 0] = color; // Red
+            imageData.data[index + 1] = color; // Green
+            imageData.data[index + 2] = color; // Blue
+            imageData.data[index + 3] = 255;   // Alpha (fully opaque)
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Export the canvas to a JPG file
+    canvas.toBlob(blob => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'generated-image.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, 'image/jpeg');
+} */
 
 
 const domContainer = document.getElementById('screen');
@@ -34,16 +86,16 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
- /* var googleMaps3DTiles = new GoogleMap3DTileLayer({
+var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "",
+    apiKey: "AIzaSyBkYnnU1tR5GH-nr7gsT4kVvLUT8DE8Vko",
     loadOutsideView: false,
     displayCopyright: true,
     flatShading: false,
-    geometricErrorMultiplier:0.5
-}); */
+    geometricErrorMultiplier: 0.5
+});
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -58,7 +110,7 @@ var jetElevationShaderLayer = new JetElevation({
     min: -11000,
     max: 8800,
     bounds: [-180, -90, 180, 90],
-    transparency:0.5
+    transparency: 0.5
 })
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
@@ -79,7 +131,8 @@ var wmsLayer = new WMSLayer({
     epsg: "EPSG:4326",
     version: "1.1.1",
     visible: true,
-    maxLOD:10
+    maxLOD: 10,
+    imageSize: 512
 });
 var wmsLayer2 = new WMSLayer({
     id: 1,
@@ -132,9 +185,14 @@ var ogc3dTiles2 = new OGC3DTilesLayer({
     flatShading: true
 });
 
+var environmentLayer = new NOAAGFSCloudsLayer({
+    id: 84,
+    name: "clouds",
+    debug:true
+});
 var simpleElevationLayer = new SimpleElevationLayer({
-    id:978,
-    name:"simpleElevationLayer",
+    id: 978,
+    name: "simpleElevationLayer",
     bounds: [-180, -90, 180, 90],
 });
 
@@ -152,35 +210,23 @@ var simpleElevationLayer = new SimpleElevationLayer({
 setupMap();
 
 function setupMap(globalElevationMap) {
-    
-    
-    
+
+
+
     let map = new Map({
         divID: 'screen',
         shadows: false,
-        debug: false,
-        detailMultiplier: 0.1,
+        debug: true,
+        detailMultiplier: 0.2,
         //ocean: generateLiquidColor(),
         atmosphere: true,//generateAtmosphereColor(),
         //atmosphereDensity: 0.8+Math.random()*0.4,
         //sun: Math.random()<0.25?false:new THREE.Vector3(Math.random(), Math.random(), Math.random()),
         //globalElevation: globalElevationMap,
         //rings:Math.random()<0.25?true:false,
-        space: new THREE.Color(0.05,0.05,0.2),
+        space: new THREE.Color(0.05, 0.05, 0.2),
         clock: true,
-        clouds: {
-            color: new THREE.Vector3(Math.random(), Math.random(), Math.random()),
-            coverage: 0.6,
-            //scatterCoefficient: 0.85,
-            //biScatteringKappa: 0.75,
-            //density: 60,
-            //luminance: 0.45+Math.random()*0.1,
-            showPanel: true,
-            //quality: 0.5,
-            windSpeed: Math.random()*0.1,
-            cloudsRadiusStart: 1.0015+Math.random()*0.003,
-            cloudsRadiusEnd: 1.0045+Math.random()*0.01
-        }
+
     });
     document.addEventListener('keyup', (e) => {
         if (e.key === 'Enter' || e.keyCode === 13) {
@@ -190,17 +236,17 @@ function setupMap(globalElevationMap) {
             console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
         }
     });
-    const t = new THREE.Vector3(6301200,50,50);
+    const t = new THREE.Vector3(6301200, 50, 50);
     clock.getDelta();
-    for(let i = 0; i<1000000; i++){
+    for (let i = 0; i < 1000000; i++) {
         map.planet.llhToCartesian.inverse(t);
     }
-    console.log("time = "+clock.getDelta())
-    for(let i = 0; i<1000000; i++){
-        t.set(6301200,50,50)
+    console.log("time = " + clock.getDelta())
+    for (let i = 0; i < 1000000; i++) {
+        t.set(6301200, 50, 50)
         map.cartesianToLlhFastSFCT(t);
     }
-    console.log("time = "+clock.getDelta())
+    console.log("time = " + clock.getDelta())
     /*const axesHelper = new THREE.AxesHelper(50000000);
     map.scene.add(axesHelper);*/
     /* let d = new Date();
@@ -208,7 +254,7 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
+    //map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
     let h = 20;
     let m = 0;
     let s = 0;
@@ -230,18 +276,19 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x: 2.488548, y: 25, z: 35000000 }, { x: 2.488548, y: 25.2, z: 0 });
-
+    map.moveAndLookAt({ x: 13.405685233710862, y: 52.50921677914625, z: 10000 }, { x: 13.405685233710862, y: 52.50921677914625, z: 0 });
+    //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    //map.setLayer(ogc3dTiles, 3);
+    map.setLayer(ogc3dTiles2, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
-    map.sunPosition.set(0,0,1);
+    map.setLayer(environmentLayer, 8);
+    /* map.sunPosition.set(0,0,1);
     map.sunPosition.normalize();
-    map.csm.lightDirection.copy(map.sunPosition).negate();
+    map.csm.lightDirection.copy(map.sunPosition).negate(); */
 
 
     /* document.addEventListener('keyup', (e) => {
@@ -421,33 +468,33 @@ function generateLiquidColor() {
 }
 
 function generateAtmosphereColor() {
-    let hue = Math.floor(60+Math.random()* 180);
-    let saturation = 50+Math.random() * 25;
+    let hue = Math.floor(60 + Math.random() * 180);
+    let saturation = 50 + Math.random() * 25;
     let lightness = 50 + Math.random() * 25;
-    
+
     return hslToRgb(hue, saturation, lightness);
-    
+
 }
 function generateCloudsColor() {
-    let hue = Math.floor(60+Math.random()* 180);
-    let saturation = 50+Math.random() * 25;
+    let hue = Math.floor(60 + Math.random() * 180);
+    let saturation = 50 + Math.random() * 25;
     let lightness = 75 + Math.random() * 25;
-    
+
     return hslToRgb(hue, saturation, lightness);
-    
+
 }
 function generateRingColor() {
-    let hue = Math.floor(30+Math.random()* 20);
-    let saturation = 20+Math.random() * 80;
+    let hue = Math.floor(30 + Math.random() * 20);
+    let saturation = 20 + Math.random() * 80;
     let lightness = 10 + Math.random() * 90;
-    
+
     return hslToRgb(hue, saturation, lightness);
 }
 function generateSunColor() {
-    let hue = Math.floor(220+Math.random()* 140);
+    let hue = Math.floor(220 + Math.random() * 140);
     let saturation = 100;
     let lightness = 50 + Math.random() * 50;
-    
+
     return hslToRgb(hue, saturation, lightness);
 }
 
@@ -479,5 +526,5 @@ function hslToRgb(h, s, l) {
     g = g + m;
     b = b + m;
 
-    return new THREE.Vector3(r,g,b);
+    return new THREE.Vector3(r, g, b);
 }

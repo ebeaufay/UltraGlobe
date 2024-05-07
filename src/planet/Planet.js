@@ -61,43 +61,46 @@ class Planet extends Object3D {
         }));
 
         self.matrixAutoUpdate = false;
-        let lastUpdateIndex = 0;
-        let tilesToUpdate;
-        setInterval(function () {
-            if (!self.pause) {
-                let startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-                
-                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
-
-                if(!tilesToUpdate || lastUpdateIndex>= tilesToUpdate.length){
-                    tilesToUpdate = [];
-                    lastUpdateIndex = 0;
-                    self.traverse(o=>{
-                        if(o.isPlanetTile){
-                            tilesToUpdate.push(o);
-                        }
-                    });
-                    tilesToUpdate.sort((a,b)=>b.level - a.level);
-                }
-                while(lastUpdateIndex<tilesToUpdate.length){
-                    tilesToUpdate[lastUpdateIndex].update(self.camera, frustum, self.renderer);
-                    lastUpdateIndex++;
-                    if(lastUpdateIndex>=tilesToUpdate.length){
-                        
-                        tilesToUpdate = undefined;
-                        break;
-                    }
-                    const timeSpent = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now())-startTime
-                    if(timeSpent>=0.5){ // spend no more than a millisecond on this before freeing up the CPU
-                        break;
-                    }
-                }
-            }
-        }, 30); 
+        this.lastUpdateIndex = 0;
+        this.tilesToUpdate;
+        
 
         
     }
 
+    update(){
+        const self = this;
+        if (!self.pause) {
+            let startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+            
+            frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+
+            if(!self.tilesToUpdate || self.lastUpdateIndex>= self.tilesToUpdate.length){
+                self.tilesToUpdate = [];
+                self.lastUpdateIndex = 0;
+                self.traverse(o=>{
+                    if(o.isPlanetTile){
+                        self.tilesToUpdate.push(o);
+                    }
+                });
+                self.tilesToUpdate.sort((a,b)=>b.level - a.level);
+            }
+            while(self.lastUpdateIndex<self.tilesToUpdate.length){
+                self.tilesToUpdate[self.lastUpdateIndex].update(self.camera, frustum, self.renderer);
+                self.lastUpdateIndex++;
+                if(self.lastUpdateIndex>=self.tilesToUpdate.length){
+                    
+                    self.tilesToUpdate = undefined;
+                    break;
+                }
+                const timeSpent = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now())-startTime
+                if(timeSpent>=0.5){ // spend no more than a millisecond on this before freeing up the CPU
+                    break;
+                }
+            }
+        }
+        PlanetTile.planetTileUpdate();
+    }
     /**
      * this method returns all the leaf tiles that interact with the given lon/lat bounds
      */

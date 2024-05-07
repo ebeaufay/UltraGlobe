@@ -8,6 +8,7 @@ import { VISIBILITY_CHANGE } from '../layers/Layer.js';
 import { TerrainMeshGenerator } from './TerrainMeshGenerator';
 
 const terrainMeshGenerator = new TerrainMeshGenerator();
+let sid = 0;
 const TILE_SIZE = 32;
 const MAX_LEVEL = 16;
 const TILE_IMAGERY_SIZE = 256;
@@ -92,14 +93,13 @@ function scheduleLoadLayers(tile) {
 
 
 
-setInterval(() => {
+function planetTileUpdate() {
     const start = now();
     while (tilesToLoad.length > 0 && now() - start < 1) {
         const tile = tilesToLoad.shift();
         if (!!tile && !tile.disposed) tile._loadLayers(tile);
     }
-
-}, 10)
+};
 
 function now() {
     return (typeof performance === 'undefined' ? Date : performance).now(); // see #10732
@@ -112,6 +112,7 @@ class PlanetTile extends Mesh {
 
         super();
         const self = this;
+        self.shift = new THREE.Vector3();
         self.skirt = new THREE.Mesh();
         self.tileChildren = [];
         self.isPlanetTile = true;
@@ -276,7 +277,8 @@ class PlanetTile extends Mesh {
         }
         self.skirt.position.add(self.shift);
         self.planet.add(self.skirt);
-        self.buildMaterial(self);
+        //self.buildMaterial(self);
+        self.needsMaterialRebuild = true;
         self.loaded = true;
     }
     /**
@@ -315,6 +317,7 @@ class PlanetTile extends Mesh {
             self.buildMaterial(self);
             self.needsMaterialRebuild = false;
         }
+        
         if (self.layerManager._getRasterLayers([]).length == 0) {
             self.material.visible = false;
             return;
@@ -460,7 +463,11 @@ class PlanetTile extends Mesh {
         numLayers = Math.max(numLayers, 1);
 
 
+        if(self.material){
+            self.material.dispose();
+        }
         self.material = new MeshStandardMaterial();
+        self.material.uid = sid++;
         self.material.side = THREE.FrontSide;
         if (self.shadows) {
             self.material.shadowSide = THREE.BackSide;
@@ -493,15 +500,19 @@ class PlanetTile extends Mesh {
                 '#include <color_fragment>',
                 PlanetTileShaderChunks.fragmentMain(shaderColorLayerCode, shaderColorLayerTransparency)
             );
+
         };
 
+        
         self.material.visible = false;
         self.material.wireframe = false;
+        self.material.fog = false;
         self.material.flatShading = false;
         self.material.metalness = 0.0;
         self.material.roughness = 1.0;
         self.skirt.material = self.material;
-        self.material.needsUpdate = true;
+        self.needsUpdate = true;
+        
     }
     setElevationExageration() {
         if (this.material && this.material.uniforms && this.material.uniforms.elevationExageration) {
@@ -531,7 +542,7 @@ class PlanetTile extends Mesh {
 
                     if (layerData.uvBounds) imageryUVBounds.push(new Vector4(layerData.uvBounds.min.x, layerData.uvBounds.min.y, layerData.uvBounds.max.x, layerData.uvBounds.max.y));
                     else imageryUVBounds.push(new Vector4(0, 1, 0, 1));
-                } else if (!elevationEncountered && !!layerData.layer && layer.isElevationLayer && layer.visible) {
+                } else if (!!layerData && !elevationEncountered && !!layerData.layer && layer.isElevationLayer && layer.visible) {
                     elevation = layerData.texture;
                     elevationEncountered = true;
                 }
@@ -777,4 +788,5 @@ function isMobileDevice() {
     return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
 };
 
+PlanetTile.planetTileUpdate = planetTileUpdate;
 export { PlanetTile };

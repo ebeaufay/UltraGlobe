@@ -7,11 +7,12 @@ const terrainMeshGenerator = new TerrainMeshGenerator();
 let id = 0;
 let nextWorker = 0;
 function getConcurency() {
-    if ('hardwareConcurrency' in navigator) {
+    /* if ('hardwareConcurrency' in navigator) {
         return navigator.hardwareConcurrency;
     } else {
         return 4;
-    }
+    } */
+    return 1;
 }
 const meshGeneratorWorkers = [];
 const workerCallbacks = new Map();

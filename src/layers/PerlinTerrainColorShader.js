@@ -184,7 +184,6 @@ class PerlinTerrainColorShader extends ShaderColorLayer {
                 
                 float f2Small = dot;
                 vec3 small = texture2D(palette, vec2(noiseSmall, `+ palette1 + `)).xyz*f2Small+texture2D(palette, vec2(noiseSmall, ` + palette2 + `)).xyz*(1.0-f2Small);
-                
                 return sqrt(small*large);
                 
                 

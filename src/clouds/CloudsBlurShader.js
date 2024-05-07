@@ -11,44 +11,46 @@ const CloudsBlurShader = {
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 	}`,
 
-	fragmentShader: (screenWidth, screenHeight) => {
+	fragmentShader: () => {
 		
 		let code = /* glsl */`
 		precision highp float;
 
 		uniform sampler2D image;
-		uniform sampler2D mask;
+		uniform sampler2D tDepth;
 		uniform sampler2D noise2D;
 		uniform vec2 offset;
 		uniform float preserveMaxOpacity;
 		varying vec2 vUv;
+
+		
 			
 		float xorFloats(float a, float b) {
 			return a + b - 2.0 * a * b;
 		}
 		void main() {
 
-			vec4 noise = (vec4(-0.5)+texture(noise2D, (vUv+(offset/vec2(`+screenWidth.toFixed(1)+`,`+screenHeight.toFixed(1)+`)))*500.0))*0.001;
+			vec4 noise = texture(noise2D, (vUv*10.0));
 			vec4 center = texture2D( image, vUv );
-			vec4 centerMask = texture2D( mask, vUv );
+			float centerHitSurface = step(0.999, texture2D( tDepth, vUv ).r);
 
-			vec2 offsetRand = offset+noise.xy;
+			vec2 offsetRand = offset*0.5+offset*1.0*noise.xy;
+			
 			
 			vec2 uv1 = vUv + offsetRand;
 			vec2 uv2 = vUv - offsetRand;
 			vec2 uv3 = vUv + offsetRand * vec2( 1., -1. );
 			vec2 uv4 = vUv + offsetRand * vec2( -1., 1. );
 
-			float centerHitSurface = centerMask.a;
 
 			float totalWeight = 0.0;
 			float totalWeightColor = 0.0;
 
 			vec4 local = texture2D( image, uv1 );
-			float localHitSurface = texture(mask,uv1).a; // 1 means ground
-			float weight = 1.0 - abs(centerHitSurface - localHitSurface);
-			local = mix(center, local, weight);
-			weight = 1.0+noise.x;
+			float localHitSurface = step(0.999, texture2D( tDepth, uv1 ).r);
+			float weight = 1.0 - abs(centerHitSurface - localHitSurface);//*(0.8+noise.x*0.2);
+			//local = mix(center, local, weight);
+			weight *=noise.x;
 			totalWeight += weight;
 			float weightColor = weight*local.w;
 			totalWeightColor += weightColor;
@@ -57,10 +59,10 @@ const CloudsBlurShader = {
 
 
 			local = texture2D( image, uv2 );
-			localHitSurface = texture(mask,uv2).a; // 1 means ground
-			weight = 1.0 - abs(centerHitSurface - localHitSurface);
-			local = mix(center, local, weight);
-			weight = 1.0+noise.y;
+			localHitSurface = step(0.999, texture2D( tDepth, uv2 ).r);
+			weight = 1.0 - abs(centerHitSurface - localHitSurface);//*(0.8+noise.y*0.2);
+			//local = mix(center, local, weight);
+			weight *=noise.y;
 			totalWeight += weight;
 			weightColor = weight*local.w;
 			totalWeightColor += weightColor;
@@ -68,10 +70,10 @@ const CloudsBlurShader = {
 			gl_FragColor.w += local.w*weight;
 
 			local = texture2D( image, uv3 );
-			localHitSurface = texture(mask,uv3).a; // 1 means ground
-			weight = 1.0 - abs(centerHitSurface - localHitSurface);
-			local = mix(center, local, weight);
-			weight = 1.0+noise.z;
+			localHitSurface = step(0.999, texture2D( tDepth, uv3 ).r);
+			weight = 1.0 - abs(centerHitSurface - localHitSurface);//*(0.8+noise.z*0.2);
+			//local = mix(center, local, weight);
+			weight *=noise.z;
 			totalWeight += weight;
 			weightColor = weight*local.w;
 			totalWeightColor += weightColor;
@@ -79,10 +81,10 @@ const CloudsBlurShader = {
 			gl_FragColor.w += local.w*weight;
 
 			local = texture2D( image, uv4 );
-			localHitSurface = texture(mask,uv4).a; // 1 means ground
-			weight = 1.0 - abs(centerHitSurface - localHitSurface);
-			local = mix(center, local, weight);
-			weight = 1.0+noise.w;
+			localHitSurface = step(0.999, texture2D( tDepth, uv4 ).r);
+			weight = 1.0 - abs(centerHitSurface - localHitSurface);//*(0.8+noise.a*0.2);
+			//local = mix(center, local, weight);
+			weight *=noise.w;
 			totalWeight += weight;
 			weightColor = weight*local.w;
 			totalWeightColor += weightColor;
@@ -103,10 +105,6 @@ const CloudsBlurShader = {
 				+ texture2D( image, vUv + offset * vec2( 1., -1. ) )
 				+ texture2D( image, vUv + offset * vec2( -1., 1. ) )
 			  ); */
-			
-			  
-
-
 			
 		}`;
 		

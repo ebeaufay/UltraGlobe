@@ -4,7 +4,7 @@ import Worley from './Worley';
 import Perlin from './Perlin2';
 import perlinWorleyTexture from "./../images/perlinWorley.bin"
 
-function common() {
+function common(realtime) {
 	const rot1 = Math.random() * 3.1416 * 2;
 	const rot2 = Math.random() * 3.1416 * 2;
 	const cos1 = Math.cos(rot1).toFixed(5);
@@ -13,7 +13,7 @@ function common() {
 	const cos2 = Math.cos(rot2).toFixed(5);
 	const sin2 = Math.sin(rot2).toFixed(5);
 
-	return `
+	let code = `
 		mat2 texRotation1 = mat2(
             `+ cos1 + `, ` + (-sin1) + `,
             `+ sin1 + `, ` + cos1 + `
@@ -40,8 +40,33 @@ function common() {
 		float blendOpacityBackToFront(float back, float front) {
 			return 1.0 - (1.0 - front) * (1.0 - back);
 		}
-		float sampleDensity(vec3 samplePosition, vec3 offsetPosition, float cloudsRadiusStartMeters, float cloudsRadiusEndMeters){
-			float height = (length(samplePosition)-cloudsRadiusStartMeters) / ((cloudsRadiusEndMeters-cloudsRadiusStartMeters)+1e-10);
+		`;
+		
+		if(!!realtime){
+			code+=`
+			float sampleDensity(vec3 samplePosition, float height){
+				float longitude = atan(samplePosition.y, samplePosition.x) / 6.28318;
+				
+				float latitude = -0.5 + atan(samplePosition.z,sqrt(samplePosition.x*samplePosition.x+samplePosition.y*samplePosition.y))/3.1416;
+				float sm= smoothstep(0.0,0.01,height) * (smoothstep(1.0,0.99,height));
+				
+				vec3 cover = texture(realTimeCoverage, vec3(longitude, latitude, mix(0.25,0.75,realTimeLerp))).rgb;
+				float localDensity = cover.r*0.01;
+				if(localDensity<=0.0) return -1.0;
+				/* float localDensity = pow(max(0.0,texture(perlinWorley, samplePosition*1e-8).r-(1.0-sm)),2.0+percentage);
+				localDensity *= pow(max(0.0,texture(perlinWorley, samplePosition*1e-6).r-(1.0-sm)),2.0);
+				if(localDensity<=0.0) return -1.0;
+				localDensity *= pow(max(0.0,texture(perlinWorley, samplePosition*5e-6).r-(1.0-sm)),1.0);
+				if(localDensity<=0.0) return -1.0; */
+				//localDensity *= 15.0;
+				return localDensity;
+			}`;
+		}else{
+			code+=`
+		float sampleDensity(vec3 samplePosition, float height){
+			float theta = time*windSpeed*0.01;
+			vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
+					
 			float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
 			vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
 			float localDensity = pow(max(0.0,texture(perlinWorley, offsetPosition*1e-7+offset*0.8).r-coverage-(1.0-sm)),3.0);
@@ -52,7 +77,10 @@ function common() {
 			if(localDensity<=0.0) return -1.0;
 			localDensity *= 50.0;
 			return localDensity;
+		}`;
 		}
+		code+=`
+		
 		vec2 shift(in vec2 shift, in vec2 lonlat){
 			vec2 lonlatShifted = vec2(shift.x+lonlat.x, shift.y+lonlat.y);
 			if (lonlatShifted.y > 1.57080) {
@@ -413,6 +441,7 @@ function common() {
 
 		
 	`;
+	return code;
 }
 const CloudsShader = {
 	vertexShader: () =>/* glsl */`
@@ -454,7 +483,7 @@ const CloudsShader = {
 		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 	}`,
 
-	fragmentShader: (ocean, atmosphere, sunColor) => {
+	fragmentShader: (ocean, atmosphere, sunColor, realtime) => {
 
 		
 		//ocean = false;
@@ -468,10 +497,11 @@ const CloudsShader = {
 		#include <packing>
 		
 		varying vec2 vUv;
+		uniform sampler3D realTimeCoverage;
+		uniform float realTimeLerp;
 		uniform sampler2D tDepth;
 		uniform sampler3D perlinWorley;
 		uniform sampler2D noise2D;
-		uniform sampler2D previous;
 		uniform float cameraNear;
 		uniform float cameraFar;
 		uniform float radius;
@@ -486,18 +516,16 @@ const CloudsShader = {
 
 		uniform float lengthMultiplier;
 		uniform float sunlight;
-		uniform float scatterCoef;
-		uniform float biScatteringKappa;
+		
 		uniform float coverage;
 		uniform vec3 color;
-		uniform float cloudsRadiusStart;
-		uniform float cloudsRadiusEnd;
+		uniform float startRadius;
+		uniform float endRadius;
 		uniform float windSpeed;
-		uniform float temporalDeNoiseAlpha;
 		`;
 
 
-		code += common();
+		code += common(realtime);
 		code += `
 			
 	
@@ -507,17 +535,17 @@ const CloudsShader = {
 			float depth = readDepth( tDepth, vUv );
 			vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
 			vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
-			vec4 random = texture(noise2D, (lonlat)*10.0);
+			vec4 random = vec4(0.5);//texture(noise2D, (lonlat)*10.0);
 			
 
 			vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 			float lengthToEarthImpact = length(impact-nonPostCameraPosition);
 			
 			
-			float cloudsRadiusStartMeters = max(cloudsRadiusStart,1.001)*radius;
-			float cloudsRadiusEndMeters = max(cloudsRadiusEnd,1.001)*radius;
+			float startRadiusMeters = max(startRadius,1.001)*radius;
+			float endRadiusMeters = max(endRadius,1.001)*radius;
 
-			float cloudsDepthMeters = cloudsRadiusEndMeters - cloudsRadiusStartMeters;
+			float cloudsDepthMeters = endRadiusMeters - startRadiusMeters;
 			
 			vec3 cloudImpactsStartIn = vec3(0.0);
 			vec3 cloudImpactsStartOut = vec3(0.0);
@@ -527,8 +555,8 @@ const CloudsShader = {
 			bool outEndHits;
 			bool inStartHits;
 			bool outStartHits;
-			raySphereForwardSurfaceIntersection(planetPosition, cloudsRadiusEndMeters, nonPostCameraPosition, worldDir, cloudImpactsEndIn, cloudImpactsEndOut, inEndHits, outEndHits);
-			raySphereForwardSurfaceIntersection(planetPosition, cloudsRadiusStartMeters, nonPostCameraPosition, worldDir, cloudImpactsStartIn, cloudImpactsStartOut, inStartHits, outStartHits);
+			raySphereForwardSurfaceIntersection(planetPosition, endRadiusMeters, nonPostCameraPosition, worldDir, cloudImpactsEndIn, cloudImpactsEndOut, inEndHits, outEndHits);
+			raySphereForwardSurfaceIntersection(planetPosition, startRadiusMeters, nonPostCameraPosition, worldDir, cloudImpactsStartIn, cloudImpactsStartOut, inStartHits, outStartHits);
 			
 			
 
@@ -635,17 +663,15 @@ const CloudsShader = {
 
 			
 			float length1 = length(traverse1Entry-traverse1Exit)/cloudsDepthMeters;
-			float numSamplesLocal = numSamples*length1;
-			float theta = time*windSpeed*0.01;
+			float numSamplesLocal = numSamples*length1+(random.r-0.5)*2.0;
 			for(float i = 0.0; i<numSamplesLocal; i++){
 				float fraction = (i+rand)/numSamplesLocal;
 				vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 				vec3 samplePositionNormalized = normalize(samplePosition);
 				
-				vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
 				
-				
-				float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+				float height = (length(samplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+				float localDensity = sampleDensity(samplePosition, height);
 				if(localDensity<=0.0) continue;
 				
 				
@@ -653,7 +679,7 @@ const CloudsShader = {
 				
 
 				///// compute light to sample
-				vec3 lightExit = samplePositionNormalized*cloudsRadiusEndMeters;
+				vec3 lightExit = samplePositionNormalized*endRadiusMeters;
 
 				float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 				float densityToLight = 0.0;
@@ -663,14 +689,15 @@ const CloudsShader = {
 					float fractionToLight = (j+0.5)/numSamplesToLight;
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-					vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
-				
-					float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					
+					float height = (length(secondSamplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+					float localDensityToLight = sampleDensity(secondSamplePosition, height);
 					if(localDensityToLight<=0.0) continue;
 					densityToLight +=localDensityToLight;
 				}
 				
-
+				float biScatteringKappa = mix(0.5,0.9,height);
+				float scatterCoef = mix(0.85,0.25,height);
 				float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
 					scatterCoef, biScatteringKappa, 1.0)/numSamplesToLight;
 				lightToSample*= 25.0*pow(localDensity,0.5);
@@ -685,23 +712,22 @@ const CloudsShader = {
 			float length2 = 0.0;
 			if(secondTraverse && density1<1.0){
 				length2 = length(traverse2Entry-traverse2Exit)/cloudsDepthMeters;
-				float numSamplesLocal = numSamples*length2;
+				float numSamplesLocal = numSamples*length2+(random.r-0.5)*numSamples*0.5;
 				for(float i = 0.0; i< numSamplesLocal; i++){
 					float fraction = (i+rand)/numSamplesLocal;
 					vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
 				
-					vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
-				
-				
-					float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					
+					float height = (length(samplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+					float localDensity = sampleDensity(samplePosition, height);
 					if(localDensity<=0.0) continue;
 
 					density2 += localDensity;
 					
 				
 					///// compute light to sample
-					vec3 lightExit = samplePositionNormalized*cloudsRadiusEndMeters;
+					vec3 lightExit = samplePositionNormalized*endRadiusMeters;
 
 					float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 					float densityToLight = 0.0;
@@ -710,13 +736,15 @@ const CloudsShader = {
 						float fractionToLight = (j+0.5)/numSamplesToLight;
 					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-						vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
-				
-						float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						float height = (length(secondSamplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+					
+						float localDensityToLight = sampleDensity(secondSamplePosition, height);
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 					}
 					
+					float biScatteringKappa = mix(0.5,0.9,height);
+					float scatterCoef = mix(0.85,0.25,height);
 					float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
 					scatterCoef, biScatteringKappa, 1.0)/numSamplesToLight;
 					lightToSample*= 25.0*pow(localDensity,0.5);
@@ -736,7 +764,7 @@ const CloudsShader = {
 			density2 = min(1.0, density2*100.0);
 			
 			float dotLight = 1.0;
-			vec3 fullDarkColor = vec3(`+atmosphere.x.toFixed(2)+`,`+atmosphere.y.toFixed(2)+`,`+atmosphere.z.toFixed(2)+`) * dotLight*0.5;
+			vec3 fullDarkColor = vec3(`+atmosphere.x.toFixed(2)+`,`+atmosphere.y.toFixed(2)+`,`+atmosphere.z.toFixed(2)+`) * dotLight*0.25;
 			vec3 fullLightColor = color;
 
 			pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
@@ -753,7 +781,7 @@ const CloudsShader = {
 		return code;
 	},
 
-	fragmentShaderShadows: (ocean, atmosphere, sunColor) => {
+	fragmentShaderShadows: (ocean, atmosphere, sunColor, realtime) => {
 		let code = /* glsl */`
 		
 
@@ -766,10 +794,11 @@ const CloudsShader = {
 		#include <packing>
 		
 			varying vec2 vUv;
+			uniform sampler3D realTimeCoverage;
+			uniform float realTimeLerp;
 			uniform sampler2D tDepth;
 			uniform sampler3D perlinWorley;
 			uniform sampler2D noise2D;
-			uniform sampler2D previous;
 			uniform float cameraNear;
 			uniform float cameraFar;
 			uniform float radius;
@@ -785,18 +814,16 @@ const CloudsShader = {
 			uniform float lengthMultiplier;
 			uniform float sunlight;
 			uniform vec3 sunLocation;
-			uniform float scatterCoef;
-			uniform float biScatteringKappa;
+			
 			uniform float coverage;
 			uniform vec3 color;
-			uniform float cloudsRadiusStart;
-            uniform float cloudsRadiusEnd;
+			uniform float startRadius;
+            uniform float endRadius;
             uniform float windSpeed;
-			uniform float temporalDeNoiseAlpha;
 			`;
 
 
-		code += common();
+		code += common(realtime);
 		code += `
 			
 		
@@ -814,10 +841,10 @@ const CloudsShader = {
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 				float lengthToEarthImpact = length(impact-nonPostCameraPosition);
 				
-				float cloudsRadiusStartMeters = (cloudsRadiusStart+1e-10)*radius;
-				float cloudsRadiusEndMeters = (cloudsRadiusEnd+1e-10)*radius;
+				float startRadiusMeters = (startRadius+1e-10)*radius;
+				float endRadiusMeters = (endRadius+1e-10)*radius;
 
-				float cloudsDepthMeters = cloudsRadiusEndMeters - cloudsRadiusStartMeters;
+				float cloudsDepthMeters = endRadiusMeters - startRadiusMeters;
 				
 				vec3 cloudImpactsStartIn = vec3(0.0);
 				vec3 cloudImpactsStartOut = vec3(0.0);
@@ -827,8 +854,8 @@ const CloudsShader = {
 				bool outEndHits;
 				bool inStartHits;
 				bool outStartHits;
-				raySphereForwardSurfaceIntersection(planetPosition, cloudsRadiusEndMeters, nonPostCameraPosition, worldDir, cloudImpactsEndIn, cloudImpactsEndOut, inEndHits, outEndHits);
-				raySphereForwardSurfaceIntersection(planetPosition, cloudsRadiusStartMeters, nonPostCameraPosition, worldDir, cloudImpactsStartIn, cloudImpactsStartOut, inStartHits, outStartHits);
+				raySphereForwardSurfaceIntersection(planetPosition, endRadiusMeters, nonPostCameraPosition, worldDir, cloudImpactsEndIn, cloudImpactsEndOut, inEndHits, outEndHits);
+				raySphereForwardSurfaceIntersection(planetPosition, startRadiusMeters, nonPostCameraPosition, worldDir, cloudImpactsStartIn, cloudImpactsStartOut, inStartHits, outStartHits);
 				
 				if(!inEndHits  && !outEndHits) {
 					pc_fragColor = vec4(vec3(1.0),0.0);
@@ -931,17 +958,14 @@ const CloudsShader = {
 
 
 				float length1 = length(traverse1Entry-traverse1Exit)/cloudsDepthMeters;
-				float numSamplesLocal = numSamples*length1;
-				float theta = time*windSpeed*0.01;
+				float numSamplesLocal = numSamples*length1+(random.r-0.5)*numSamples*0.5;
 				for(float i = 0.0; i<numSamplesLocal; i++){
 					float fraction = (i+rand)/numSamplesLocal;
 					vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
 					
-					vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
-					
-					
-					float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+					float height = (length(samplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+					float localDensity = sampleDensity(samplePosition, height);
 					if(localDensity<=0.0) continue;
 					
 					
@@ -951,7 +975,7 @@ const CloudsShader = {
 					///// compute light to sample
 					float dotLight = dot(sunLocation, samplePositionNormalized);
 					if(raySphereIntersection(planetPosition, radius, samplePosition, sunLocation).x>=0.0) continue;
-					vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
+					vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, endRadiusMeters, samplePosition, sunLocation).y;
 
 					float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 					float densityToLight = 0.0;
@@ -959,12 +983,13 @@ const CloudsShader = {
 						float fractionToLight = (j+0.5)/numSamplesToLight;
 						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-						vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
-					
-						float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						float height = (length(secondSamplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+						float localDensityToLight = sampleDensity(secondSamplePosition, height);
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 					}
+					float biScatteringKappa = mix(0.5,0.9,height);
+					float scatterCoef = mix(0.85,0.25,height);
 					float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
 						scatterCoef, biScatteringKappa, dot(sunLocation, worldDir))/numSamplesToLight;
 					lightToSample*= 25.0*pow(localDensity,0.5);
@@ -980,16 +1005,14 @@ const CloudsShader = {
 				float length2 = 0.0;
 				if(secondTraverse && density1<1.0){
 					length2 = length(traverse2Entry-traverse2Exit)/cloudsDepthMeters;
-					float numSamplesLocal = numSamples*length2;
+					float numSamplesLocal = numSamples*length2+(random.r-0.5)*numSamples*0.5;
 					for(float i = 0.0; i< numSamplesLocal; i++){
 						float fraction = (i+rand)/numSamplesLocal;
 						vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 						vec3 samplePositionNormalized = normalize(samplePosition);
 					
-						vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
-					
-					
-						float localDensity = sampleDensity(samplePosition, offsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+						float height = (length(samplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+						float localDensity = sampleDensity(samplePosition, height);
 						if(localDensity<=0.0) continue;
 						density2 += localDensity;
 						
@@ -997,7 +1020,7 @@ const CloudsShader = {
 						///// compute light to sample
 						float dotLight = dot(sunLocation, samplePositionNormalized);
 						if(raySphereIntersection(planetPosition, radius, samplePosition, sunLocation).x>=0.0) continue;
-						vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, cloudsRadiusEndMeters, samplePosition, sunLocation).y;
+						vec3 lightExit = samplePosition + (sunLocation)*raySphereIntersection(planetPosition, endRadiusMeters, samplePosition, sunLocation).y;
 
 						float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
 						float densityToLight = 0.0;
@@ -1007,15 +1030,15 @@ const CloudsShader = {
 							float fractionToLight = (j+0.5)/numSamplesToLight;
 						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-							vec3 secondOffsetPosition = vec3( secondSamplePosition.x * cos(theta) - secondSamplePosition.y * sin(theta), secondSamplePosition.x * sin(theta) + secondSamplePosition.y * cos(theta), secondSamplePosition.z);
-					
-							float localDensityToLight = sampleDensity(secondSamplePosition, secondOffsetPosition, cloudsRadiusStartMeters, cloudsRadiusEndMeters);
+							float height = (length(secondSamplePosition)-startRadiusMeters) / ((endRadiusMeters-startRadiusMeters)+1e-10);
+							float localDensityToLight = sampleDensity(secondSamplePosition, height);
 							if(localDensityToLight<=0.0) continue;
 							densityToLight +=localDensityToLight;
 						}
 						
 
-						
+						float biScatteringKappa = mix(0.5,0.9,height);
+						float scatterCoef = mix(0.85,0.25,height);
 						float lightToSample = multiOctaveBeer(sunlight*2.0,(densityToLight/numSamplesToLight)*lengthToLight, lengthMultiplier*100.0, 
 						scatterCoef, biScatteringKappa, dot(sunLocation, worldDir))/numSamplesToLight;
 						lightToSample*= 25.0*pow(localDensity,0.5);
@@ -1036,7 +1059,7 @@ const CloudsShader = {
 				density2 = min(1.0, density2*100.0);
 				
 				float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
-				vec3 fullDarkColor = vec3(`+atmosphere.x.toFixed(2)+`,`+atmosphere.y.toFixed(2)+`,`+atmosphere.z.toFixed(2)+`) * dotLight*0.5;
+				vec3 fullDarkColor = vec3(`+Math.pow(atmosphere.x,0.5).toFixed(2)+`,`+Math.pow(atmosphere.y,0.5).toFixed(2)+`,`+Math.pow(atmosphere.z,0.5).toFixed(2)+`) * dotLight*0.5;
 				vec3 fullLightColor = color;
 
 				pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
@@ -1077,13 +1100,16 @@ const CloudsShader = {
 		const perlin = new Perlin(40);
 		const worley3D = new Worley();
 		const size = 128;
-		const dataFloat = new Float32Array(size * size * size);
+		const dataFloatPW = new Float32Array(size * size * size);
+		const dataFloatP = new Float32Array(size * size * size);
 		const data = new Uint8Array(size * size * size);
 		let i = 0;
 		const vector = new THREE.Vector3();
 
-		let min = 10000;
-		let max = -10000;
+		let minPW = 10000;
+		let maxPW = -10000;
+		let minP = 10000;
+		let maxP = -10000;
 		for (let z = 0; z < size; z++) {
 
 			for (let y = 0; y < size; y++) {
@@ -1102,14 +1128,16 @@ const CloudsShader = {
 						worley3D.noise({ x: x * 4, y: (y) * 4, z: (z) * 4 }, Worley.EuclideanDistance, size , size , size )[0] * 0.1;
 
 
-					const clouds = remap(perlinFBM, 0, 1.0,worleyFBM,1.0)
-					//const clouds = remap(perlinFBM, worleyFBM-1, 1.0,worleyFBM,1.0)
-					if(clouds<min) min = clouds;
-					if(clouds>max) max = clouds;
+					const perlinWorley = remap(perlinFBM, 0, 1.0,worleyFBM,1.0);
+					if(perlinWorley<minPW) minPW = perlinWorley;
+					if(perlinWorley>maxPW) maxPW = perlinWorley;
 					
-					//clouds = 1 - (clouds * 2 - 1);
-					//const cloud = Math.max(0.0, Math.min(1.0, remap(perlinFBM, clouds - 1, 1, 0, 1) + 0.5));
-					dataFloat[i++] = clouds;//(Math.pow(clouds,0.5)/2+0.5) * 256;
+					dataFloatPW[i++] = perlinWorley;
+
+					if(perlinFBM<minPW) minP = perlinFBM;
+					if(perlinFBM>maxPW) maxP = perlinFBM;
+					
+					dataFloatP[i++] = perlinFBM;
 
 				}
 
@@ -1119,7 +1147,8 @@ const CloudsShader = {
 
 		
 		for(let i = 0; i<size * size * size; i++){
-			data[i] = ((dataFloat[i]/(max-min))-min)*256;
+			data[i*2] = ((dataFloatPW[i]/(maxPW-minPW))-minPW)*256;
+			data[i*2+1] = ((dataFloatP[i]/(maxP-minP))-minP)*256;
 		}
 
 		//saveDataToBinFile(data, "test.bin")
