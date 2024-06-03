@@ -123,7 +123,6 @@ class PlanetTile extends Mesh {
         self.planet = properties.planet; // The parent planet (circular dependency... gives access to global planet properties and methods like tree traversal)
         self.layerManager = properties.layerManager;
         self.level = properties.level; // mesh recursion level
-        console.log(self.level)
         self.elevationArray = defaultElevation;
         self.extendedElevationArray = defaultExtendedElevation;
         self.layerDataMap = {};
