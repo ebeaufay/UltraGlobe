@@ -40,10 +40,11 @@ class ThirdPersonCameraController extends Controller {
             tempPoint1.add(tempPoint2);
         }
 
-        self.camera.position.lerp(tempPoint1, Math.min(1,self.clock.getDelta()*2));
+        self.camera.position.lerp(tempPoint1, Math.pow(0.9,self.clock.getDelta()));
         self.camera.up.copy(self.camera.position).normalize();
         self.camera.lookAt(self.trackedObject.position);
         self.straighten()
+        this.map.resetCameraNearFar();
     }
 
     straighten() {

@@ -34,10 +34,6 @@ class Perlin {
     
 
     noise(x, y, z, period) {
-        //x = x % period;
-        //y = y % period;
-       // z = z % period;
-
         const X = (Math.floor(x) & 255);
         const Y = (Math.floor(y) & 255);
         const Z = (Math.floor(z) & 255);

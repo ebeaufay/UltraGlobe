@@ -112,6 +112,8 @@ class PlanetTile extends Mesh {
 
         super();
         const self = this;
+        self.tileSize = properties.tileSize? properties.tileSize:TILE_SIZE;
+        self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:TILE_IMAGERY_SIZE;
         self.shift = new THREE.Vector3();
         self.skirt = new THREE.Mesh();
         self.tileChildren = [];
@@ -121,6 +123,7 @@ class PlanetTile extends Mesh {
         self.planet = properties.planet; // The parent planet (circular dependency... gives access to global planet properties and methods like tree traversal)
         self.layerManager = properties.layerManager;
         self.level = properties.level; // mesh recursion level
+        console.log(self.level)
         self.elevationArray = defaultElevation;
         self.extendedElevationArray = defaultExtendedElevation;
         self.layerDataMap = {};
@@ -187,18 +190,14 @@ class PlanetTile extends Mesh {
                     }, (error) => {
                         console.error(error);
                     },
-                        TILE_IMAGERY_SIZE, TILE_IMAGERY_SIZE));
+                        self.tileImagerySize, self.tileImagerySize));
 
                 } else if (layer.isElevationLayer) {
                     self._startLoading(self);
                     delete self.layerDataMap[layer.id];
-                    /*const extendedBounds = self.bounds.clone();
-                    extendedBounds.min.x -= (self.bounds.max.x - self.bounds.min.x) / (TILE_SIZE - 1);
-                    extendedBounds.max.x += (self.bounds.max.x - self.bounds.min.x) / (TILE_SIZE - 1);
-                    extendedBounds.min.y -= (self.bounds.max.y - self.bounds.min.y) / (TILE_SIZE - 1);
-                    extendedBounds.max.y += (self.bounds.max.y - self.bounds.min.y) / (TILE_SIZE - 1);*/
+                    
 
-                    layer.getElevation(self.bounds, TILE_SIZE, TILE_SIZE, self.geometry, self.skirt.geometry).then(elevationAndShift => {
+                    layer.getElevation(self.bounds, self.tileSize, self.tileSize, self.geometry, self.skirt.geometry).then(elevationAndShift => {
 
                         if (!self.disposed) {
                             self.layerDataMap[layer.id] = {
@@ -206,7 +205,7 @@ class PlanetTile extends Mesh {
                                 elevationArray: elevationAndShift.elevationArray
                             }
                             self.elevationArray = self.layerDataMap[layer.id].elevationArray;
-                            var elevationTexture = new THREE.DataTexture(new Float32Array(self.layerDataMap[layer.id].elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
+                            var elevationTexture = new THREE.DataTexture(new Float32Array(self.layerDataMap[layer.id].elevationArray), self.tileSize, self.tileSize, THREE.RedFormat, THREE.FloatType);
                             elevationTexture.needsUpdate = true;
                             elevationTexture.magFilter = THREE.LinearFilter;
                             elevationTexture.minFilter = THREE.LinearFilter;
@@ -220,39 +219,13 @@ class PlanetTile extends Mesh {
                             
                         }
 
-                        /*self.position.set(0, 0, 0);
-                        self.position.add(elevationAndShift.shift);
-                        if (self.parent.shift) {
-                            self.position.sub(self.parent.shift)
-                        }
-                        self.skirt.position.add(elevationAndShift.shift);
-                        self.planet.add(self.skirt);
-                        self.buildMaterial(self);
-                        self.loaded = true;*/
+                       
 
 
                     });
-                    /*layer.getElevation(extendedBounds, TILE_SIZE + 2, TILE_SIZE + 2).then(elevationArray => {
-
-                        self.layerDataMap[layer.id].layer = layer;
-                        self.layerDataMap[layer.id].elevationArray = this._trimEdges(elevationArray, TILE_SIZE + 2, TILE_SIZE + 2);
-                        self.layerDataMap[layer.id].extendedElevationArray = elevationArray;
-                        var elevationTexture = new THREE.DataTexture(Float32Array.from(self.layerDataMap[layer.id].elevationArray), TILE_SIZE, TILE_SIZE, THREE.RedFormat, THREE.FloatType);
-                        elevationTexture.needsUpdate = true;
-                        elevationTexture.magFilter = THREE.LinearFilter;
-                        elevationTexture.minFilter = THREE.LinearFilter;
-                        elevationTexture.wrapS = THREE.ClampToEdgeWrapping;
-                        elevationTexture.wrapT = THREE.ClampToEdgeWrapping;
-                        self.layerDataMap[layer.id].texture = elevationTexture;
-
-                        self._endLoading(self);
-                    });*/
+                    
                 }
-                /*layer.addListener(self, (layer, event) => {
-                    if (VISIBILITY_CHANGE === event) {
-                        self._rebuildTile(self);
-                    }
-                })*/
+                
             }
         });
         self._setLoadingListener(self, () => {
@@ -373,14 +346,14 @@ class PlanetTile extends Mesh {
                         {
                             bounds: new THREE.Box2(self.bounds.min, new THREE.Vector2(self.bounds.max.x, halfY)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, self.bounds.min.y + (self.bounds.max.y - self.bounds.min.y) * 0.5), self.bounds.max),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
 
@@ -391,28 +364,28 @@ class PlanetTile extends Mesh {
                         {
                             bounds: new THREE.Box2(self.bounds.min, boundsCenter),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(boundsCenter.x, self.bounds.min.y), new THREE.Vector2(self.bounds.max.x, boundsCenter.y)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(new THREE.Vector2(self.bounds.min.x, boundsCenter.y), new THREE.Vector2(boundsCenter.x, self.bounds.max.y)),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
                     self.add(new PlanetTile(
                         {
                             bounds: new THREE.Box2(boundsCenter, self.bounds.max),
                             layerManager: self.layerManager, planet: self.planet, level: self.level + 1, shadows: self.shadows,
-                            detailMultiplier: self.detailMultiplier
+                            detailMultiplier: self.detailMultiplier, tileSize: self.tileSize, tileImagerySize:self.tileImagerySize
                         }
                     ));
                 }
@@ -653,13 +626,12 @@ class PlanetTile extends Mesh {
             if (!frustum.intersectsBox(boundingBox)) {
                 return -1;
             }
-            //const verticesPerMeter = TILE_SIZE/(111111*(this.bounds.max.y-this.bounds.min.y));
-
+            
             var distance = boundingBox.distanceToPoint(camera.position);
 
             const localRadius = this.planet.radius;
 
-            var log = -(Math.log(distance * (isMobileDevice() ? (10000/this.detailMultiplier) / 50 * camera.fov : (5000/this.detailMultiplier) / 50 * camera.fov) * (TILE_SIZE / 32) / localRadius) / Math.log(1.9)) + 16;
+            var log = -(Math.log(distance * (isMobileDevice() ? (10000/this.detailMultiplier) / 50 * camera.fov : (5000/this.detailMultiplier) / 50 * camera.fov) * (this.tileSize / 32) / localRadius) / Math.log(1.9)) + 16;
             const metric = Math.min(MAX_LEVEL + 0.1, Math.max(log, 0.0001));
 
             if (isNaN(metric)) {
@@ -674,8 +646,8 @@ class PlanetTile extends Mesh {
 
     billinearInterpolationOnElevationArray(percentageX, percentageY, elevationArray) {
         if (!elevationArray) elevationArray = this.elevationArray;
-        var x = percentageX * (TILE_SIZE - 1);
-        var y = percentageY * (TILE_SIZE - 1);
+        var x = percentageX * (this.tileSize - 1);
+        var y = percentageY * (this.tileSize - 1);
 
 
         var floorX = Math.floor(x);
@@ -689,14 +661,14 @@ class PlanetTile extends Mesh {
         floorX = Math.max(0, floorX);
         floorY = Math.max(0, floorY);
 
-        ceilX = Math.min((TILE_SIZE - 1), ceilX);
-        ceilY = Math.min((TILE_SIZE - 1), ceilY);
+        ceilX = Math.min((this.tileSize - 1), ceilX);
+        ceilY = Math.min((this.tileSize - 1), ceilY);
 
 
-        return ((1 - (x - floorX)) * (1 - (y - floorY)) * elevationArray[(floorY * TILE_SIZE) + floorX]) +
-            ((1 - (ceilX - x)) * (1 - (y - floorY)) * elevationArray[(floorY * TILE_SIZE) + ceilX]) +
-            ((1 - (x - floorX)) * (1 - (ceilY - y)) * elevationArray[(ceilY * TILE_SIZE) + floorX]) +
-            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * elevationArray[(ceilY * TILE_SIZE) + ceilX]);
+        return ((1 - (x - floorX)) * (1 - (y - floorY)) * elevationArray[(floorY * this.tileSize) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (y - floorY)) * elevationArray[(floorY * this.tileSize) + ceilX]) +
+            ((1 - (x - floorX)) * (1 - (ceilY - y)) * elevationArray[(ceilY * this.tileSize) + floorX]) +
+            ((1 - (ceilX - x)) * (1 - (ceilY - y)) * elevationArray[(ceilY * this.tileSize) + ceilX]);
     }
 
 

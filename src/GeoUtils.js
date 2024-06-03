@@ -18,7 +18,7 @@ export function transformWGS84ToCartesian(lon, lat, h, sfct) {
     const nPh = (N + h);
     const x = nPh * cosLat * cosLon;
     const y = nPh * cosLat * sinLon;
-    const z = (0.993305615557957 * N * h) * sinLat;
+    const z = (0.993305615557957 * N +h) * sinLat;
 
     if (!sfct) sfct = {};
     sfct.x = x;

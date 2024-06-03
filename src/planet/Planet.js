@@ -22,6 +22,8 @@ class Planet extends Object3D {
      * @param {THREE.Vector3} properties.center (optional) planet center in world space. defaults to 0,0,0
      * @param {LayerManager} properties.layerManager manages layers
      * @param {Number} properties.detailMultiplier a multiplier for terrain and 2D map detail
+     * @param {Number} properties.tileSize terrain tile resolution
+     * @param {Number} properties.tileImagerySize imagery tile resolution
      */
     constructor(properties) {
         super();
@@ -53,11 +55,13 @@ class Planet extends Object3D {
 
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier
+            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
+            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize
         }));
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier
+            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
+            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize
         }));
 
         self.matrixAutoUpdate = false;

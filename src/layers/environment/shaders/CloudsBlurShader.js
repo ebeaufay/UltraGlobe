@@ -1,6 +1,6 @@
 /**kawase blur pass**/
 const CloudsBlurShader = {
-    vertexShader: () =>/* glsl */`
+	vertexShader: () =>/* glsl */`
 	precision highp float;
 	precision highp int;
 
@@ -15,9 +15,11 @@ const CloudsBlurShader = {
 	// it also adds some randomness to the samples positions to remove the resulting banding
 
 	fragmentShader: () => {
-		
+
 		let code = /* glsl */`
 		precision highp float;
+
+		#include <packing>
 
 		uniform sampler2D image;
 		uniform sampler2D tDepth;
@@ -25,17 +27,41 @@ const CloudsBlurShader = {
 		uniform sampler2D noise2D;
 		uniform vec2 offset;
 		uniform float preserveMaxOpacity;
+		uniform float cameraNear;
+		uniform float cameraFar;
+		uniform float ldf;
 		varying vec2 vUv;
 
 		
 			
+		float readDepth( sampler2D depthSampler, vec2 coord ) {
+			vec4 fragCoord = texture2D( depthSampler, coord );
+			float invViewZ = exp2(fragCoord.x / (ldf * 0.5)) - 1.0;
+			return mix(cameraNear, cameraFar,viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar ));
+
+
+			//return mix(cameraNear, cameraFar,viewZToOrthographicDepth(1.0 - exp2(texture2D(depthSampler, coord).x * log(cameraFar + 1.0) / log(2.0)),cameraNear, cameraFar));
+		}
+
+		
+		float toRealDepth(float normalizedCloudDepth ){
+			return mix(cameraNear, cameraFar, normalizedCloudDepth);
+			return (normalizedCloudDepth*(cameraFar-cameraNear))+cameraNear;
+		}
+
+		
+		
 		void main() {
 
 			vec4 center = texture2D( image, vUv );
+			if(center.a == 0.0) return;
+			//gl_FragColor = vec4(center.a, 0.0,0.0,center.a);
+			//return;
 			float cloudD = texture2D(cloudsDepth,vUv).x;
 			
 			vec4 noise = texture(noise2D, (vUv*4.0));
-			vec2 offsetRand = (offset*0.5+offset*noise.xy)*cloudD*1.5;
+			vec2 offsetRand = (offset*0.5+offset*noise.xw)*min(max(cloudD*4.0,0.5),1.0)*pow(center.a,2.0);
+			//vec2 offsetRand = (offset)*min(0.8,cloudD*4.0*center.a);//min(max(cloudD*4.0,0.5),1.0);
 			
 			
 			vec2 uv1 = vUv + offsetRand;
@@ -43,47 +69,58 @@ const CloudsBlurShader = {
 			vec2 uv3 = vUv + offsetRand * vec2( 1., -1. );
 			vec2 uv4 = vUv + offsetRand * vec2( -1., 1. );
 
+			
 			vec4 a = texture2D( image, uv1 );
 			vec4 b = texture2D( image, uv2 );
 			vec4 c = texture2D( image, uv3 );
 			vec4 d = texture2D( image, uv4 );
 			
-
-			
-			float centerDepth = texture2D( tDepth, vUv ).r;
-			float centerHitSurface = smoothstep(0.75, 1.0, centerDepth);
-
 			
 			
+			float centerDepth = readDepth( tDepth, vUv );
+			float centerOrder = step(centerDepth, toRealDepth(cloudD));
+			
 
-			float wT = 0.0;
+			float centerLuminosity = (center.r*0.2126 + center.g*0.7152 + center.b*0.0722);
 
-			float depthUV = texture2D( tDepth, uv1 ).r;
-			float w = 1.0 - smoothstep(0.0,0.025,abs(centerDepth - depthUV));
-			float w2 = 1.0 - abs(centerHitSurface-smoothstep(0.75,1.0,depthUV));
-			gl_FragColor += 0.25*mix(center,a,mix(w,w2,smoothstep(0.7,0.8,min(depthUV,centerDepth))));
+			float localOrder = step(readDepth( tDepth, uv1 ), toRealDepth(texture2D(cloudsDepth,uv1).x));
+			float w = 1.0;//1.0-(abs((a.r*0.2126 + a.g*0.7152 + a.b*0.0722)-centerLuminosity));
+			//w*= 1.0-abs(localOrder-centerOrder);
+			w*=pow(a.a,2.0);
+			vec4 newColor = mix(center,a,w);
+			//newColor.a = max(newColor.a,center.a);
+			gl_FragColor += 0.25*newColor;
 
-			depthUV = texture2D( tDepth, uv2 ).r;
-			w = 1.0 - smoothstep(0.0,0.025,abs(centerDepth - depthUV));
-			w2 = 1.0 - abs(centerHitSurface-smoothstep(0.75,1.0,depthUV));
-			gl_FragColor += 0.25*mix(center, b,mix(w,w2,smoothstep(0.7,0.8,min(depthUV,centerDepth))));
+			localOrder = step(readDepth( tDepth, uv2 ), toRealDepth(texture2D(cloudsDepth,uv2).x));
+			w = 1.0;//1.0-(abs((b.r*0.2126 + b.g*0.7152 + b.b*0.0722)-centerLuminosity));
+			//w*= 1.0-abs(localOrder-centerOrder);
+			w*=pow(b.a,2.0);
+			newColor = mix(center,b,w);
+			//newColor.a = max(newColor.a,center.a);
+			gl_FragColor += 0.25*newColor;
 
-			depthUV = texture2D( tDepth, uv3 ).r;
-			w = 1.0 - smoothstep(0.0,0.025,abs(centerDepth - depthUV));
-			w2 = 1.0 - abs(centerHitSurface-smoothstep(0.75,1.0,depthUV));
-			gl_FragColor += 0.25*mix(center, c,mix(w,w2,smoothstep(0.7,0.8,min(depthUV,centerDepth))));
+			localOrder = step(readDepth( tDepth, uv3 ), toRealDepth(texture2D(cloudsDepth,uv3).x));
+			w = 1.0;//1.0-(abs((c.r*0.2126 + c.g*0.7152 + c.b*0.0722)-centerLuminosity));
+			//w*= 1.0-abs(localOrder-centerOrder);
+			w*=pow(c.a,2.0);
+			newColor = mix(center,c,w);
+			//newColor.a = max(newColor.a,center.a);
+			gl_FragColor += 0.25*newColor;
 
-			depthUV = texture2D( tDepth, uv4 ).r;
-			w = 1.0 - smoothstep(0.0,0.025,abs(centerDepth - depthUV));
-			w2 = 1.0 - abs(centerHitSurface-smoothstep(0.75,1.0,depthUV));
-			gl_FragColor += 0.25*mix(center, d,mix(w,w2,smoothstep(0.7,0.8,min(depthUV,centerDepth))));
+			localOrder = step(readDepth( tDepth, uv4 ), toRealDepth(texture2D(cloudsDepth,uv4).x));
+			w = 1.0;//1.0-(abs((d.r*0.2126 + d.g*0.7152 + d.b*0.0722)-centerLuminosity));
+			//w*= 1.0-abs(localOrder-centerOrder);
+			w*=pow(d.a,2.0);
+			newColor = mix(center,d,w);
+			//newColor.a = max(newColor.a,center.a);
+			gl_FragColor += 0.25*newColor;
 			
 			
 		}`;
-		
 
 
-		
+
+
 		return code;
 	}
 }

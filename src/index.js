@@ -23,6 +23,9 @@ import { EnvironmentLayer } from "./layers/environment/EnvironmentLayer.js";
 import { NOAAGFSCloudsLayer } from "./layers/environment/NOAA/NOAAGFSCloudsLayer.js";
 import Worley from "./layers/environment/shaders/Worley"
 import Perlin from "./layers/environment/shaders/Perlin2"
+import { RandomCloudsLayer } from "./layers/environment/RandomCloudsLayer.js";
+import { UserControlledTrack } from "./layers/tracks/UserControlledTrack.js";
+import { transformWGS84ToCartesian } from "./GeoUtils.js";
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
 
@@ -86,7 +89,7 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
-var googleMaps3DTiles = new GoogleMap3DTileLayer({
+/* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
@@ -95,7 +98,7 @@ var googleMaps3DTiles = new GoogleMap3DTileLayer({
     displayCopyright: true,
     flatShading: false,
     geometricErrorMultiplier: 0.5
-});
+}); */
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -185,16 +188,22 @@ var ogc3dTiles2 = new OGC3DTilesLayer({
     flatShading: true
 });
 
-var environmentLayer = new NOAAGFSCloudsLayer({
+var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
-    debug:true
+    coverage:0.5,
+    debug:false,
+    windSpeed: 0.0,
+    minHeight:500,
+    maxHeight:40000
 });
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
     bounds: [-180, -90, 180, 90],
 });
+
+
 
 /* perlinElevation.getElevationSync(new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)), 1024, 512, undefined, undefined, 7).then(elevationArray => {
 //perlinElevation.getElevation({ min: { x: -Math.PI, y: -Math.PI * 0.5 }, max: { x: Math.PI, y: Math.PI * 0.5 } }, 1024, 512, undefined, undefined, 7).then(elevationArray => {
@@ -215,17 +224,18 @@ function setupMap(globalElevationMap) {
 
     let map = new Map({
         divID: 'screen',
-        shadows: false,
-        debug: true,
-        detailMultiplier: 0.2,
+        shadows: true,
+        debug: false,
+        detailMultiplier: 0.5,
         //ocean: generateLiquidColor(),
         atmosphere: true,//generateAtmosphereColor(),
         //atmosphereDensity: 0.8+Math.random()*0.4,
         //sun: Math.random()<0.25?false:new THREE.Vector3(Math.random(), Math.random(), Math.random()),
         //globalElevation: globalElevationMap,
-        //rings:Math.random()<0.25?true:false,
+        rings:true,//Math.random()<0.25?true:false,
         space: new THREE.Color(0.05, 0.05, 0.2),
         clock: true,
+        tileSize: 64
 
     });
     document.addEventListener('keyup', (e) => {
@@ -276,16 +286,40 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x: 13.405685233710862, y: 52.50921677914625, z: 10000 }, { x: 13.405685233710862, y: 52.50921677914625, z: 0 });
+    map.moveAndLookAt({ x:0, y: 0, z: 50100 }, { x: 0, y: 0, z: 50000 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    map.setLayer(ogc3dTiles2, 3);
+    //map.setLayer(ogc3dTiles2, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
     map.setLayer(environmentLayer, 8);
+
+
+    /* gltfLoader.load("http://localhost:8081/billy_meier_ufo.glb", gltf=>{
+        gltf.scene.scale.set(10,10,10)
+        gltf.scene.traverse(o=>{
+            if(o.material){
+                o.material.metalness = 0.9
+                o.material.roughness = 0.15
+            }
+        })
+        var ufo = new UserControlledTrack({
+            id:409,
+            name:'ufo',
+            mesh: gltf.scene,
+            position: transformWGS84ToCartesian(2.4*0.0174533,49*0.0174533, 15000, new THREE.Vector3())
+        })
+        
+        map.setLayer(ufo, 9);
+        ufo.initControls(map.domContainer);
+        map.controller.clear();
+        map.controller.append(new ThirdPersonCameraController(map.camera, map.domContainer, map, ufo.getTracks(), 3, 30));
+    }); */
+    
+    
     /* map.sunPosition.set(0,0,1);
     map.sunPosition.normalize();
     map.csm.lightDirection.copy(map.sunPosition).negate(); */

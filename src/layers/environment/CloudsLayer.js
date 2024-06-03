@@ -4,7 +4,6 @@ import perlinWorley3D from "../../images/perlinWorley3D_128.bin";
 import blueNoise from '../../images/blueNoise.png';
 import {CloudsShader} from './shaders/CloudsShader'
 import {CloudsBlurShader} from './shaders/CloudsBlurShader'
-import {CloudTemporalAccumulationShader} from './shaders/CloudTemporalAccumulationShader'
 
 let cloudsTarget;
 let cloudsBlurTarget1;
@@ -31,22 +30,24 @@ const clock = new THREE.Clock();
 class CloudsLayer extends EnvironmentLayer {
     /**
      * A volumetric clouds layer that allows specifying custom code to compute cloud opacity per sample.
-     * The given shader glsl code will be inserted in the main planet shader and 
-     * color per fragment will be computed via a call to "float sampleDensity(vec3 position, vec3 xyz, vec3 normal, float level);".
-     * Note that the normal is in world space.
+     * See {@class NOAAGFSCloudsLayer} or {@class RandomCloudsLayer} for directly useable implementations.
+     * 
+     * The given shader glsl code {@param properties.sampleDensityFunction} will be inserted in the clouds shader and 
+     * used to compute volume sample densities. It must implement a function "float sampleDensity(vec3 samplePosition, float lod)".
+     * The lod shall be a value between 0 and 4 where 0 indicates samples closer to the camera and 4 indicates samples further away. 
      * 
      * Extra uniforms can be specified through the @param{properties.extraUniforms} and will be available in the shader by their key.
      * Only the following types are allowed: number, boolean, THREE.Vector2, THREE.Vector3, THREE.Vector4, THREE.Matrix3, THREE.Matrix4,
      * THREE.Data3DTexture, THREE.DataArrayTexture, THREE.DataTexture and THREE.Texture
      * 
-     * Only one visible CloudsLayer (first in list) will be taken into account at a time.
+     * Only one visible CloudsLayer (first in layer list) will be taken into account at a time.
      * 
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {Function} [properties.sampleDensityFunction] function that returns the cloud density given a point in cartesian coordinates.
+     * @param {String} [properties.sampleDensityFunction] shader function that returns the cloud density given a point in cartesian coordinates and a level of detail.
      * @param {Object} [properties.extraUniforms] a key value pair of uniforms for the shader. The uniforms will be available with the given keys in the shader. 
-     * @param {Number} [properties.quality = 0.3] a quality that affects the resolution and number of samples for volumetric clouds
+     * @param {Number} [properties.quality = 0.5] a quality that affects the resolution and number of samples for volumetric clouds
      * @param {Number} [properties.minHeight = 500] clouds min height in meters above ellipsoid
      * @param {Number} [properties.maxHeight = 12000] clouds max height in meters above ellipsoid
      * @param {Number} [properties.density = 0.5] cloud density multiplier 
@@ -67,18 +68,17 @@ class CloudsLayer extends EnvironmentLayer {
 
         const isMobile = _isMobileDevice();
         this.quality = properties.quality;
-        if(!this.quality) this.quality = isMobile ? 0.15 : 0.3;
-        this.resolution = Math.sqrt(this.quality);
-        this.numBlurPasses = 0;//Math.floor((1/this.quality)/5);//(1/this.quality)/5;
+        if(!this.quality) this.quality = isMobile ? 0.25 : 0.5;
+        this.resolution = this.quality;
+        this.numBlurPasses = 3/(this.quality*5);//Math.floor((1/this.quality)/5);//(1/this.quality)/5;
         this.proportionSamples = 0.15;//this.quality;
         
-        this.maxBlurOffset = 1.5/this.resolution;
-        this.numSamplesToLight = Math.max(2, this.quality*40);
+        this.maxBlurOffset = 50.0;//1.5/this.resolution;
         this.startRadius = properties.minHeight ? properties.minHeight : 500;
         this.endRadius = Math.max(this.startRadius+1,properties.maxHeight ? properties.maxHeight : 12000);
         this.color = properties.color ? properties.color : new THREE.Vector3(1.0, 1.0, 1.0);
 
-        this.windSpeed = properties.windSpeed? properties.windSpeed: 0.05;
+        this.windSpeed = properties.windSpeed? properties.windSpeed: 0.0;
         this.density = properties.density ? properties.density : 0.5;
         this.luminance = properties.luminance ? properties.luminance : 1;
 
@@ -117,13 +117,13 @@ class CloudsLayer extends EnvironmentLayer {
         
         let texelSizeVertical = 1 / cloudsBlurTarget1.height;
         let texelSizeHorizontal = 1 / cloudsBlurTarget1.width;
-        let mul = 0.5/this.resolution;
+        let mul = 0.5;
         
         blurMaterial.uniforms.tDepth.value = map.target.depthTexture;
         blurMaterial.uniforms.cloudsDepth.value = cloudsTarget.textures[1];
         blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
         blurMaterial.uniforms.image.value = cloudsTarget.textures[0];
-        blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
+        blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
         mul += 1.0;
         
         map.postQuad.material = blurMaterial;
@@ -131,23 +131,23 @@ class CloudsLayer extends EnvironmentLayer {
         map.renderer.render(map.postScene, map.postCamera);
 
         blurMaterial.uniforms.image.value = cloudsBlurTarget1.texture;
-        blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
+        blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
         mul += 1.0;
         
         map.renderer.setRenderTarget(cloudsBlurTarget2);
         map.renderer.render(map.postScene, map.postCamera);
-        for (let p = 0; p < this.numBlurPasses; p++) {
+        for (let p = 0; p < 2; p++) {
             
             blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
             blurMaterial.uniforms.image.value = cloudsBlurTarget2.texture;
             blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
-            //mul += 1.0;
+            mul += 1.0;
             map.renderer.setRenderTarget(cloudsBlurTarget1);
             map.renderer.render(map.postScene, map.postCamera);
 
             blurMaterial.uniforms.image.value = cloudsBlurTarget1.texture;
             blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
-            //mul += 1.0;
+            mul += 1.0;
             
             map.renderer.setRenderTarget(cloudsBlurTarget2);
             map.renderer.render(map.postScene, map.postCamera);
@@ -190,7 +190,9 @@ class CloudsLayer extends EnvironmentLayer {
 
         cloudsMaterial.uniforms.time.value = clock.getElapsedTime()*1000;
 
-
+        blurMaterial.uniforms.cameraNear.value = map.camera.near;
+        blurMaterial.uniforms.cameraFar.value = map.camera.far;
+        blurMaterial.uniforms.ldf.value = map.logDepthBufFC;
     }
 
     changeSize(dom) {
@@ -219,6 +221,7 @@ class CloudsLayer extends EnvironmentLayer {
             cloudsTarget.textures[1].magFilter = THREE.LinearFilter;
             cloudsTarget.textures[1].generateMipmaps = false;
             cloudsTarget.textures[1].premultiplyAlpha = false;
+            //cloudsTarget.textures[1].type = THREE.FloatType;
             
         }
 
@@ -281,7 +284,6 @@ class CloudsLayer extends EnvironmentLayer {
                 ldf: { value: 0 },
                 time: { value: 0.0 },
                 proportionSamples: { value: self.proportionSamples },
-                numSamplesToLight: { value: self.numSamplesToLight },
                 densityMultiplier: { value: 20.0 },
                 sunlight: { value: 10.0 },
                 sunLocation: { value: new THREE.Vector3(0, 0, 0) },
@@ -312,7 +314,10 @@ class CloudsLayer extends EnvironmentLayer {
                 tDepth: { value: null },
                 cloudsDepth: { value: null },
                 noise2D: { value: null },
-                preserveMaxOpacity: { value: 0.0 }
+                preserveMaxOpacity: { value: 0.0 },
+                cameraNear: { value: map.camera.near },
+                cameraFar: { value: map.camera.far },
+                ldf: { value: 0 },
             },
             premultipliedAlpha: false,
             depthTest: false,

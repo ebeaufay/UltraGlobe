@@ -4,13 +4,12 @@ import Perlin from './Perlin2';
 //import perlinWorleyTexture from "./../images/perlinWorley.bin"
 
 let defaultSampleDensityFunction = `
-float sampleDensity(vec3 samplePosition, out float scatterCoefficient){
+float sampleDensity(vec3 samplePosition, float lod){
 
 	vec3 samplePositionNormalized = normalize(samplePosition);
 	vec2 lonlatSample = vec2(atan(samplePositionNormalized.y, samplePositionNormalized.x),asin(samplePositionNormalized.z));
 	float localRadius = getEarthRadiusAtLatitude(lonlatSample.y);
 	float height = (length(samplePosition)-localRadius-startRadius) / (endRadius-startRadius);
-	scatterCoefficient = mix(0.25,0.85,height);
     float theta = time*windSpeed*0.01;
     vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
             
@@ -70,6 +69,17 @@ function common(densityFunction) {
 			return vec4(color, alpha);
 		}
 
+		vec2 blendBackToFront(vec2 back, vec2 front) {
+			float alpha = 1.0 - (1.0 - front.g) * (1.0 - back.g); // Combined alpha
+			float color;
+			if (alpha == 0.0) {
+				color = 0.0; // Completely transparent; color is irrelevant
+			} else {
+				color = (front.r * front.g + back.r * back.g * (1.0 - front.g)) / alpha;
+			}
+			return vec2(color, alpha);
+		}
+
 		vec4 blendFrontToBack(vec4 front, vec4 back) {
 			float alpha = front.a + back.a * (1.0 - front.a); // Updated alpha
 			vec3 color;
@@ -114,14 +124,14 @@ function common(densityFunction) {
 		}
 
 		`;
-		
-		if(densityFunction){
-			code+=densityFunction
-		}else{
-			code+=defaultSampleDensityFunction;
-		}
-		
-		code+=`
+
+	if (densityFunction) {
+		code += densityFunction
+	} else {
+		code += defaultSampleDensityFunction;
+	}
+
+	code += `
 
 
 		
@@ -255,18 +265,23 @@ function common(densityFunction) {
 			
 		}
 		
-		
-
-		  float readDepth( sampler2D depthSampler, vec2 coord ) {
+		float readDepth( sampler2D depthSampler, vec2 coord ) {
 			vec4 fragCoord = texture2D( depthSampler, coord );
-			float viewZ = exp2(fragCoord.x / (ldf * 0.5)) - 1.0;
-			return viewZToOrthographicDepth( -viewZ, cameraNear, cameraFar );
+			float invViewZ = exp2(fragCoord.x / (ldf * 0.5)) - 1.0;
+			return viewZToOrthographicDepth( -invViewZ, cameraNear, cameraFar );
 		  }
+
+		  float encodeDepth( float depth ) {
+			
+			float viewZ = orthographicDepthToViewZ( depth, cameraNear, cameraFar );
+			return log2(-viewZ + 1.0) * (ldf * 0.5)-1.0;
+		}
 
 		
 		  float normalizeDepth(float trueDepth) {
-			return (trueDepth - cameraNear)/(cameraFar-cameraNear);
-			return log2(0.01 * trueDepth + 1.0) / log2(0.01 * cameraFar + 1.0);
+			float trueNear = length(nearPlanePosition-nonPostCameraPosition);
+			float trueFar = length(farPlanePosition-nonPostCameraPosition);
+			return (trueDepth - trueNear)/(trueFar-trueNear);
 		}
 
 		
@@ -299,7 +314,6 @@ function common(densityFunction) {
 
 			for(float i = 0.0; i<2.0; i++){
 				float phase = biScattering(g, k, cosTheta, c);
-				//float beers = beerPowder(1.0,density* 0.1 * a, distance);//exp(-density * distance * 0.1 * a);
 				float beers = exp(-density * distance * 0.1 * a);
 
 				luminance += b * phase * beers;
@@ -434,7 +448,7 @@ const CloudsShader = {
 
 	fragmentShader: (ocean, atmosphere, sunColor, sampleDensityFunction, extraUniforms) => {
 
-		const atmosphereHighlight = new THREE.Vector3(Math.pow(atmosphere.x,1.0), Math.pow(atmosphere.y,1.0), Math.pow(atmosphere.z,1.0));
+		const atmosphereHighlight = new THREE.Vector3(Math.pow(atmosphere.x, 1.0), Math.pow(atmosphere.y, 1.0), Math.pow(atmosphere.z, 1.0));
 		//ocean = false;
 		let code = /* glsl */`
 		precision highp sampler3D;
@@ -460,7 +474,6 @@ const CloudsShader = {
 		uniform float ldf;
 		uniform float time;
 		uniform float proportionSamples;
-		uniform float numSamplesToLight;
 		uniform float yfov;
 		uniform float xfov;
 		uniform float resolution;
@@ -478,28 +491,28 @@ const CloudsShader = {
 		
 		`;
 
-		if(extraUniforms){
+		if (extraUniforms) {
 			Object.entries(extraUniforms).forEach(([key, value]) => {
-				switch(typeof value){
-					case "number": code+=`uniform float ${key};`; break;
-					case "boolean": code+=`uniform bool ${key};`; break;
+				switch (typeof value) {
+					case "number": code += `uniform float ${key};`; break;
+					case "boolean": code += `uniform bool ${key};`; break;
 					default: {
-						if(value.isData3DTexture){
-							code+=`uniform sampler3D ${key};`; break;
+						if (value.isData3DTexture) {
+							code += `uniform sampler3D ${key};`; break;
 						}
-						else if(value.isDataArrayTexture){
-							code+=`uniform sampler2DArray ${key};`; break;
+						else if (value.isDataArrayTexture) {
+							code += `uniform sampler2DArray ${key};`; break;
 						}
-						else if(value.isTexture){
-							code+=`uniform sampler2D ${key};`; break;
-						}else if(value.isVector2){
-							code+=`uniform vec2 ${key};`; break;
-						}else if(value.isVector3){
-							code+=`uniform vec3 ${key};`; break;
-						}else if(value.isVector4){
-							code+=`uniform vec4 ${key};`; break;
-						}else if(value.isMatrix3){
-							code+=`uniform mat3 ${key};`; break;
+						else if (value.isTexture) {
+							code += `uniform sampler2D ${key};`; break;
+						} else if (value.isVector2) {
+							code += `uniform vec2 ${key};`; break;
+						} else if (value.isVector3) {
+							code += `uniform vec3 ${key};`; break;
+						} else if (value.isVector4) {
+							code += `uniform vec4 ${key};`; break;
+						} else if (value.isMatrix3) {
+							code += `uniform mat3 ${key};`; break;
 						}
 					}
 				}
@@ -513,16 +526,10 @@ const CloudsShader = {
 		
 		void main() {
 			gPosition = vec4(1.0,1.0,0.0,0.0);
-			float sunIntensity = 20.0;
 			float depth = readDepth( tDepth, vUv );
 			vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
-			//vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
-			//float tmod = mod(time,1000.0);
-			/* uint seed = uint( vUv.x ) * uint( 1973 ) + uint( vUv.y ) * uint( 9277 ) + uint( time ) * uint( 26699 );
-			float randNum = randomFloat( seed );// * 2.0 - 1.0; */
 			float frac = yfov/xfov;
 			vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*3.0);
-			//vec4 random = texture(noise2D, vUv*3.540);
 			
 
 			vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
@@ -613,18 +620,19 @@ const CloudsShader = {
 
 		code += `
 
-			float near1 = max(2000.0,length(traverse1Entry-nonPostCameraPosition));
+			float near1 = max(5000.0,length(traverse1Entry-nonPostCameraPosition));
 			float far1 = length(traverse1Exit-nonPostCameraPosition);
 			float near2 = max(1000.0,length(traverse2Entry-nonPostCameraPosition));
 			float far2 = length(traverse2Exit-nonPostCameraPosition);
 			if(depth<0.9999){
 				if( lengthToEarthImpact < near1) {
-					pc_fragColor = vec4(0.0);
+					pc_fragColor = vec4(1.0,1.0,1.0,0.0);
 					
 					return;
 				}
 				if( lengthToEarthImpact < far1) {
 					traverse1Exit = impact;
+					far1 = length(traverse1Exit-nonPostCameraPosition);
 					secondTraverse = false;
 					
 				}
@@ -635,6 +643,7 @@ const CloudsShader = {
 				}
 				if(secondTraverse && lengthToEarthImpact < far2){
 					traverse2Exit = nonPostCameraPosition;
+					far2 = length(traverse2Exit-nonPostCameraPosition);
 				}
 				
 			}
@@ -653,11 +662,10 @@ const CloudsShader = {
 			float length1 = far1-near1;
 			float biScatteringKappa = 0.75;
 			
-			float numSamples = max(25.0,min(350.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
-			numSamples+= (random.r-0.5)*10.0;
-			numSamples = max(25.0,min(350.0, numSamples));
+			float numSamples = max(25.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
+			numSamples+= (random.r-0.5)*40.0;
+			numSamples = max(25.0,min(250.0, numSamples));
 			
-			float scatterTotal = 0.0;
 
 			vec3 surfacePosition = vec3(0,0,0);
 			float weightTotal = 0.0;
@@ -670,20 +678,18 @@ const CloudsShader = {
 				float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 				float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
 				
-				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality))),0.5)*4.0;
+				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality))),0.35)*4.0;
 				float fraction = distAlongRay/length1;
 
 				vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 				vec3 samplePositionNormalized = normalize(samplePosition);
 
-				float scatter = 0.0;
-				float localDensity = sampleDensity(samplePosition, lod, scatter)*densityMultiplier*0.005;
+				float localDensity = sampleDensity(samplePosition, lod)*densityMultiplier*0.005;
 				if(localDensity<=0.0) continue;
 				
-				float weightLocal = pow(localDensity,1.5);
+				float weightLocal = pow(localDensity,2.0);
 				surfacePosition += samplePosition * weightLocal;
 				weightTotal+= weightLocal;
-				scatterTotal += scatter * (distAlongRayEnd - distAlongRayStart);
 				
 				density1 += localDensity * (distAlongRay - distAlongRayStart);
 
@@ -696,23 +702,20 @@ const CloudsShader = {
 				lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 				float densityToLight = 0.0;
 				
-				float numSamplesToLightLocal = 5.0*(3.0-lod);//min(20.0,max(1.0,calculateIdealNumberOfSamples(yfov, resolution, distAlongRay, distAlongRay+lengthToLight )*0.2));
-				float scatterToLightTotal = 0.0;
+				float numSamplesToLightLocal = 3.0*(3.0-lod);
+				
 				for(float j = 0.0; j<numSamplesToLightLocal; j++){
 					float indexLightSample = j+random.b;
 					float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
-					/* float distAlongRayToLight = samplePositionAlongRay(0.1, lengthToLight, indexLightSample, numSamplesToLightLocal);
-					float distAlongRayToLightStart = samplePositionAlongRay(0.1, lengthToLight, j, numSamplesToLightLocal);
-					float distAlongRayToLightEnd = samplePositionAlongRay(0.1, lengthToLight, j+1.0, numSamplesToLightLocal); */
+					
 					
 					float fractionToLight = distAlongRayToLight/lengthToLight;
 
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-					float scatterToLight = 0.0;
-					float localDensityToLight = sampleDensity(secondSamplePosition, lod, scatterToLight)*0.5;
+					
+					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
 					if(localDensityToLight<=0.0) continue;
-					scatterToLightTotal+= scatterToLight;
 					densityToLight +=localDensityToLight;
 					if(densityToLight > 1.0) {
 						densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
@@ -723,8 +726,9 @@ const CloudsShader = {
 
 				densityToLight*= lengthToLight;
 				
-				float lightToSample = multiOctaveBeer(sunlight*0.001*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.0001, windSpeed, biScatteringKappa, 1.0*localDensity);
-				lightToSample = multiOctaveBeer(lightToSample,density1, 0.0001, windSpeed, biScatteringKappa, 1.0);
+				float lightToSample = multiOctaveBeer(sunlight*30.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.5, biScatteringKappa, dot(samplePositionNormalized, worldDir));
+				lightToSample = multiOctaveBeer(lightToSample*localDensity,density1, 0.01, 0.5, biScatteringKappa, 1.0);
+
 
 
 				light1 += lightToSample;
@@ -737,13 +741,12 @@ const CloudsShader = {
 			
 
 			
-			if(secondTraverse && density1<-1000.0){
+			if(secondTraverse && density1<1.0){
 				float length2 = far2-near2;
-				float scatterTotal = 0.0;
 
-				float numSamples = max(25.0,min(350.0, calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples));
-				numSamples+= (random.r-0.5)*40.0;
-				numSamples = max(25.0,min(350.0, numSamples));
+				float numSamples = max(5.0,min(50.0, calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples));
+				numSamples+= (random.r-0.5)*10.0;
+				numSamples = max(5.0,min(50.0, numSamples));
 				for(float i = 0.0; i< numSamples; i++){
 
 					if(density1+density2>=1.0) {
@@ -751,25 +754,27 @@ const CloudsShader = {
 						break;
 					}
 
+
 					float index = i+random.g;
 					float distAlongRay = samplePositionAlongRay(near2, far2, index, numSamples);
 					float distAlongRayStart = samplePositionAlongRay(near2, far2, i, numSamples);
 					float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
 				
+					
+					float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality))),0.35)*4.0;
 					float fraction = distAlongRay/length2;
 
 					vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
 				
 
-					float scatter = 0.0;
-					float localDensity = sampleDensity(samplePosition, (distAlongRay+near2)/250000.0, scatter)*densityMultiplier*0.005;
+					float localDensity = sampleDensity(samplePosition, lod)*densityMultiplier*0.005;
 					if(localDensity<=0.0) continue;
 					
-					float weightLocal = pow(localDensity,1.5);
+					float weightLocal = pow(localDensity,2.0);
 					surfacePosition += samplePosition * weightLocal;
 					weightTotal+= weightLocal;
-					scatterTotal += scatter * (distAlongRayEnd - distAlongRayStart);
+					
 					density2 += localDensity * (distAlongRay - distAlongRayStart);
 
 
@@ -780,30 +785,35 @@ const CloudsShader = {
 					float localRadius = getEarthRadiusAtLatitude(lonlatSample.y);
 					vec3 lightExit = samplePositionNormalized*(trueEndRadius+localRadius);
 	
-					float lengthToLight = min(10000.0,length(lightExit-samplePosition));
+					float lengthToLight = min(5000.0,length(lightExit-samplePosition));
+					lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 					float densityToLight = 0.0;
 					
-					float numSamplesToLightLocal = min(10.0,max(1.0,calculateIdealNumberOfSamples(yfov, resolution, distAlongRay, distAlongRay+lengthToLight )*0.1));
-					float scatterToLightTotal = 0.0;
-					float distLocal = lengthToLight/numSamplesToLightLocal;
-
+					float numSamplesToLightLocal = 3.0*(3.0-lod);
+				
 					for(float j = 0.0; j<numSamplesToLightLocal; j++){
-						float indexLightSample = j+0.5;//+random.b;
-						float distAlongRayToLight = mix(0.1, lengthToLight, indexLightSample/numSamplesToLightLocal);
-						float fractionToLight = distAlongRayToLight/(lengthToLight-0.1);
-	
+						float indexLightSample = j+random.b;
+						float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
+					
+					
+						float fractionToLight = distAlongRayToLight/lengthToLight;
+
+					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-						float scatterToLight = 0.0;
-						float localDensityToLight = sampleDensity(secondSamplePosition, (distAlongRay+near2)/250000.0, scatterToLight)*0.5;
+					
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
 						if(localDensityToLight<=0.0) continue;
-						scatterToLightTotal+= scatterToLight;
-						densityToLight +=localDensityToLight * distLocal;
-						if(densityToLight > 1.0) break;
+						densityToLight +=localDensityToLight;
+						if(densityToLight > 1.0) {
+							densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+							break;
+						}
 					}
 					
-
-					float lightToSample = multiOctaveBeer(sunlight*0.001*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.1, 0.85, biScatteringKappa, 1.0*localDensity);
-					lightToSample = multiOctaveBeer(lightToSample,density2, 0.1, 0.85, biScatteringKappa, 1.0);
+					densityToLight*= lengthToLight;
+				
+					float lightToSample = multiOctaveBeer(sunlight*30.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.5, biScatteringKappa, dot(samplePositionNormalized, worldDir));
+					lightToSample = multiOctaveBeer(lightToSample*localDensity,density2, 0.01, 0.5, biScatteringKappa, 1.0);
 
 
 					light2 += lightToSample;
@@ -818,31 +828,29 @@ const CloudsShader = {
 			surfacePosition/= weightTotal;
 			density1 = min(1.0, density1);
 			density2 = min(1.0, density2);
+			light1 = min(1.0, light1);
+			light2 = min(1.0, light2);
 			if(density1+density2 == 0.0){
 				gPosition = vec4(1.0,0.0,0.0,0.0);
-				pc_fragColor = vec4(vec3(`+atmosphereHighlight.x.toFixed(2)+`,`+atmosphereHighlight.y.toFixed(2)+`,`+atmosphereHighlight.z.toFixed(2)+`),0.0);
+				pc_fragColor = vec4(1.0,1.0,1.0,0.0);
+				
 			}else{
 				float depth = length(nonPostCameraPosition-surfacePosition);
 				gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
 				float dotLight = 1.0;
-				float lengthThroughAtmosphere = max(0.0,min(1.0,((depth-near1)/100000.0)))*0.25+0.5;
-				vec3 fullDarkColor = mix(vec3(0.5),vec3(`+atmosphereHighlight.x.toFixed(2)+`,`+atmosphereHighlight.y.toFixed(2)+`,`+atmosphereHighlight.z.toFixed(2)+`),lengthThroughAtmosphere);
-				//fullDarkColor = vec3(`+atmosphereHighlight.x.toFixed(2)+`,`+atmosphereHighlight.y.toFixed(2)+`,`+atmosphereHighlight.z.toFixed(2)+`);
-				vec3 fullLightColor = color;
-
-				pc_fragColor = blendBackToFront(vec4(vec3(light2), density2), vec4(vec3(light1), density1));
-				pc_fragColor.xyz = vec3(pow(pc_fragColor.x,0.35));
-				pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
-
+				float lengthThroughAtmosphere = max(0.0,min(1.0,((depth-near1)/400000.0)))*0.25;
+				
+				 vec2 blend = blendBackToFront(vec2(light2,density2), vec2(light1,density1));
+				pc_fragColor = vec4(
+					mix(
+						vec3(mix(0.35, 1.0, blend.x),mix(0.45, 1.0, blend.x),mix(0.65, 1.0, blend.x)),
+						vec3(`+ atmosphereHighlight.x.toFixed(2) + `,` + atmosphereHighlight.y.toFixed(2) + `,` + atmosphereHighlight.z.toFixed(2) + `),
+						lengthThroughAtmosphere),
+					blend.y
+				); 
 				
 			}
 			
-			
-			 
-			//pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
-
-			
-			//pc_fragColor = vec4(vec3(light2,light1, 1.0), density1+density2);
 	}`;
 
 
@@ -858,6 +866,8 @@ const CloudsShader = {
 		precision highp sampler3D;
 		precision highp float;
 		precision highp int;
+
+		layout(location = 1) out vec4 gPosition;
 
 		#include <packing>
 		
@@ -876,47 +886,50 @@ const CloudsShader = {
 			uniform float time;
 			uniform float proportionSamples;
 			uniform float numSamplesToLight;
+			uniform float xfov;
 			uniform float yfov;
 			uniform float resolution;
+			uniform float quality;
 
 			uniform float densityMultiplier;
 			uniform float sunlight;
 			uniform vec3 sunLocation;
-			
+		
 			uniform vec3 color;
 			uniform float startRadius;
-            uniform float endRadius;
-            uniform float windSpeed;
+			uniform float endRadius;
+			uniform float windSpeed;
+
 
 			`;
 
-			if(extraUniforms){
-				Object.entries(extraUniforms).forEach(([key, value]) => {
-					switch(typeof value){
-						case "number": code+=`uniform float ${key};`; break;
-						case "boolean": code+=`uniform bool ${key};`; break;
-						default: {
-							if(value.isData3DTexture){
-								code+=`uniform sampler3D ${key};`; break;
-							}
-							else if(value.isDataArrayTexture){
-								code+=`uniform sampler2DArray ${key};`; break;
-							}
-							else if(value.isTexture){
-								code+=`uniform sampler2D ${key};`; break;
-							}else if(value.isVector2){
-								code+=`uniform vec2 ${key};`; break;
-							}else if(value.isVector3){
-								code+=`uniform vec3 ${key};`; break;
-							}else if(value.isVector4){
-								code+=`uniform vec4 ${key};`; break;
-							}else if(value.isMatrix3){
-								code+=`uniform mat3 ${key};`; break;
-							}
+		if (extraUniforms) {
+			Object.entries(extraUniforms).forEach(([key, value]) => {
+				switch (typeof value) {
+					case "number": code += `uniform float ${key};`; break;
+					case "boolean": code += `uniform bool ${key};`; break;
+					default: {
+						if (value.isData3DTexture) {
+							code += `uniform sampler3D ${key};`; break;
+						}
+						else if (value.isDataArrayTexture) {
+							code += `uniform sampler2DArray ${key};`; break;
+						}
+						else if (value.isTexture) {
+							code += `uniform sampler2D ${key};`; break;
+						} else if (value.isVector2) {
+							code += `uniform vec2 ${key};`; break;
+						} else if (value.isVector3) {
+							code += `uniform vec3 ${key};`; break;
+						} else if (value.isVector4) {
+							code += `uniform vec4 ${key};`; break;
+						} else if (value.isMatrix3) {
+							code += `uniform mat3 ${key};`; break;
 						}
 					}
-				});
-			}
+				}
+			});
+		}
 
 
 		code += common(densityFunction);
@@ -925,22 +938,16 @@ const CloudsShader = {
 		
 			
 			void main() {
-				float sunIntensity = 20.0;
+				gPosition = vec4(1.0,1.0,0.0,0.0);
 				float depth = readDepth( tDepth, vUv );
 				vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
-				//vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
+				float frac = yfov/xfov;
+				vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*3.0);
 				
-				vec4 random = texture(noise2D, vec2(time*0.618033988749895, time*0.324717957244746)+(vUv*25.540));
-				
-				
+	
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 				float lengthToEarthImpact = length(impact-nonPostCameraPosition);
 				
-				//float localRadius = getEarthRadiusAtLatitude(lonlat.y);
-			
-				//float endRadiusMeters = (max(startRadius+0.001,endRadius)-1.0)*radius+localRadius;
-
-				float cloudsDepthMeters = endRadius - startRadius;
 				
 				vec3 cloudImpactsStartIn = vec3(0.0);
 				vec3 cloudImpactsStartOut = vec3(0.0);
@@ -952,13 +959,14 @@ const CloudsShader = {
 				bool outStartHits;
 
 				float trueEndRadius = max(startRadius+1.0, endRadius);
-
+			
 				rayEllipsoidForwardSurfaceIntersection(planetPosition, nonPostCameraPosition, worldDir, a+trueEndRadius, a+trueEndRadius, b+trueEndRadius, cloudImpactsEndIn, cloudImpactsEndOut, inEndHits, outEndHits);
 				rayEllipsoidForwardSurfaceIntersection(planetPosition, nonPostCameraPosition, worldDir, a+startRadius, a+startRadius, b+startRadius, cloudImpactsStartIn, cloudImpactsStartOut, inStartHits, outStartHits);
 			
+
 				
-				if(!inEndHits  && !outEndHits) { // doesn't even traverse clouds
-					pc_fragColor = vec4(1.0,1.0,1.0,0.0);
+				if(!inEndHits  && !outEndHits) {
+					pc_fragColor = vec4(vec3(dot(sunLocation, worldDir)),0.0);
 					
 					return; // no cloud hit
 				}
@@ -971,7 +979,7 @@ const CloudsShader = {
 
 				
 				if(inEndHits){ // camera outside clouds looking in
-					
+				
 					traverse1Entry = cloudImpactsEndIn;
 					if(inStartHits){ //ray penetrates inner radius
 						traverse1Exit = cloudImpactsStartIn;
@@ -979,12 +987,13 @@ const CloudsShader = {
 						secondTraverse = true;
 						traverse2Entry = cloudImpactsStartOut;
 						traverse2Exit = cloudImpactsEndOut;
+						
 					}else{ // ray doesn't penetrate clouds inner radius
 						traverse1Exit = cloudImpactsEndOut;
 						
 					}
 				}else { // camera inside outer radius
-
+	
 					if(inStartHits){ //camera outside inner radius looking in
 						traverse1Entry = nonPostCameraPosition;
 						traverse1Exit = cloudImpactsStartIn;
@@ -996,10 +1005,13 @@ const CloudsShader = {
 					else if(outStartHits){ // camera inside inner radius
 						traverse1Entry = cloudImpactsStartOut;
 						traverse1Exit = cloudImpactsEndOut;
+						
 					}else{
 						traverse1Entry = nonPostCameraPosition;
 						traverse1Exit = cloudImpactsEndOut;
+						
 					}
+					
 				}
 
 
@@ -1020,32 +1032,38 @@ const CloudsShader = {
 
 		code += `
 
-				float near1 = max(200.0,length(traverse1Entry-nonPostCameraPosition));
-				float far1 = length(traverse1Exit-nonPostCameraPosition);
-				float near2 = max(50.0,length(traverse2Entry-nonPostCameraPosition));
-				float far2 = length(traverse2Exit-nonPostCameraPosition);
-				if(depth<0.9999){ // hits object before clouds
-					if( lengthToEarthImpact < near1) {
-						pc_fragColor = vec4(1.0,1.0,1.0,0.0);
-						return;
-					}
-					if( lengthToEarthImpact < far1) {
-						traverse1Exit = impact;
-						secondTraverse = false;
-					}
-					if(secondTraverse && lengthToEarthImpact < near2){
-						secondTraverse = false;
-						
-					}
-					if(secondTraverse && lengthToEarthImpact < far2){
-						traverse2Exit = nonPostCameraPosition;
-					}
-					
+			float near1 = max(5000.0,length(traverse1Entry-nonPostCameraPosition));
+			float far1 = length(traverse1Exit-nonPostCameraPosition);
+			float near2 = max(1000.0,length(traverse2Entry-nonPostCameraPosition));
+			float far2 = length(traverse2Exit-nonPostCameraPosition);
+			if(depth<0.9999){
+				if( lengthToEarthImpact < near1) {
+					pc_fragColor = vec4(vec3(dot(sunLocation, normalize(impact))),0.0);
+				
+					return;
 				}
+				if( lengthToEarthImpact < far1) {
+					traverse1Exit = impact;
+					far1 = length(traverse1Exit-nonPostCameraPosition);
+					secondTraverse = false;
+				
+				}
+				if(secondTraverse && lengthToEarthImpact < near2){
+					secondTraverse = false;
+				
+				
+				}
+				if(secondTraverse && lengthToEarthImpact < far2){
+					traverse2Exit = nonPostCameraPosition;
+					far2 = length(traverse2Exit-nonPostCameraPosition);
+				}
+			
+			}
 
 				/// First deal with traverse1 (nearer to the camera) and only deal with traverse 2 if opacity is less than 100%
 				
-
+			
+			
 				float density1 = 0.0;
 				float density2 = 0.0;
 			
@@ -1053,150 +1071,196 @@ const CloudsShader = {
 				vec3 light2 = vec3(0.0);
 
 				float length1 = far1-near1;
-
-				float numSamples = min(1000.0,max(5.0,calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples+(random.r-0.5)*40.0));
-				float scatterTotal = 0.0;
+				float biScatteringKappa = 0.75;
+				float numSamples = max(25.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
+				numSamples+= (random.r-0.5)*40.0;
+				numSamples = max(25.0,min(250.0, numSamples));
+				
+				vec3 surfacePosition = vec3(0,0,0);
+				float weightTotal = 0.0;
 				for(float i = 0.0; i< numSamples; i++){
 					if(density1>=1.0) {
 						
 						break;
 					}
-					float distAlongRay = samplePositionAlongRay(near1, far1, i+random.g, numSamples);
+					float index = i+random.g;
+					float distAlongRay = samplePositionAlongRay(near1, far1, index, numSamples);
 					float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 					float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
-					
+				
+					float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality))),0.35)*4.0;
 					float fraction = distAlongRay/length1;
-	
+
 					vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
 					vec3 samplePositionNormalized = normalize(samplePosition);
-					float scatter = 0.0;
-					float localDensity = sampleDensity(samplePosition, scatter)*densityMultiplier*0.005;
+
+					float localDensity = sampleDensity(samplePosition, lod)*densityMultiplier*0.005;
 					if(localDensity<=0.0) continue;
-	
-					scatterTotal += scatter * (distAlongRayEnd - distAlongRayStart);
+					
+					float weightLocal = pow(localDensity,2.0);
+					surfacePosition += samplePosition * weightLocal;
+					weightTotal+= weightLocal;
+				
 					density1 += localDensity * (distAlongRay - distAlongRayStart);
+
 					
 					
+
 					///// compute light to sample
 					float dotLight = dot(sunLocation, samplePositionNormalized);
-					if(rayEllipsoidIntersection(planetPosition, samplePosition, sunLocation,a,a,b).x>=0.0) continue;
+					//if(rayEllipsoidIntersection(planetPosition, samplePosition, sunLocation,a,a,b).x>=0.0) continue;
 					vec3 lightExit = samplePosition + (sunLocation)*rayEllipsoidIntersection(planetPosition, samplePosition, sunLocation, a+trueEndRadius, a+trueEndRadius, b+trueEndRadius).y;
 
-					float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
+					float lengthToLight = min(5000.0,length(lightExit-samplePosition));
+					lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 					float densityToLight = 0.0;
+				
+					float numSamplesToLightLocal = 3.0*(3.0-lod);
 
-					float numSamplesToLightLocal = max(0.0,min(numSamplesToLight, numSamplesToLight*localDensity*100.0));
-					float scatterToLightTotal = 0.0;
-					for(float j = 0.5; j<numSamplesToLightLocal+1.0; j++){
-						float indexLightSample = random.b+j;
-						float distAlongRayToLight = samplePositionAlongRay(0.1, lengthToLight, indexLightSample, numSamplesToLightLocal+1.0);
-						float distAlongRayToLightStart = samplePositionAlongRay(0.1, lengthToLight, indexLightSample-0.5, numSamplesToLightLocal+1.0);
-						float distAlongRayToLightEnd = samplePositionAlongRay(0.1, lengthToLight, indexLightSample+0.5, numSamplesToLightLocal+1.0);
-					
-						float fractionToLight = distAlongRayToLight/(lengthToLight-0.1);
-
-					
+					for(float j = 0.0; j<numSamplesToLightLocal; j++){
+						float indexLightSample = j+random.b;
+						float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
+						
+						
+						float fractionToLight = distAlongRayToLight/lengthToLight;
+	
+						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-						float scatterToLight = 0.0;
-						float localDensityToLight = sampleDensity(secondSamplePosition, scatterToLight)*densityMultiplier*0.1;
+						
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
 						if(localDensityToLight<=0.0) continue;
-						scatterToLightTotal += scatterToLight * (distAlongRayToLightEnd-distAlongRayToLightStart);
-						densityToLight +=localDensityToLight * (distAlongRayToLightEnd-distAlongRayToLightStart);
+						densityToLight +=localDensityToLight;
+						if(densityToLight > 1.0) {
+							densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+							break;
+						}
 					}
 					
-
-					float biScatteringKappa = 0.75;
-					float lightToSample = multiOctaveBeer(sunlight,densityToLight, 8.0, min(0.85,max(0.25,scatterToLightTotal / lengthToLight)), biScatteringKappa, dot(sunLocation, worldDir));
-					lightToSample *= pow(localDensity,0.5)*(distAlongRayEnd-distAlongRayStart);
-
-					lightToSample = multiOctaveBeer(lightToSample,density1, 8.0, scatterTotal/distAlongRayEnd, biScatteringKappa, 1.0);
 					
+					densityToLight*= lengthToLight;
+				
+					float lightToSample = multiOctaveBeer(sunlight*10.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
+					lightToSample = multiOctaveBeer(lightToSample*localDensity,density1, 0.01, 0.75, biScatteringKappa, 1.0);
+
+
+
 					light1 += vec3(pow(color.x,0.5)*lightToSample*max(dotLight,0.0), pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2),pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4));
 					density1 += localDensity * (distAlongRayEnd - distAlongRay);
 
 				}
 				
 				if(secondTraverse && density1<1.0){
+
+					
 					float length2 = far2-near2;
-					float numSamples = min(1000.0,max(2.0,calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples+(random.r-0.5)*2.0));
-					float scatterTotal = 0.0;
+					float numSamples = max(5.0,min(50.0, calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples));
+					numSamples+= (random.r-0.5)*10.0;
+					numSamples = max(5.0,min(50.0, numSamples));
 					for(float i = 0.0; i< numSamples; i++){
 
-						if(density2>=1.0) {
-						
+						if(density1+density2>=1.0) {
+							
 							break;
 						}
-						float distAlongRay = samplePositionAlongRay(near2, far2, i+random.g, numSamples);
+						float index = i+random.g;
+						float distAlongRay = samplePositionAlongRay(near2, far2, index, numSamples);
 						float distAlongRayStart = samplePositionAlongRay(near2, far2, i, numSamples);
 						float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
+				
 					
+						float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality))),0.35)*4.0;
 						float fraction = distAlongRay/length2;
+
 						vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
 						vec3 samplePositionNormalized = normalize(samplePosition);
 				
-						float scatter = 0.0;
-						float localDensity = sampleDensity(samplePosition, scatter)*densityMultiplier*0.005;
-						if(localDensity<=0.0) continue;
 
-						scatterTotal += scatter * (distAlongRayEnd - distAlongRayStart);
+						float localDensity = sampleDensity(samplePosition, lod)*densityMultiplier*0.005;
+						if(localDensity<=0.0) continue;
+						
+						float weightLocal = pow(localDensity,2.0);
+						surfacePosition += samplePosition * weightLocal;
+						weightTotal+= weightLocal;
+					
 						density2 += localDensity * (distAlongRay - distAlongRayStart);
+
+
+
 
 						///// compute light to sample
 						float dotLight = dot(sunLocation, samplePositionNormalized);
 						if(rayEllipsoidIntersection(planetPosition, samplePosition, sunLocation, a, a, b).x>=0.0) continue;
 						vec3 lightExit = samplePosition + (sunLocation)*rayEllipsoidIntersection(planetPosition, samplePosition, sunLocation, a+trueEndRadius, a+trueEndRadius, b+trueEndRadius).y;
 
-						float lengthToLight = length(lightExit-samplePosition)/cloudsDepthMeters;
+						float lengthToLight = min(5000.0,length(lightExit-samplePosition));
+						lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 						float densityToLight = 0.0;
+					
+						float numSamplesToLightLocal = 3.0*(3.0-lod);
+						for(float j = 0.0; j<numSamplesToLightLocal; j++){
+							float indexLightSample = j+random.b;
+							float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
 						
-						float numSamplesToLightLocal = max(0.0,min(numSamplesToLight, numSamplesToLight*localDensity*100.0));
-						float scatterToLightTotal = 0.0;
-						for(float j = 0.5; j<numSamplesToLightLocal+1.0; j++){
-							float indexLightSample = random.b+j;
-							float distAlongRayToLight = samplePositionAlongRay(0.1, lengthToLight, indexLightSample, numSamplesToLightLocal+1.0);
-							float distAlongRayToLightStart = samplePositionAlongRay(0.1, lengthToLight, indexLightSample-0.5, numSamplesToLightLocal+1.0);
-							float distAlongRayToLightEnd = samplePositionAlongRay(0.1, lengthToLight, indexLightSample+0.5, numSamplesToLightLocal+1.0);
 						
-							float fractionToLight = distAlongRayToLight/(lengthToLight-0.1);
+							float fractionToLight = distAlongRayToLight/lengthToLight;
 	
 						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
-							float scatterToLight = 0.0;
-							float localDensityToLight = sampleDensity(secondSamplePosition, scatterToLight)*densityMultiplier*0.1;
+						
+							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
 							if(localDensityToLight<=0.0) continue;
-							scatterToLightTotal += scatterToLight * (distAlongRayToLightEnd-distAlongRayToLightStart);
-							densityToLight +=localDensityToLight * (distAlongRayToLightEnd-distAlongRayToLightStart);
+							densityToLight +=localDensityToLight;
+							if(densityToLight > 1.0) {
+								densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+								break;
+							}
 						}
 						
 
+						densityToLight*= lengthToLight;
+				
+						float lightToSample = multiOctaveBeer(sunlight*10.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
+						lightToSample = multiOctaveBeer(lightToSample*localDensity,density2, 0.01, 0.5, biScatteringKappa, 1.0);
 
 
-						float biScatteringKappa = 0.75;
-						float lightToSample = multiOctaveBeer(sunlight,densityToLight, 8.0, scatterToLightTotal / lengthToLight, biScatteringKappa, dot(sunLocation, worldDir));
-						lightToSample *= pow(localDensity,0.5)*(distAlongRayEnd-distAlongRayStart);
+						light2 += vec3(min(1.0,pow(color.x,0.5)*lightToSample*max(dotLight,0.0)), min(1.0,pow(color.y,0.75)*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4)));
+						density2 += localDensity * (distAlongRayEnd - distAlongRay);
 
-						lightToSample = multiOctaveBeer(lightToSample,density2, 8.0, scatterTotal / distAlongRayEnd, biScatteringKappa, 1.0);
-						//lightToSample = beer(lightToSample,density2, 8.0);
+
+
+
 
 						
-						light2 += vec3(min(1.0,pow(color.x,0.5)*lightToSample*max(dotLight,0.0)), min(1.0,pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4)));
-
-						density2 += localDensity * (distAlongRayEnd - distAlongRay);
 
 					}
 				}
+
+				surfacePosition/= weightTotal;
 
 				density1 = min(1.0, density1);
 				density2 = min(1.0, density2);
 				
 				
-				float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
-				vec3 fullDarkColor = vec3(`+Math.pow(atmosphere.x,0.5).toFixed(2)+`,`+Math.pow(atmosphere.y,0.5).toFixed(2)+`,`+Math.pow(atmosphere.z,0.5).toFixed(2)+`) * dotLight*0.5;
-				vec3 fullLightColor = color;
+				
 
-				//pc_fragColor = vec4(light1*0.5, density1);
-				pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
-				pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
+
+
+				if(density1+density2 == 0.0){
+					gPosition = vec4(1.0,0.0,0.0,0.0);
+					pc_fragColor = vec4(vec3(dot(sunLocation, normalize(impact))),0.0);
+					
+				}else{
+					float depth = length(nonPostCameraPosition-surfacePosition);
+					gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
+					float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
+					vec3 fullDarkColor = vec3(`+ Math.pow(atmosphere.x, 0.5).toFixed(2) + `,` + Math.pow(atmosphere.y, 0.5).toFixed(2) + `,` + Math.pow(atmosphere.z, 0.5).toFixed(2) + `) * dotLight*0.5;
+					vec3 fullLightColor = color;
+
+					//pc_fragColor = vec4(light1*0.5, density1);
+					pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
+					pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
+					
+				}
 
 		}`;
 
@@ -1205,24 +1269,24 @@ const CloudsShader = {
 
 		return code;
 	},
-	loadPerlinWorley : (url) => {
+	loadPerlinWorley: (url) => {
 		return fetch(url)
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
-            const data = new Uint8Array(buffer);
-            const texture = new THREE.Data3DTexture(data, 128, 128, 128);
-            texture.format = THREE.RGFormat;
-            texture.type = THREE.UnsignedByteType;
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            texture.wrapR = THREE.RepeatWrapping;
-            texture.unpackAlignment = 1;
-            texture.needsUpdate = true;
-            return texture;
-        })
-        .catch(error => console.error('Error loading binary file:', error));
+			.then(response => response.arrayBuffer())
+			.then(buffer => {
+				const data = new Uint8Array(buffer);
+				const texture = new THREE.Data3DTexture(data, 128, 128, 128);
+				texture.format = THREE.RGFormat;
+				texture.type = THREE.UnsignedByteType;
+				texture.minFilter = THREE.LinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.wrapS = THREE.RepeatWrapping;
+				texture.wrapT = THREE.RepeatWrapping;
+				texture.wrapR = THREE.RepeatWrapping;
+				texture.unpackAlignment = 1;
+				texture.needsUpdate = true;
+				return texture;
+			})
+			.catch(error => console.error('Error loading binary file:', error));
 	},
 	generatePerlinWorleyTexture: () => {
 
@@ -1234,7 +1298,7 @@ const CloudsShader = {
 		const size = 128;
 		const dataFloatW = new Float32Array(size * size * size);
 		const dataFloatP = new Float32Array(size * size * size);
-		const data = new Uint8Array(size * size * size*2);
+		const data = new Uint8Array(size * size * size * 2);
 		let i = 0;
 		const vector = new THREE.Vector3();
 
@@ -1248,32 +1312,32 @@ const CloudsShader = {
 
 				for (let x = 0; x < size; x++) {
 
-					
+
 					vector.set(x, y, z).divideScalar(size);
 					let F = 10;
-					let perlinFBM = perlin.noise((x/size)*F, (y/size)*F, (z/size)*F, F)  * 0.65
-						+ perlin.noise((x/size) * F*2, (y/size) * F*2, (z/size)*F*2, F*2) * 0.25
-						+ perlin.noise((x/size) * F*4, (y/size) * F*4, (z/size)*F*4, F*4) * 0.1; 
-					perlinFBM+=0.5;
+					let perlinFBM = perlin.noise((x / size) * F, (y / size) * F, (z / size) * F, F) * 0.65
+						+ perlin.noise((x / size) * F * 2, (y / size) * F * 2, (z / size) * F * 2, F * 2) * 0.25
+						+ perlin.noise((x / size) * F * 4, (y / size) * F * 4, (z / size) * F * 4, F * 4) * 0.1;
+					perlinFBM += 0.5;
 					//perlinFBM = Math.abs(perlinFBM * 2 - 1);
 
 
-					
-					let worleyFBM4 = 1-(worley3D.noise({ x: (x/size)*F, y: (y/size)*F, z: (z/size)*F }, Worley.EuclideanDistance, F , F , F )[0]*0.65+ 
-					worley3D.noise({ x: (x/size)*F*2, y: (y/size)*F*2, z: (z/size)*F*2 }, Worley.EuclideanDistance, F*2 , F*2 , F*2 )[0]*0.25+
-					worley3D.noise({ x: (x/size)*F*4, y: (y/size)*F*4, z: (z/size)*F*4 }, Worley.EuclideanDistance, F*4 , F*4 , F*4 )[0]*0.1);
+
+					let worleyFBM4 = 1 - (worley3D.noise({ x: (x / size) * F, y: (y / size) * F, z: (z / size) * F }, Worley.EuclideanDistance, F, F, F)[0] * 0.65 +
+						worley3D.noise({ x: (x / size) * F * 2, y: (y / size) * F * 2, z: (z / size) * F * 2 }, Worley.EuclideanDistance, F * 2, F * 2, F * 2)[0] * 0.25 +
+						worley3D.noise({ x: (x / size) * F * 4, y: (y / size) * F * 4, z: (z / size) * F * 4 }, Worley.EuclideanDistance, F * 4, F * 4, F * 4)[0] * 0.1);
 
 					//let perlinWorley = remap(perlinFBM, 0, 1, worleyFBM4, 1);
-					
-					
-					if(worleyFBM4<minW) minW = worleyFBM4;
-					if(worleyFBM4>maxW) maxW = worleyFBM4;
-					
+
+
+					if (worleyFBM4 < minW) minW = worleyFBM4;
+					if (worleyFBM4 > maxW) maxW = worleyFBM4;
+
 					dataFloatW[i] = worleyFBM4;
 
-					if(perlinFBM<minP) minP = perlinFBM;
-					if(perlinFBM>maxP) maxP = perlinFBM;
-					
+					if (perlinFBM < minP) minP = perlinFBM;
+					if (perlinFBM > maxP) maxP = perlinFBM;
+
 					dataFloatP[i++] = perlinFBM;
 
 				}
@@ -1282,12 +1346,12 @@ const CloudsShader = {
 
 		}
 
-		
-		for(let i = 0; i<size * size * size; i++){
-			const perlinNorm = ((dataFloatP[i]/(maxP-minP))-minP);
-			const worleyNorm = ((dataFloatW[i]/(maxP-minP))-minP);
-			data[i*2] = remap(perlinNorm, 0, 1, worleyNorm, 1)*256;
-			data[i*2+1] = worleyNorm*256;
+
+		for (let i = 0; i < size * size * size; i++) {
+			const perlinNorm = ((dataFloatP[i] / (maxP - minP)) - minP);
+			const worleyNorm = ((dataFloatW[i] / (maxP - minP)) - minP);
+			data[i * 2] = remap(perlinNorm, 0, 1, worleyNorm, 1) * 256;
+			data[i * 2 + 1] = worleyNorm * 256;
 		}
 
 		saveDataToBinFile(data, "test.bin")
@@ -1304,7 +1368,7 @@ const CloudsShader = {
 		texture.needsUpdate = true;
 
 		return Promise.resolve(texture);
-		
+
 	},
 	generatePerlin3D: () => {
 
@@ -1333,10 +1397,10 @@ const CloudsShader = {
 						+ perlin.noise((x + 0.1579) * 1.75, (y + 0.7432) * 1.75, (z + 0.4699) * 1.75, size) * 0.3
 						+ perlin.noise((x + 0.1579) * 5.125, (y + 0.7432) * 5.125, (z + 0.4699) * 5.125, size) * 0.1;
 
-				
-					if(perlinFBM<min) min = perlinFBM;
-					if(perlinFBM>max) max = perlinFBM;
-					
+
+					if (perlinFBM < min) min = perlinFBM;
+					if (perlinFBM > max) max = perlinFBM;
+
 					//clouds = 1 - (clouds * 2 - 1);
 					//const cloud = Math.max(0.0, Math.min(1.0, remap(perlinFBM, clouds - 1, 1, 0, 1) + 0.5));
 					dataFloat[i++] = perlinFBM;//(Math.pow(clouds,0.5)/2+0.5) * 256;
@@ -1347,9 +1411,9 @@ const CloudsShader = {
 
 		}
 
-		
-		for(let i = 0; i<size * size * size; i++){
-			data[i] = ((dataFloat[i]/(max-min))-min)*256;
+
+		for (let i = 0; i < size * size * size; i++) {
+			data[i] = ((dataFloat[i] / (max - min)) - min) * 256;
 		}
 
 		//saveDataToBinFile(dataFloat, "test.bin")
@@ -1366,7 +1430,7 @@ const CloudsShader = {
 		texture.needsUpdate = true;
 
 		return Promise.resolve(texture);
-		
+
 	}
 }
 export { CloudsShader };

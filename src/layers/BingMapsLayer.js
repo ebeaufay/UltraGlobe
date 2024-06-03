@@ -29,6 +29,7 @@ class BingMapsLayer extends ImageryLayer {
      * @param {Number} [properties.transparency = 0] the layer's transparency (0 to 1)
      * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
+     * @private
      */
     constructor(properties) {
         super(properties);

@@ -502,6 +502,7 @@ const PostShader = {
 				vec3 diffuse = texture2D( tDiffuse, vUv ).rgb;
 				float depth = readDepth( tDepth, vUv );
 				vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
+				float cameraHeightAboveEllipsoid = heightAboveEllipsoid(nonPostCameraPosition);
 				`;
 		if (space) {
 			code += `
@@ -559,9 +560,9 @@ const PostShader = {
 
 		if (clouds) {
 			code += `
-							float cameraDistanceFromCenter = length(nonPostCameraPosition);
+							
 							vec4 cl = texture2D(tClouds, vUv);
-							if(cameraDistanceFromCenter<radius){
+							if(cameraHeightAboveEllipsoid<0){
 								diffuse = mix(diffuse, cl.xyz, cl.w);
 							}
 							`;
@@ -583,7 +584,7 @@ const PostShader = {
 		}
 		if (clouds) {
 			code += `
-			if(cameraDistanceFromCenter>=radius){
+			if(cameraHeightAboveEllipsoid>=0){
 				diffuse = mix(diffuse, cl.xyz, cl.w);
 			}
 			`;
@@ -1346,7 +1347,7 @@ const PostShader = {
 				float depth = readDepth( tDepth, vUv );
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
 				vec3 rayDirection = normalize(farPlanePosition-nonPostCameraPosition);
-				
+				float cameraHeightAboveEllipsoid = heightAboveEllipsoid(nonPostCameraPosition);
 				vec3 cameraSun = normalize(sunLocation*999999999999.0 - nonPostCameraPosition);
 				//rayDirection = vec3(rayDirection.x, rayDirection.z, -rayDirection.y);
 				`;
@@ -1483,13 +1484,13 @@ const PostShader = {
 				`;
 
 
-
+		
 
 		if (clouds) {
 			code += `
-					float cameraDistanceFromCenter = length(nonPostCameraPosition);
+					
 					vec4 cl = texture2D(tClouds, vUv);
-					if(cameraDistanceFromCenter<radius){
+					if(cameraHeightAboveEllipsoid<0.0){
 						diffuse = mix(diffuse, cl.xyz, cl.w);
 					}
 					`;
@@ -1498,7 +1499,7 @@ const PostShader = {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			const specularOcean = new THREE.Vector3(Math.sqrt(shallowOcean.x), Math.sqrt(shallowOcean.y), Math.sqrt(shallowOcean.z));
 			code += `
-							float cameraDepth = -heightAboveEllipsoid(nonPostCameraPosition);
+							float cameraDepth = -cameraHeightAboveEllipsoid;
 							vec3 oceanMeasures = oceanCalc(rayDirection, impact, sunVector, cameraDepth);
 								float waterVolume = oceanMeasures.x;
 								float oceanIlumination = max(0.2,oceanMeasures.y) ;
@@ -1528,7 +1529,7 @@ const PostShader = {
 		}
 		if (clouds) {
 			code += `
-			if(cameraDistanceFromCenter>=radius){
+			if(cameraHeightAboveEllipsoid>=0.0){
 				diffuse = mix(diffuse, cl.xyz, cl.w);
 			}
 			`;

@@ -72,6 +72,8 @@ class Map {
     * @param {Boolean} [properties.clock.timezone = false] add time-zone select
     * @param {Boolean} [properties.clock.dateTimePicker = false] add time-zone select
     * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
+    * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
+    * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
     * 
     */
     constructor(properties) {
@@ -80,6 +82,10 @@ class Map {
         self.isMobile = _isMobileDevice();
         this.previousCameraPosition = new THREE.Vector3();
         this.previousCameraRotation = new THREE.Euler();
+
+        //TODO
+        self.tileSize = properties.tileSize? properties.tileSize:32;
+        self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:256;
 
         this.detailMultiplier = properties.detailMultiplier? properties.detailMultiplier:1.0;
         this.layerManager = new LayerManager();
@@ -227,6 +233,9 @@ class Map {
         if (layer.isI3SLayer) {
             layer.addToScene(this.scene, this.camera);
         }
+        if (layer.isTracksLayer) {
+            layer.addToScene(this.scene, this.camera);
+        }
     }
 
     /**
@@ -335,7 +344,7 @@ class Map {
 
 
 
-            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.5));
+            scene.add(new THREE.AmbientLight(0xFFFFFF, 0.8));
 
             if (this.debug) {
                 this.csmHelper = new CSMHelper(this.csm);
@@ -752,7 +761,9 @@ class Map {
             shadows: this.csm,
             layerManager: this.layerManager,
             renderer: this.renderer,
-            detailMultiplier: this.detailMultiplier
+            detailMultiplier: this.detailMultiplier,
+            tileSize : this.tileSize,
+            tileImagerySize : this.tileImagerySize
         });
         this.resetCameraNearFar();
     }
@@ -831,17 +842,20 @@ class Map {
         function animate() {
             requestAnimationFrame(animate);
             self.planet.update();
-            self.layerManager.layers.forEach(layer=>{
-                if(layer.isOGC3DTilesLayer){
-                    layer.update(self.camera);
-                }
-            })
+            
             if (self.shadows) {
                 self.csm.update(self.camera.matrix);
 
             }
             if (!self.pause) {
                 self.controller.update();
+                self.layerManager.layers.forEach(layer=>{
+                    if(layer.isOGC3DTilesLayer){
+                        layer.update(self.camera);
+                    }if(layer.isTracksLayer){
+                        layer.update(clock);
+                    }
+                })
                 //self.controller.update();
                 frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
 

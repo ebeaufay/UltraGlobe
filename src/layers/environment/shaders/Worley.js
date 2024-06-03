@@ -1,4 +1,6 @@
-/** copied from tooloud to add tiling */
+/** copied from tooloud to add tiling 
+ * @private
+*/
 class Worley {
     constructor(seed = 3000) {
         this._seedValue = seed;
