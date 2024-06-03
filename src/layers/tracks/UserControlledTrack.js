@@ -5,10 +5,14 @@ import * as THREE from 'three'
 
 
 /**
- * model by: "Zuncho Multimedia" https://skfb.ly/6AozK
- * 
+ * A basic user controlled track through mouse and arrow keys. 
  */
 class UserControlledTrack extends TracksLayer{
+    /**
+     * 
+     * @param {Object} properties 
+     * @param {Object3D} properties.mesh a visual representation of the object that will be added as a child of this.tracks. 
+     */
     constructor(properties){
         super(properties);
         this.isUserControlledTrack = true;
