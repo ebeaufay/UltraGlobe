@@ -62,10 +62,11 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [Random planet](https://www.jdultra.com/random/index.html)
 
 ## Latest development
-Clouds are becomming robust so, I can play with the parameters and get some decent alien looking skies.
+Clouds are starting to look good, I'll soon add some pre-built layers for random clouds and NOAA weather forecast clouds
 
 
-https://github.com/ebeaufay/UltraGlobe/assets/16924300/2ec76923-6cbf-4c04-b658-88297be085c8
+https://github.com/ebeaufay/UltraGlobe/assets/16924300/c99570b5-0cb2-4b7c-98bb-6f7b3d1e297f
+
 
 
 
