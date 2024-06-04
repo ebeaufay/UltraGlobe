@@ -325,7 +325,7 @@ You can enable shadows and set a time:
 
 ```js
 let map = new Map({ divID: 'screen', shadows:true });
-map.setDate(new Date(2023,5, 21, 8, 0,0,0));
+map.ultraClock.setDate(new Date(2023,5, 21, 8, 0,0,0));
 ```
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/c98cdc0c-a703-4bbd-8309-adc558dceb1e)
 
@@ -397,10 +397,10 @@ Map#camera
 Map#scene
 ```
 
-### Advanced
-Rather than displaying the same old earth we're used to, we can try to display some alien worlds. 
+### Game like features
+These features are destined to be more experimental and fun features. 
 
-We'll first generate some noisy elevation data using the pre-built PerlinElevationLayer
+#### PerlinElevationLayer
 
 ```javascript
 var perlinElevation = new PerlinElevationLayer({
@@ -446,6 +446,8 @@ This gives us something like this
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/6e9b2418-b795-41f8-9959-7fc9ba01252c)
 
+#### PerlinTerrainColorShader
+
 We want to add some color to the terrain. As an example, you can use the PerlinTerrainColorShader class that implements a few techniques for texturing the earth without seems and distortions. It also applies texture rotations so that the ground texture doesn't seem too repetitive.
 
 ```javascript
@@ -479,6 +481,8 @@ Now for some extra fancyness, let's add a random space background:
     });
 }
 ```
+
+#### Space
 space is computed on the fly in post and again applies the same tricks to avoid repetition and seems. The space background can be controlled by passing a more complete object:
 
 ```javascript
@@ -503,7 +507,8 @@ space is computed on the fly in post and again applies the same tricks to avoid 
 ```
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/f04fba92-7c42-4185-8a4b-a53706b76cb4)
 
-And let's also add some planet rings:
+#### Planet Rings
+let's also add some planet rings:
 
 ```javascript
     
@@ -549,6 +554,8 @@ or with a bit more control:
 The result should look something like this
 ![planet6](https://github.com/ebeaufay/UltraGlobe/assets/16924300/0da89e6e-a692-463d-a505-12a220eb1dc8)
 
+#### Clouds 
+
 Next we can add clouds.
 In a similar manner to the other postfx, the cloud are initialized at Map instantiation:
 ```javascript
@@ -559,7 +566,8 @@ var environmentLayer = new RandomCloudsLayer({
     coverage:0.5,
     windSpeed: 0.01,
     minHeight:1000,
-    maxHeight:40000
+    maxHeight:40000,
+    debug: true
 });
 map.setLayer(environmentLayer, 2);
 
