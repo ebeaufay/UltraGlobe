@@ -15,6 +15,8 @@ The earth model is wgs 84. and uses a modified UV-sphere for terrain tiles.
 There's support for WMS and OGC 3DTiles and partial I3S support. 
 There are also a few custom layers allowing fancy visualizations (Google earth 3DTiles, volumetric clouds, Moving tracks..).
 
+Oh, and volumetric clouds are implemented out of the box.
+
 Vector Layers and physics are in the works.
 
 ## startup project
