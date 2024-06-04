@@ -121,8 +121,7 @@ async function realtimeWeather(aCloudsUniforms, ultraClock) {
 
     let time;
 
-    ultraClock.addListener(date => {
-
+    function redraw(date){
         date = new Date(date.toUTCString());
         let reportTime = mostRecentReportTime;
         if (date < mostRecentReportTime.date) {
@@ -160,8 +159,10 @@ async function realtimeWeather(aCloudsUniforms, ultraClock) {
             beforeIndex: calculate3HourIncrementsDifference(reportTime.date, time1.date),
             afterIndex: calculate3HourIncrementsDifference(reportTime.date, time2.date),
         });
+    }
 
-    });
+    ultraClock.addListener(redraw);
+    redraw(ultraClock.getDate());
 }
 
 async function getNearestAvailableNOAAReportDate() {

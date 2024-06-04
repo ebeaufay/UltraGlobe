@@ -92,6 +92,7 @@ class NOAAGFSCloudsLayer extends CloudsLayer {
     init(map){
         super.init(map);
         realtimeWeather(super.getUniforms(), map.ultraClock)
+        
     }
 
 }
