@@ -166,6 +166,31 @@ map.setLayer(googleMaps3DTiles, 0);
 
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
 
+#### Volumetric Clouds
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/281cbe50-fc6a-4e4c-9b52-76e1da773551)
+There are currently 2 layers for clouds. NOAAGFSCloudsLayer adds real weather forecast cloud coverage:
+
+var environmentLayer = new NOAAGFSCloudsLayer({
+    id: 84,
+    name: "clouds"
+});
+
+For a less realistic but more customizeable clouds layer, you can use RandomCloudsLayer:
+
+var environmentLayer = new RandomCloudsLayer({
+    id: 84,
+    name: "clouds",
+    coverage:0.5, overall cloud coverage percentage (between 0 and 1)
+    debug:false,
+    windSpeed: 0.01,
+    minHeight:1000,
+    maxHeight:30000,
+    luminance: 0.5, // sun intensity
+    density: 0.5, //cloud sample density multiplier 
+    windDirection: new THREE.Vector2(1.0,0.0), // lon lat wind direction 
+    color: new THREE.Vector3(1.0,1.0,1.0), // clouds color 
+});
+
 #### I3S
 
 In the same spirit, an I3SLayer is also provided although only points are supported currently. (tell me if there's more interest)
@@ -341,6 +366,26 @@ This can be used to specify a global elevation texture used for post effects
 let map = new Map({ divID: 'screen', globalElevation:threejsDataTexture});
 ```
 
+### clock
+Initializes a default widget for manipulating the time:
+
+```js
+let map = new Map({ divID: 'screen', clock:true});
+```
+
+you can also specify a widget to select the time-zone as well as a date-time picker panel:
+
+```js
+let map = new Map({ divID: 'screen', clock:{timezone:true, dateTimePicker: true});
+```
+
+If you want to change the time programatically, do it through the map.ultraClock object:
+
+```js
+map.ultraClock.setDate(new Date());
+map.ultraClock.getDate(new Date());
+map.ultraClock.addListener(date=> console.log(date));
+```
 
 ### ThreeJS context objects
 Rather than a full fledged geospatial framework. This library is intended as a lightweight library on top of threeJS. Nevertheless, the render pipeline is mildly complex hence the need to manage it in the Map object itself. You can access threejs context objects from the map:
@@ -508,57 +553,21 @@ Next we can add clouds.
 In a similar manner to the other postfx, the cloud are initialized at Map instantiation:
 ```javascript
     
-    let map = new Map({
-        divID: 'screen',
-        shadows: true,
-        debug: false,
-        ocean: new THREE.Vector3(0.7,0.3,0.1),
-        atmosphere: new THREE.Vector3(0.75,0.5,0.1),
-        sun: new THREE.Vector3(0.75,0.8,1.0),
-        globalElevation: globalElevationMap,
-        space: true,
-        rings: true,
-        clouds: {
-            color: new THREE.Vector3(1.0,1.0,1.0),
-            coverage: 0.75,
-            scatterCoefficient: 0.85,
-            biScatteringKappa: 0.75,
-            density: 30,
-            luminance: 10,
-            showPanel: true,
-            quality: 0.5,
-            windSpeed: 0.1,
-            cloudsRadiusStart: 1.003,
-            cloudsRadiusEnd: 1.015
-        }
-    });
-}
+var environmentLayer = new RandomCloudsLayer({
+    id: 84,
+    name: "clouds",
+    coverage:0.5,
+    windSpeed: 0.01,
+    minHeight:1000,
+    maxHeight:40000
+});
+map.setLayer(environmentLayer, 2);
+
 ```
-Several of those properties may be self-evident but you can set the "showPanel" property to true to play around with the parameters.
-The Map will have a "clouds" object allowing these properties to be modified on the fly.
+Several of those properties may be self-evident but you can set the "debug" property to true to play around with the parameters.
 
 <img width="785" alt="image" src="https://github.com/ebeaufay/UltraGlobe/assets/16924300/a51cf94e-f3df-4c83-b04f-203037e824c2">
 <img width="1272" alt="image" src="https://github.com/ebeaufay/UltraGlobe/assets/16924300/cfdc6687-257e-445d-a780-3c2b33dca290">
 
-
-Finally, you can add this somewhere to change the time of day and get nice sun-sets:
-
-```
-    let h = 20;
-    let m = 0;
-    let s = 0;
-    setInterval(()=>{
-        s++;
-        if(s==60){
-            m++;
-            s=0;
-        }
-        if(m==60){
-            m=0;
-            h = (h+1)%24
-        }
-        map.setDate(new Date(2023, 2, 21, h, m, s, 0));
-    },10);
-```
 
 If you're interested in implementing specific elevation or color shader layers, check the source.
