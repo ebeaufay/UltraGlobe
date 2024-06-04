@@ -47,7 +47,7 @@ float sampleDensity(vec3 samplePosition, float lod){
 /**
  * A clouds layer where the clouds are randomly positioned according to noise functions
  * @class
- * @extends EnvironmentLayer
+ * @extends CloudsLayer
  */
 class RandomCloudsLayer extends CloudsLayer {
     /**

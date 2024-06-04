@@ -60,7 +60,7 @@ float sampleDensity(vec3 samplePosition, float lod){
  * 
  * 
  * @class
- * @extends NOAAGFSCloudsLayer
+ * @extends CloudsLayer
  */
 class NOAAGFSCloudsLayer extends CloudsLayer {
     /**
@@ -71,7 +71,7 @@ class NOAAGFSCloudsLayer extends CloudsLayer {
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-      @param {Number} [properties.quality = 0.5] a quality that affects the resolution and number of samples for volumetric clouds. lower the quality to improve performance.
+     * @param {Number} [properties.quality = 0.5] a quality that affects the resolution and number of samples for volumetric clouds. lower the quality to improve performance.
      * @param {Number} [properties.density = 0.5] cloud density multiplier 
      * @param {Number} [properties.luminance = 1] sun intensity multiplier
      * @param {Boolean} [properties.debug = false] wind direction

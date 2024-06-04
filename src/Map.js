@@ -50,30 +50,30 @@ class Map {
     * @param {String} properties.divID A div ID.
     * @param {Boolean} [properties.debug=false] Display debug information.
     * @param {Boolean} [properties.shadows=false] Display sunlight and shadows.
-    * @param {THREE.Vector3} [properties.atmosphere=new THREE.Vector3(0.1, 0.4, 1.0)] An atmosphere color. By thefault a blueish atmosphere is displayed
+    * @param {THREE.Vector3} [properties.atmosphere=new THREE.Vector3(0.1, 0.4, 1.0)] An atmosphere color. By thefault a blueish atmosphere is displayed.
     * @param {Number} [properties.atmosphereDensity=1.0] An atmosphere density.
+    * @param {Boolean|Object} [properties.clock = false] add a clock.
     * @param {THREE.Vector3|Boolean} [properties.sun=true] A sun color, defaults to a yelowish sun. Only taken into account when shadows is true. An explicitely "false" value switches the sun for a black hole (queue theremin music).
     * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
     * @param {THREE.DataTexture} [properties.globalElevation=false] A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects.
     * @param {Boolean|Object} [properties.rings = false] Rings properties, if undefined, no rings are drawn 
+    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
+    * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
+    * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
+    * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
+    * @param {Boolean} [properties.clock.timezone = false] add time-zone select widget.
+    * @param {Boolean} [properties.clock.dateTimePicker = false] add date picker widget.
     * @param {THREE.Vector3} [properties.rings.origin=new THREE.Vector3()] the center point of the rings
     * @param {THREE.Vector3} [properties.rings.normal=new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize()] the orientation of the rings plane
     * @param {Number} [properties.rings.innerRadius=6378137.0 * (1.1+Math.random())] the rings inner radius
     * @param {Number} [properties.rings.outerRadius=this.rings.innerRadius+(0.1+Math.random())*6378137.0] the rings outer radius
     * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
     * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
-    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Number} [properties.space.starsIntensity=0.75] The intensity of stars
     * @param {Number} [properties.space.gasCloudsIntensity=0.25] the intensity of nebula like gasClouds
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
     * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
-    * @param {Boolean|Object} [properties.clock = false] add a clock
-    * @param {Boolean} [properties.clock.timezone = false] add time-zone select
-    * @param {Boolean} [properties.clock.dateTimePicker = false] add time-zone select
-    * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
-    * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
-    * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
     * 
     */
     constructor(properties) {
@@ -140,8 +140,13 @@ class Map {
             this.scene.add(axesHelper);
         }
 
-        self.ultraClock = ultraClock(properties.clock);
+        if(properties.clock){
+            self.ultraClock = ultraClock(properties.clock);
+        }else{
+            self.ultraClock = ultraClock(false);
+        }
         self.ultraClock.addListener(date => self.setDate(date));
+        
 
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
