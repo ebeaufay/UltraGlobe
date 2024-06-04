@@ -447,7 +447,9 @@ const CloudsShader = {
 	}`,
 
 	fragmentShader: (ocean, atmosphere, sunColor, sampleDensityFunction, extraUniforms) => {
-
+		if (!atmosphere || !atmosphere.isVector3) {
+			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
+		}
 		const atmosphereHighlight = new THREE.Vector3(Math.pow(atmosphere.x, 1.0), Math.pow(atmosphere.y, 1.0), Math.pow(atmosphere.z, 1.0));
 		//ocean = false;
 		let code = /* glsl */`
@@ -860,6 +862,9 @@ const CloudsShader = {
 	},
 
 	fragmentShaderShadows: (ocean, atmosphere, sunColor, densityFunction, extraUniforms) => {
+		if (!atmosphere || !atmosphere.isVector3) {
+			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
+		}
 		let code = /* glsl */`
 		
 

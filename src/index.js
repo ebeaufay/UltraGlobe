@@ -188,7 +188,7 @@ var ogc3dTiles2 = new OGC3DTilesLayer({
     flatShading: true
 });
 
-var environmentLayer = new RandomCloudsLayer({
+var environmentLayer = new NOAAGFSCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.5,
@@ -224,7 +224,10 @@ function setupMap(globalElevationMap) {
 
     let map = new Map({
         divID: 'screen',
+        atmosphere: true,
         shadows: true,
+        clock: true,
+        /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
         //ocean: generateLiquidColor(),
@@ -235,7 +238,7 @@ function setupMap(globalElevationMap) {
         rings:true,//Math.random()<0.25?true:false,
         space: new THREE.Color(0.05, 0.05, 0.2),
         clock: true,
-        tileSize: 64
+        tileSize: 64 */
 
     });
     document.addEventListener('keyup', (e) => {

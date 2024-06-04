@@ -49,8 +49,15 @@ const PostShader = {
 		if (!!ocean && !ocean.isVector3) {
 			ocean = new THREE.Vector3(0.1, 0.2, 0.7);
 		}
+		if (!!atmosphere && !atmosphere.isVector3) {
+			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
+		}
+		let atmosphereHighlight
+		if(!!atmosphere){
 
-		const atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
+			atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
+		}
+		
 		let code = /* glsl */`
 		precision highp float;
 		precision highp int;
@@ -562,7 +569,7 @@ const PostShader = {
 			code += `
 							
 							vec4 cl = texture2D(tClouds, vUv);
-							if(cameraHeightAboveEllipsoid<0){
+							if(cameraHeightAboveEllipsoid<0.0){
 								diffuse = mix(diffuse, cl.xyz, cl.w);
 							}
 							`;
@@ -584,7 +591,7 @@ const PostShader = {
 		}
 		if (clouds) {
 			code += `
-			if(cameraHeightAboveEllipsoid>=0){
+			if(cameraHeightAboveEllipsoid>=0.0){
 				diffuse = mix(diffuse, cl.xyz, cl.w);
 			}
 			`;
@@ -645,7 +652,11 @@ const PostShader = {
 			sun = new THREE.Vector3(1.0, 0.9, 0.8);
 		}
 		const sunHighlight = new THREE.Vector3(Math.pow(sun.x, 0.5), Math.pow(sun.y, 0.5), Math.pow(sun.z, 0.5));
-		const atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
+		let atmosphereHighlight;
+		if(!!atmosphere){
+
+			atmosphereHighlight = new THREE.Vector3(Math.sqrt(atmosphere.x), Math.sqrt(atmosphere.y), Math.sqrt(atmosphere.z));
+		}
 
 		let code = /* glsl */`
 		precision highp float;
