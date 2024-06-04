@@ -2,11 +2,8 @@
 [![Downloads](https://img.shields.io/npm/dt/@jdultra/ultra-globe.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@jdultra/ultra-globe)
 
 # U L T R A G L O B E  :  http://www.jdultra.com/
-
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/80af2644-fa32-48c4-b0d7-3c33a590718d)
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/83c5d224-d417-42b4-87d6-ef41823b6133)
-
-
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/394b0cd1-04c2-44ee-b510-b580d3c235f9)
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/d26e3484-3a7d-4aef-8e91-8e679d3d6473)
 
 
 The goal of this library is to provide a way to display geospatial data on a globe in threeJS without having a full fledged framework. Instead, the library is intended as a thin layer to allow threeJS developers to work with a geospatial environment while keeping access to lower level threeJS context.
@@ -15,7 +12,8 @@ The existing layer system can be used and extended to import data sources withou
 
 The earth model is wgs 84. and uses a modified UV-sphere for terrain tiles.
 
-There's support for WMS and OGC 3DTiles and partial I3S support. There are also a few custom layers allowing fancy visualizations.
+There's support for WMS and OGC 3DTiles and partial I3S support. 
+There are also a few custom layers allowing fancy visualizations (Google earth 3DTiles, volumetric clouds, Moving tracks..).
 
 Vector Layers and physics are in the works.
 
@@ -64,14 +62,13 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [Volumetric Clouds](https://www.jdultra.com/clouds/index.html).
 
 ## Latest development
-Clouds are starting to look good, I'll soon add some pre-built layers for random clouds and NOAA weather forecast clouds
+World wide volumetric clouds are added through 2 prebuilt layers: 
+RandomCloudsLayer for completely customizeable noise based worldwide clouds
+NOAAGFSCloudsLayer for real and forecast cloud coverage as distributed by the National Oceanic and Atmospheric Administration (NOAA) GlobalForecast System (GFS)
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/cd834ec5-e0b0-44f5-85d8-a0fb65f424a0)
 
-
-https://github.com/ebeaufay/UltraGlobe/assets/16924300/c99570b5-0cb2-4b7c-98bb-6f7b3d1e297f
-
-
-
-
-
+Some initial tracks layers are also added with a special UserControlledTrack layer that allows flying on the planet
+![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/a663fa99-e042-433f-8996-127c80b54f47)
+[ufo video](https://youtu.be/mJf5xJkHVK8)
 
 
