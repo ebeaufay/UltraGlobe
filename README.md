@@ -64,13 +64,11 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [Volumetric Clouds](https://www.jdultra.com/clouds/index.html).
 
 ## Latest development
-World wide volumetric clouds are added through 2 prebuilt layers: 
-RandomCloudsLayer for completely customizeable noise based worldwide clouds
-NOAAGFSCloudsLayer for real and forecast cloud coverage as distributed by the National Oceanic and Atmospheric Administration (NOAA) GlobalForecast System (GFS)
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/cd834ec5-e0b0-44f5-85d8-a0fb65f424a0)
+OGC3DTiles now have an alternate "immediate" loading mode that skips intermediate LODs which is faster overall but holes can appear when the camera moves.
 
-Some initial tracks layers are also added with a special UserControlledTrack layer that allows flying on the planet
-![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/a663fa99-e042-433f-8996-127c80b54f47)
-[ufo video](https://youtu.be/mJf5xJkHVK8)
+There is also a new callback that indicates, amongst a few other stats, the percentage of tiles loaded.
+
+https://github.com/user-attachments/assets/09f43f0b-2eeb-4f58-8c99-67b1c5ebfb44
+
 
 
