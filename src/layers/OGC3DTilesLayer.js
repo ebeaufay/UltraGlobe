@@ -40,10 +40,12 @@ class OGC3DTilesLayer extends Layer {
      * @param {Boolean} [properties.selectable = false] (optional) if true, the tileset can be selected.
      * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
+     * @param {String} [properties.loadingStrategy = "INCREMENTAL"] loading strategy, "INCREMENTAL" (default) or "IMMEDIATE". "IMMEDIATE" mode loads only the ideal LOD while "INCREMENTAL" loads intermediate LODs.
+     * @param {Function} [properties.updateCallback = undefined] A callback called on every tileset update with a stats object indicating number of tiles loaded/visualized, max loaded LOD, and percentage of the tileset loaded
      * 
      */
     constructor(properties) {
-        
+
         if (!properties) {
             throw "Bad instanciation, OGC3DTilesLayer requires properties."
         }
@@ -65,48 +67,50 @@ class OGC3DTilesLayer extends Layer {
 
 
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
-        if(!!properties.longitude && !!properties.latitude){
+        this.loadingStrategy = !!properties.loadingStrategy ? properties.loadingStrategy : "INCREMENTAL";
+        this.updateCallback = !!properties.updateCallback ? properties.updateCallback : undefined;
+        if (!!properties.longitude && !!properties.latitude) {
             this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
         }
-        
+
         this.url = properties.url;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
-        
-        
-        
+
+
+
         this.selected = false;
         this.selectable = !!properties.selectable;
     }
 
-    setLLH(llh){
+    setLLH(llh) {
         this.llh.x = llh.x;
         this.llh.y = llh.y;
         this.llh.z = llh.z;
     }
-    getCenter(sfct){
+    getCenter(sfct) {
         sfct.copy(this.llh);
     }
-    getRadius(){
+    getRadius() {
         return this.bounds.min.distanceTo(this.bounds.max);
     }
-    getBaseHeight(){
+    getBaseHeight() {
         const bounds = this.tileset.boundingVolume;
-        if(bounds){
+        if (bounds) {
             if (bounds instanceof OBB) {
                 return - bounds.halfDepth;
-            }else if(bounds instanceof THREE.Sphere){
+            } else if (bounds instanceof THREE.Sphere) {
                 return - bounds.radius;
             }
         }
         return 0;
     }
     generateControlShapes(tileset) {
-        if(tileset.json.boundingVolume.region){
-            
-        }else if(tileset.json.boundingVolume.box){
+        if (tileset.json.boundingVolume.region) {
 
-        }else if(tileset.json.boundingVolume.sphere){
-            
+        } else if (tileset.json.boundingVolume.box) {
+
+        } else if (tileset.json.boundingVolume.sphere) {
+
         }
         if (tileset.boundingVolume instanceof OBB) {
             // box
@@ -128,13 +132,13 @@ class OGC3DTilesLayer extends Layer {
 
             shape.holes.push(hole);
             const geometry = new THREE.ShapeGeometry(shape);
-            geometry.translate(0,0,-tileset.boundingVolume.halfDepth);
+            geometry.translate(0, 0, -tileset.boundingVolume.halfDepth);
 
             const matrix = new THREE.Matrix4();
             matrix.setFromMatrix3(tileset.boundingVolume.matrixToOBBCoordinateSystem);
             geometry.applyMatrix4(matrix);
             geometry.translate(tileset.boundingVolume.center.x, tileset.boundingVolume.center.y, tileset.boundingVolume.center.z);
-            
+
             this.selectionMesh = new THREE.Mesh(geometry,
                 new THREE.MeshBasicMaterial(
                     {
@@ -151,7 +155,7 @@ class OGC3DTilesLayer extends Layer {
             const geometry2 = new THREE.BoxGeometry(tileset.boundingVolume.halfWidth * 2, tileset.boundingVolume.halfHeight * 2, tileset.boundingVolume.halfDepth * 2);
             geometry2.applyMatrix4(matrix);
             geometry2.translate(tileset.boundingVolume.center.x, tileset.boundingVolume.center.y, tileset.boundingVolume.center.z);
-            
+
             this.boundingMesh = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({
                 color: 0xFFB24E,
                 transparent: true,
@@ -159,8 +163,8 @@ class OGC3DTilesLayer extends Layer {
                 depthWrite: true,
                 side: THREE.DoubleSide,
                 depthTest: true
-            }) );
-            this.boundingMeshOutline = new THREE.BoxHelper( this.boundingMesh, 0xFFB24E );
+            }));
+            this.boundingMeshOutline = new THREE.BoxHelper(this.boundingMesh, 0xFFB24E);
 
 
 
@@ -180,7 +184,7 @@ class OGC3DTilesLayer extends Layer {
                         depthTest: true
                     }
                 ));
-                this.selectionMesh = this.boundingMesh.clone();
+            this.selectionMesh = this.boundingMesh.clone();
         } else if (tile.boundingVolume instanceof THREE.Box3) {
             // Region
             // Region not supported
@@ -191,7 +195,7 @@ class OGC3DTilesLayer extends Layer {
         this.update();
     }
 
-    setMap(map){
+    setMap(map) {
         const self = this;
 
         var tileLoader = !!self.properties.tileLoader ? self.properties.tileLoader : new TileLoader({
@@ -199,14 +203,14 @@ class OGC3DTilesLayer extends Layer {
             maxCachedItems: 200,
             meshCallback: mesh => {
                 //mesh.material = new THREE.MeshLambertMaterial({color: new THREE.Color("rgb("+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+")")});
-                if(mesh.material.isMeshBasicMaterial){
+                if (mesh.material.isMeshBasicMaterial) {
                     const newMat = new THREE.MeshStandardMaterial();
                     newMat.map = mesh.material.map;
                     mesh.material = newMat;
                 }
                 /* mesh.material.color.copy(new THREE.Color("rgb("+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+"))+"));
                 mesh.material.needsUpdate = true */
-                if(mesh.material.map){
+                if (mesh.material.map) {
                     mesh.material.map.colorSpace = THREE.LinearSRGBColorSpace;
                 }
                 mesh.material.wireframe = false;
@@ -214,18 +218,50 @@ class OGC3DTilesLayer extends Layer {
                 if (!mesh.geometry.getAttribute('normal')) {
                     mesh.geometry.computeVertexNormals();
                 }
-                if(map.csm){
+                if (map.csm) {
                     mesh.material.side = THREE.FrontSide;
                     mesh.castShadow = true
                     mesh.receiveShadow = true;
                     mesh.parent.castShadow = true
                     mesh.parent.receiveShadow = true;
-                    
+
                     mesh.material.shadowSide = THREE.BackSide;
                     map.csm.setupMaterial(mesh.material);
                 }
-                
+
                 mesh.material.flatShading = self.properties.flatShading;
+
+                mesh.onAfterRender = () => {
+                    if(mesh.geometry && mesh.geometry.attributes){
+
+                        if (mesh.geometry.attributes.position) {
+                            mesh.geometry.attributes.position.array = undefined;
+                            if (mesh.geometry.attributes.position.data) {
+                                mesh.geometry.attributes.position.data.array = undefined;
+                            }
+                        }
+                        if (mesh.geometry.attributes.uv){
+                            mesh.geometry.attributes.uv.array = undefined;  
+                            if (mesh.geometry.attributes.uv.data) {
+                                mesh.geometry.attributes.uv.data.array = undefined;
+                            }
+                        } 
+                        if (mesh.geometry.attributes.normal) {
+                            mesh.geometry.attributes.normal.array = undefined;
+                            if (mesh.geometry.attributes.normal.data) {
+                                mesh.geometry.attributes.normal.data.array = undefined;
+                            }
+                        }
+                    }
+                    if (mesh.material && mesh.material.map) {
+                        mesh.material.map.mipmaps = undefined;
+                        if (mesh.material.map.source) {
+                            mesh.material.map.source.data = undefined;
+                        }
+                    }
+
+                    mesh.onAfterRender = ()=>{};
+                }
             },
             pointsCallback: points => {
                 points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));
@@ -242,9 +278,10 @@ class OGC3DTilesLayer extends Layer {
             queryParams: self.queryParams,
             displayErrors: self.displayErrors,
             displayCopyright: self.displayCopyright,
-            centerModel: self.centerModel
+            centerModel: self.centerModel,
+            loadingStrategy: self.loadingStrategy
         });
-        
+
     }
     setPlanet(planet) {
         this.planet = planet;
@@ -255,19 +292,22 @@ class OGC3DTilesLayer extends Layer {
         this.scene = scene;
         this.camera = camera;
         scene.add(this.tileset);
-        
+
     }
 
-    update(camera){
-        this.tileset.update(camera);
+    update(camera) {
+        const stats = this.tileset.update(camera);
+        if(!!this.updateCallback){
+            this.updateCallback(stats);
+        }
         this.tileset.tileLoader.update();
     }
     updateLocation() {
-        
-        if(!this.planet){
+
+        if (!this.planet) {
             return;
         }
-        if(this.llh){
+        if (this.llh) {
             const transform = this.planet.llhToCartesian.forward(this.llh);
             cartesianLocation.set(transform.x, transform.y, transform.z);
             //quaternionSelfRotation
@@ -276,24 +316,24 @@ class OGC3DTilesLayer extends Layer {
             this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
             this.tileset.position.copy(cartesianLocation);
             this.tileset.scale.set(this.scale, this.scale, this.scale);
-            
-    
+
+
             if (this.boundingMesh) {
                 this.boundingMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
                 this.boundingMesh.position.copy(cartesianLocation);
                 this.boundingMesh.scale.set(this.scale, this.scale, this.scale);
                 this.boundingMesh.updateMatrix();
                 this.boundingMesh.updateMatrixWorld();
-    
+
                 this.selectionMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
                 this.selectionMesh.position.copy(cartesianLocation);
                 this.selectionMesh.scale.set(this.scale, this.scale, this.scale);
                 this.selectionMesh.updateMatrix();
                 this.selectionMesh.updateMatrixWorld();
-    
+
             }
         }
-    
+
 
     }
 
@@ -302,29 +342,29 @@ class OGC3DTilesLayer extends Layer {
         if (this.updateInterval) this.updateInterval.clearInterval();
     }
 
-    getSelectableObjects(){
+    getSelectableObjects() {
         const selectable = [];
-        if(this.boundingMesh) selectable.push(this.boundingMesh);
+        if (this.boundingMesh) selectable.push(this.boundingMesh);
         return selectable;
     }
 
     select(objects) {
-        if(objects && objects.length && objects[0].layer == this && this.selectable){
+        if (objects && objects.length && objects[0].layer == this && this.selectable) {
             this.selected = true;
             this.scene.add(this.selectionMesh);
             this.scene.add(this.boundingMesh);
-            if(this.boundingMeshOutline)this.scene.add(this.boundingMeshOutline);
+            if (this.boundingMeshOutline) this.scene.add(this.boundingMeshOutline);
         }
-        
+
     }
     unselect(objects) {
-        if(objects && objects.length && objects[0].layer == this && this.selectable){
+        if (objects && objects.length && objects[0].layer == this && this.selectable) {
             this.selected = false;
             this.scene.remove(this.selectionMesh);
             this.scene.remove(this.boundingMesh);
-            if(this.boundingMeshOutline)this.scene.remove(this.boundingMeshOutline);
+            if (this.boundingMeshOutline) this.scene.remove(this.boundingMeshOutline);
         }
-        
+
     }
 }
 export { OGC3DTilesLayer }

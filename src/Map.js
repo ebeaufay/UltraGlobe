@@ -140,12 +140,8 @@ class Map {
             this.scene.add(axesHelper);
         }
 
-        if(properties.clock){
-            self.ultraClock = ultraClock(properties.clock);
-        }else{
-            self.ultraClock = ultraClock(false);
-        }
-        self.ultraClock.addListener(date => self.setDate(date));
+        this.ultraClock = ultraClock(properties.clock);
+        this.ultraClock.addListener(date => self._setDate(date));
         
 
         this.ocean = properties.ocean;
@@ -210,7 +206,7 @@ class Map {
      * Set the date (sun position)
      * @param {Date} date 
      */
-    setDate(date) {
+    _setDate(date) {
         if (this.shadows) {
             this.sunPosition = getSunPosition(date);
             if (this.csm) {

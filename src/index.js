@@ -93,11 +93,13 @@ var perlinElevation = new PerlinElevationLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "AIzaSyBkYnnU1tR5GH-nr7gsT4kVvLUT8DE8Vko",
+    apiKey: "",
     loadOutsideView: false,
     displayCopyright: true,
     flatShading: false,
-    geometricErrorMultiplier: 0.5
+    geometricErrorMultiplier: 0.5,
+    loadingStrategy: "IMMEDIATE",
+    updateCallback: (stats)=>console.log(stats)
 }); */
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
@@ -120,10 +122,9 @@ var earthElevation = new SingleImageElevationLayer({
     name: "singleImageEarthElevation",
     bounds: [-180, -90, 180, 90],
     url: earthElevationImage,
-    //layer: "1",
     visible: true,
     min: 0,
-    max: 0
+    max: 8848
 });
 var wmsLayer = new WMSLayer({
     id: 20,
@@ -156,39 +157,28 @@ var imagery = new SingleImageImageryLayer({
     visible: true
 });
 
-var ogc3dTiles = new OGC3DTilesLayer({
-    id: "jhvbg",
-    name: "OGC 3DTiles",
-    visible: true,
-    url: "http://localhost:8080/tileset.json",
-    /* longitude: 4.91845,
-    latitude: 52.37385,
-    rotationX: -1.57,
-    rotationY: -0.05,
-    scale:0.4,
-    height: 44, */
-    geometricErrorMultiplier: 4,
-    loadOutsideView: true,
-    flatShading: false
-});
 
-var ogc3dTiles2 = new OGC3DTilesLayer({
+
+var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
     url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    longitude: 4.918021,
-    latitude: 52.373724,
-    height: 1000,
+    longitude: 13.404954,
+    latitude: 52.520008,
+    height: 200,
     rotationY: 0.72,
     rotationX: 3.1416,
-    scale: 100.0,
+    scale: 1.0,
     geometricErrorMultiplier: 0.03,
     loadOutsideView: false,
-    flatShading: true
+    flatShading: true,
+    loadingStrategy: "IMMEDIATE",
+    updateCallback: (stats)=>console.log(stats)
 });
 
-var environmentLayer = new NOAAGFSCloudsLayer({
+
+var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.5,
@@ -225,8 +215,9 @@ function setupMap(globalElevationMap) {
     let map = new Map({
         divID: 'screen',
         atmosphere: true,
-        shadows: true,
-        //clock: true,
+        shadows: false,
+        space: true,
+        clock: true,
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -249,19 +240,7 @@ function setupMap(globalElevationMap) {
             console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
         }
     });
-    const t = new THREE.Vector3(6301200, 50, 50);
-    clock.getDelta();
-    for (let i = 0; i < 1000000; i++) {
-        map.planet.llhToCartesian.inverse(t);
-    }
-    console.log("time = " + clock.getDelta())
-    for (let i = 0; i < 1000000; i++) {
-        t.set(6301200, 50, 50)
-        map.cartesianToLlhFastSFCT(t);
-    }
-    console.log("time = " + clock.getDelta())
-    /*const axesHelper = new THREE.AxesHelper(50000000);
-    map.scene.add(axesHelper);*/
+    
     /* let d = new Date();
         setInterval(() => {
             d.setSeconds(d.getSeconds() + 1);
@@ -289,16 +268,17 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:0, y: 0, z: 50100 }, { x: 0, y: 0, z: 50000 });
+    map.moveAndLookAt({ x:13.404954, y: 52.520008, z: 500 }, { x: 13.404954, y: 52.530008, z: 100 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    //map.setLayer(ogc3dTiles2, 3);
+    map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
-    map.setLayer(environmentLayer, 8);
+    //map.setLayer(environmentLayer, 8);
+
 
 
     /* gltfLoader.load("http://localhost:8081/billy_meier_ufo.glb", gltf=>{
@@ -504,14 +484,7 @@ function generateLiquidColor() {
     return hslToRgb(hue, saturation, lightness);
 }
 
-function generateAtmosphereColor() {
-    let hue = Math.floor(60 + Math.random() * 180);
-    let saturation = 50 + Math.random() * 25;
-    let lightness = 50 + Math.random() * 25;
 
-    return hslToRgb(hue, saturation, lightness);
-
-}
 function generateCloudsColor() {
     let hue = Math.floor(60 + Math.random() * 180);
     let saturation = 50 + Math.random() * 25;
@@ -535,6 +508,14 @@ function generateSunColor() {
     return hslToRgb(hue, saturation, lightness);
 }
 
+function generateAtmosphereColor() {
+    let hue = Math.floor(60 + Math.random() * 180);
+    let saturation = 50 + Math.random() * 25;
+    let lightness = 50 + Math.random() * 25;
+
+    return hslToRgb(hue, saturation, lightness);
+
+}
 function hslToRgb(h, s, l) {
     s /= 100;
     l /= 100;

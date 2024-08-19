@@ -66,7 +66,6 @@ class RandomCloudsLayer extends CloudsLayer {
      * @param {Number} [properties.luminance = 0.5] sun intensity multiplier
      * @param {Number} [properties.coverage = 0.2] average sky coverage between 0 and 1 (a high coverage can negatively impact performance)
      * @param {Number} [properties.windSpeed = 0.05] wind speed
-     * @param {Number} [properties.numBlurPasses = 1] blur passes to apply. Defaults to 1 for desktop and 4 for mobile
      * @param {Number} [properties.windDirection = new THREE.Vector2(1.0,0.0)] wind direction
      * @param {THREE.Vector3} [properties.color = new THREE.Vector3(1.0,1.0,1.0)] base cloud color.
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
