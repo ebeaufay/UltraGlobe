@@ -58,7 +58,7 @@ class RandomCloudsLayer extends CloudsLayer {
      * @param {Object} properties 
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {Number} [properties.quality = 0.3] resolution for clouds as a proportion relative to the creen canvas size. defaults to half resolution and quarter resolution for mobile
+     * @param {Number} [properties.quality = 0.3] general quality setting
      
      * @param {Number} [properties.minHeight = 500] clouds min height in earth radii
      * @param {Number} [properties.maxHeight = 12000] clouds max height in earth radii

@@ -70,8 +70,8 @@ class CloudsLayer extends EnvironmentLayer {
         this.quality = properties.quality;
         if(!this.quality) this.quality = isMobile ? 0.25 : 0.5;
         this.resolution = this.quality;
-        this.numBlurPasses = 5/(this.quality*5);//Math.floor((1/this.quality)/5);//(1/this.quality)/5;
-        this.proportionSamples = 0.15;//this.quality;
+        this.numBlurPasses = 10/(this.quality*5);//Math.floor((1/this.quality)/5);//(1/this.quality)/5;
+        this.proportionSamples = 0.3*this.quality;//this.quality;
         
         this.maxBlurOffset = 50.0;//1.5/this.resolution;
         this.startRadius = properties.minHeight ? properties.minHeight : 500;
@@ -136,7 +136,7 @@ class CloudsLayer extends EnvironmentLayer {
         
         map.renderer.setRenderTarget(cloudsBlurTarget2);
         map.renderer.render(map.postScene, map.postCamera);
-        for (let p = 0; p < 2; p++) {
+        for (let p = 0; p < this.numBlurPasses; p++) {
             
             blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
             blurMaterial.uniforms.image.value = cloudsBlurTarget2.texture;

@@ -704,9 +704,11 @@ const CloudsShader = {
 				lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 				float densityToLight = 0.0;
 				
-				float numSamplesToLightLocal = 3.0*(3.0-lod);
+				float numSamplesToLightLocal = max(1.0,3.0*(3.0-lod)*localDensity*1000.0);
+				float actualNumSamplesToLight = 0.0;
 				
 				for(float j = 0.0; j<numSamplesToLightLocal; j++){
+					actualNumSamplesToLight++;
 					float indexLightSample = j+random.b;
 					float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
 					
@@ -720,10 +722,12 @@ const CloudsShader = {
 					if(localDensityToLight<=0.0) continue;
 					densityToLight +=localDensityToLight;
 					if(densityToLight > 1.0) {
-						densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+						
 						break;
 					}
 				}
+					densityToLight/=actualNumSamplesToLight;
+					
 
 
 				densityToLight*= lengthToLight;
@@ -791,9 +795,11 @@ const CloudsShader = {
 					lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 					float densityToLight = 0.0;
 					
-					float numSamplesToLightLocal = 3.0*(3.0-lod);
+					float numSamplesToLightLocal = max(1.0,3.0*(3.0-lod)*localDensity*1000.0);
+					float actualNumSamplesToLight = 0.0;
 				
 					for(float j = 0.0; j<numSamplesToLightLocal; j++){
+						actualNumSamplesToLight++;
 						float indexLightSample = j+random.b;
 						float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
 					
@@ -807,10 +813,12 @@ const CloudsShader = {
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
-							densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+							
 							break;
 						}
 					}
+						densityToLight/=actualNumSamplesToLight;
+						
 					
 					densityToLight*= lengthToLight;
 				
@@ -1120,9 +1128,11 @@ const CloudsShader = {
 					lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 					float densityToLight = 0.0;
 				
-					float numSamplesToLightLocal = 3.0*(3.0-lod);
+					float numSamplesToLightLocal = max(1.0,3.0*(3.0-lod)*localDensity*1000.0);
+					float actualNumSamplesToLight = 0.0;
 
 					for(float j = 0.0; j<numSamplesToLightLocal; j++){
+						actualNumSamplesToLight++;
 						float indexLightSample = j+random.b;
 						float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
 						
@@ -1136,10 +1146,12 @@ const CloudsShader = {
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
-							densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+							
 							break;
 						}
 					}
+						densityToLight/=actualNumSamplesToLight;
+						
 					
 					
 					densityToLight*= lengthToLight;
@@ -1201,8 +1213,10 @@ const CloudsShader = {
 						lightExit = samplePosition+samplePositionNormalized*lengthToLight;
 						float densityToLight = 0.0;
 					
-						float numSamplesToLightLocal = 3.0*(3.0-lod);
+						float numSamplesToLightLocal = max(1.0,3.0*(3.0-lod)*localDensity*1000.0);
+						float actualNumSamplesToLight = 0.0;
 						for(float j = 0.0; j<numSamplesToLightLocal; j++){
+							actualNumSamplesToLight++;
 							float indexLightSample = j+random.b;
 							float distAlongRayToLight = mix(0.0, lengthToLight, indexLightSample/numSamplesToLightLocal);
 						
@@ -1216,10 +1230,12 @@ const CloudsShader = {
 							if(localDensityToLight<=0.0) continue;
 							densityToLight +=localDensityToLight;
 							if(densityToLight > 1.0) {
-								densityToLight = (densityToLight/j+1.0)*numSamplesToLightLocal;
+								
 								break;
 							}
 						}
+							densityToLight/=actualNumSamplesToLight;
+							
 						
 
 						densityToLight*= lengthToLight;

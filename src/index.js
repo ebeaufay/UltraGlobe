@@ -184,11 +184,12 @@ var ogc3dTiles = new OGC3DTilesLayer({
 var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
-    coverage:0.5,
-    debug:false,
-    windSpeed: 0.0,
-    minHeight:500,
-    maxHeight:40000
+    coverage:0.4,
+    debug:true,
+    windSpeed: 0.02,
+    minHeight:2000,
+    maxHeight:10000,
+    quality:0.5
 });
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
@@ -281,7 +282,7 @@ function setupMap(globalElevationMap) {
     //map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
-    //map.setLayer(environmentLayer, 8);
+    map.setLayer(environmentLayer, 8);
 
 
 
