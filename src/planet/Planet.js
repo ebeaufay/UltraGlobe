@@ -24,6 +24,7 @@ class Planet extends Object3D {
      * @param {Number} properties.detailMultiplier a multiplier for terrain and 2D map detail
      * @param {Number} properties.tileSize terrain tile resolution
      * @param {Number} properties.tileImagerySize imagery tile resolution
+     * @param {Boolean} properties.loadOutsideView loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
      */
     constructor(properties) {
         super();
@@ -56,12 +57,12 @@ class Planet extends Object3D {
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
             layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
-            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize
+            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize, loadOutsideView: properties.loadOutsideView
         }));
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
             layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
-            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize
+            tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize, loadOutsideView: properties.loadOutsideView
         }));
 
         self.matrixAutoUpdate = false;

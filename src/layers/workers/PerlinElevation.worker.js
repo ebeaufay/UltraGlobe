@@ -249,7 +249,7 @@ const PerlinElevationWorker = {
                     let elevationMultiplier = Math.pow(Math.max(0.1,(1+fbmAD(a,b,c,1,[0.75,0.75,0.75,0.75],1.0,4,4.2, 4))*0.5),2.2);
                     
                     const fractalAnalytic=fbmAD(a,b,c,amplitude, params.gains, 1, frequency, params.lacunarities, params.maxOctaves, params.noiseTypes);
-                    domainWarpNoise = 1-Math.max(0,fbmDW(a,b,c,amplitude, 0.75, 55, 1.9, 5))*0.002;
+                    domainWarpNoise = 1-Math.max(0,fbmDW(a,b,c,amplitude, 0.75, 55, 1.9, Math.max(1,params.maxOctaves*0.5)))*0.002;
                     extendedElevation[extendedWidth * y + x] = fractalAnalytic*domainWarpNoise*(params.max-params.min)*0.5*elevationMultiplier;
                     
 

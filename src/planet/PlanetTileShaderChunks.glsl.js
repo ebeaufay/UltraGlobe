@@ -67,7 +67,6 @@ const PlanetTileShaderChunks = {
 			}
 		`;
         if (shaderColorLayerCode) {
-            console.log("ljhbgljgh")
             code += `
 				vec3 shaderLayerColor = getShaderLayerColor(llh, vSurfacePosition, terrainNormal, level);
 				diffuseColor = mix(diffuseColor, vec4(shaderLayerColor,0.0), 1.0-`+ shaderLayerTransparency.toFixed(3) + `);

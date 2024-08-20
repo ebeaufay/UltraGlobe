@@ -105,7 +105,7 @@ class PerlinElevationLayer extends ElevationLayer {
         this.biomRepLongitude = Math.random()+1;
     }
 
-    getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 16){
+    getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 12){
         const trim = super._trimEdges;
         return new Promise((resolve, reject) => {
             sendWorkerTask({ 
@@ -113,7 +113,7 @@ class PerlinElevationLayer extends ElevationLayer {
                 resolution: width, 
                 min: this.min, 
                 max:this.max, 
-                maxOctaves:maxOctaves,
+                maxOctaves:Math.min(12,maxOctaves),
                 lacunarities: this.lacunarities,
                 biomRepLongitude: this.biomRepLongitude,
                 biomRepLatitude: this.biomRepLatitude,

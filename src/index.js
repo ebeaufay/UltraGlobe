@@ -109,14 +109,14 @@ var shaderLayer = new PerlinTerrainColorShader({
     max: 50000,
     transparency: 0.0
 });
-var jetElevationShaderLayer = new JetElevation({
+/* var jetElevationShaderLayer = new JetElevation({
     id: 57,
     name: "jet",
     min: -11000,
     max: 8800,
     bounds: [-180, -90, 180, 90],
     transparency: 0.5
-})
+}) */
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
     name: "singleImageEarthElevation",
@@ -138,7 +138,7 @@ var wmsLayer = new WMSLayer({
     maxLOD: 10,
     imageSize: 512
 });
-var wmsLayer2 = new WMSLayer({
+/* var wmsLayer2 = new WMSLayer({
     id: 1,
     name: "BlueMarble",
     bounds: [-180, -90, 180, 90],
@@ -148,14 +148,14 @@ var wmsLayer2 = new WMSLayer({
     version: "1.3.0",
     visible: true,
     imageSize: 256
-});
-var imagery = new SingleImageImageryLayer({
+}); */
+/* var imagery = new SingleImageImageryLayer({
     id: 5,
     name: "imagery",
     bounds: [-180, -90, 180, 90],
     url: equidistant,
     visible: true
-});
+}); */
 
 
 const progressBar = document.getElementById("progressBar");
@@ -181,7 +181,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
 });
 
 
-var environmentLayer = new RandomCloudsLayer({
+/* var environmentLayer = new NOAAGFSCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.4,
@@ -190,7 +190,7 @@ var environmentLayer = new RandomCloudsLayer({
     minHeight:2000,
     maxHeight:10000,
     quality:0.5
-});
+}); */
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
@@ -223,6 +223,9 @@ function setupMap(globalElevationMap) {
         space: true,
         clock: true,
         debug: true,
+        loadOutsideView: false,
+        //ocean: generateLiquidColor(),
+        tileSize: 32
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -251,7 +254,7 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    //map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
+    map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
     let h = 20;
     let m = 0;
     let s = 0;
@@ -273,16 +276,16 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:13.404954, y: 52.502008, z: 300 }, { x: 13.404954, y: 52.530008, z: 100 });
+    map.moveAndLookAt({ x:13.404954, y: 52.502008, z: 100000 }, { x: 13.404954, y: 70.502008, z: 100 });
     //52.50921677914625, 13.405685233710862
-    //map.setLayer(perlinElevation, 0);
-    //map.setLayer(shaderLayer, 1);
+    map.setLayer(perlinElevation, 0);
+    map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    map.setLayer(earthElevation, 5);
-    map.setLayer(wmsLayer, 4);
-    map.setLayer(environmentLayer, 8);
+    //map.setLayer(earthElevation, 5);
+    //map.setLayer(wmsLayer, 4);
+    //map.setLayer(environmentLayer, 8);
 
 
 

@@ -74,6 +74,7 @@ class Map {
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
     * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
+    * @param {Boolean} [properties.loadOutsideView = false] loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
     * 
     */
     constructor(properties) {
@@ -82,8 +83,8 @@ class Map {
         self.isMobile = _isMobileDevice();
         this.previousCameraPosition = new THREE.Vector3();
         this.previousCameraRotation = new THREE.Euler();
-
-        //TODO
+        this.loadOutsideView = properties.loadOutsideView? properties.loadOutsideView: false;
+        
         self.tileSize = properties.tileSize? properties.tileSize:32;
         self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:256;
 
@@ -764,7 +765,8 @@ class Map {
             renderer: this.renderer,
             detailMultiplier: this.detailMultiplier,
             tileSize : this.tileSize,
-            tileImagerySize : this.tileImagerySize
+            tileImagerySize : this.tileImagerySize,
+            loadOutsideView : this.loadOutsideView
         });
         this.resetCameraNearFar();
     }
