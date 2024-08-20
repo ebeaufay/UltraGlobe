@@ -231,7 +231,9 @@ class OGC3DTilesLayer extends Layer {
 
                 mesh.material.flatShading = self.properties.flatShading;
 
+                const previousOnAfterRender = mesh.previousOnAfterRender; 
                 mesh.onAfterRender = () => {
+                    if(previousOnAfterRender) previousOnAfterRender();
                     if(mesh.geometry && mesh.geometry.attributes){
 
                         if (mesh.geometry.attributes.position) {
@@ -260,7 +262,7 @@ class OGC3DTilesLayer extends Layer {
                         }
                     }
 
-                    mesh.onAfterRender = ()=>{};
+                    if(previousOnAfterRender) mesh.onAfterRender = previousOnAfterRender;
                 }
             },
             pointsCallback: points => {

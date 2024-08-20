@@ -116,6 +116,7 @@ class PlanetTile extends Mesh {
         self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:TILE_IMAGERY_SIZE;
         self.shift = new THREE.Vector3();
         self.skirt = new THREE.Mesh();
+        self.skirt.material.visible = false;
         self.tileChildren = [];
         self.isPlanetTile = true;
         self.frustumCulled = false;
@@ -249,6 +250,9 @@ class PlanetTile extends Mesh {
         }
         self.skirt.position.add(self.shift);
         self.planet.add(self.skirt);
+        self.skirt.updateMatrix();
+        self.skirt.updateMatrixWorld(true);
+        //self.skirt.matrixAutoUpdate = false;
         //self.buildMaterial(self);
         self.needsMaterialRebuild = true;
         self.loaded = true;
@@ -322,6 +326,7 @@ class PlanetTile extends Mesh {
             if (self.children.length > 0) { // if self tile already has children
                 let childrenReadyCounter = 0;
                 self.children.every(child => {
+                    if(!child.isPlanetTile) return true;
                     let childReady = child.update(camera, frustum) && child.rendered;
 
                     if (childReady) {
@@ -438,6 +443,9 @@ class PlanetTile extends Mesh {
         if(self.material){
             self.material.dispose();
         }
+        if(self.skirt.material){
+            self.skirt.material.dispose();
+        }
         self.material = new MeshStandardMaterial();
         self.material.uid = sid++;
         self.material.side = THREE.FrontSide;
@@ -483,7 +491,6 @@ class PlanetTile extends Mesh {
         self.material.metalness = 0.0;
         self.material.roughness = 1.0;
         self.skirt.material = self.material;
-        self.needsUpdate = true;
         
     }
     setElevationExageration() {
@@ -554,62 +561,62 @@ class PlanetTile extends Mesh {
         if (self.children.length != 0) {
             self.traverse(function (element) {
 
-
-                if (element != self && element.material) {
-                    if (element.skirt) {
-                        element.skirt.geometry.dispose();
-                        self.planet.remove(element.skirt);
-                    }
-                    // dispose textures
-                    for (const id in element.layerDataMap) {
-                        if (element.layerDataMap.hasOwnProperty(id)) {
-
-                            if (element.layerDataMap[id].layer.isImageryLayer) {
-                                element.layerDataMap[id].layer.detach(element);
-                            } else if (!!element.layerDataMap[id].texture) {
-                                element.layerDataMap[id].texture.dispose();
+                if (element.isPlanetTile && element != self && element.material) {
+                        if (element.skirt) {
+                            element.skirt.geometry.dispose();
+                            self.planet.remove(element.skirt);
+                        }
+                        // dispose textures
+                        for (const id in element.layerDataMap) {
+                            if (element.layerDataMap.hasOwnProperty(id)) {
+    
+                                if (element.layerDataMap[id].layer.isImageryLayer) {
+                                    element.layerDataMap[id].layer.detach(element);
+                                } else if (!!element.layerDataMap[id].texture) {
+                                    element.layerDataMap[id].texture.dispose();
+                                }
+    
                             }
-
                         }
-                    }
-                    // dispose materials
-                    if (element.material.length) {
-                        for (let i = 0; i < element.material.length; ++i) {
-                            element.material[i].dispose();
+                        // dispose materials
+                        if (element.material.length) {
+                            for (let i = 0; i < element.material.length; ++i) {
+                                element.material[i].dispose();
+                            }
                         }
-                    }
-                    else {
-                        element.material.dispose()
-                    }
-
-                    //dispose mesh geometry
-                    element.geometry.dispose();
-
-                    var index = tilesToLoad.indexOf(element);
-                    if (index !== -1) {
-                        tilesToLoad.splice(index, 1);
-                    }
-                    self.layerManager.removeListener(element);
-                    self.layerManager.getLayers().forEach(layer => {
-                        layer.removeListener(element);
-                    });
-                    element.mapRequests.forEach(e => {
-                        if (e instanceof Promise) {
-                            e.then(r => r.abort());
-                        } else {
-                            e.abort()
+                        else {
+                            element.material.dispose()
                         }
-                    })
-                    element.disposed = true;
-                    element.material = void 0;
-                    element.layerManager = void 0;
-                    element.layerDataMap = void 0;
-                    element.elevationArray = void 0;
-                    element.geometry = void 0;
-                    element.planet = void 0;
-                    element.mapRequests = void 0;
-                    element.parent = void 0;
-                }
+    
+                        //dispose mesh geometry
+                        element.geometry.dispose();
+    
+                        var index = tilesToLoad.indexOf(element);
+                        if (index !== -1) {
+                            tilesToLoad.splice(index, 1);
+                        }
+                        self.layerManager.removeListener(element);
+                        self.layerManager.getLayers().forEach(layer => {
+                            layer.removeListener(element);
+                        });
+                        element.mapRequests.forEach(e => {
+                            if (e instanceof Promise) {
+                                e.then(r => r.abort());
+                            } else {
+                                e.abort()
+                            }
+                        })
+                        element.disposed = true;
+                        element.material = void 0;
+                        element.layerManager = void 0;
+                        element.layerDataMap = void 0;
+                        element.elevationArray = void 0;
+                        element.geometry = void 0;
+                        element.planet = void 0;
+                        element.mapRequests = void 0;
+                        element.parent = void 0;
+                    }
+                
             });
             self.clear();
         }

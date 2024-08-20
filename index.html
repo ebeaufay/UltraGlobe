@@ -98,26 +98,55 @@
     .dropdown:hover .dropbtn {
       background-color: #ac9d48;
     }
+
     .unselectable {
-  -webkit-user-select: none; /* Safari */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Non-prefixed version, currently supported by Chrome, Opera, and Safari */
-}
+      -webkit-user-select: none;
+      /* Safari */
+      -moz-user-select: none;
+      /* Firefox */
+      -ms-user-select: none;
+      /* Internet Explorer/Edge */
+      user-select: none;
+      /* Non-prefixed version, currently supported by Chrome, Opera, and Safari */
+    }
+
+    .progress-container {
+      position: absolute;
+      right: 2%;
+      bottom: 10%;
+      width: 20%;
+      z-index: 2000;
+      background-color: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 30px;
+      background-color: #76c7c0;
+      text-align: center;
+      line-height: 30px;
+      color: white;
+      transition: width 0.25s;
+    }
+
   </style>
 </head>
 
 <body>
   <div id="screen" oncontextmenu="return false;" style="position:absolute;width:100%; height:100%;"></div>
-  <div
-    id="website" class="outlinedText2" class="unselectable" style="position: absolute;bottom: 60px; left:25px; z-index: 99;font-size: 16px;font-family: 'Orbitron', sans-serif;letter-spacing: 0.3em;cursor: pointer;"
-    >
-    <img src="https://storage.googleapis.com/jdultra-website/assets/iconSmall.png" class="unselectable" width="14px" height="14px"><span class="unselectable">
+  <div id="website" class="outlinedText2" class="unselectable"
+    style="position: absolute;bottom: 60px; left:25px; z-index: 99;font-size: 16px;font-family: 'Orbitron', sans-serif;letter-spacing: 0.3em;cursor: pointer;">
+    <img src="https://storage.googleapis.com/jdultra-website/assets/iconSmall.png" class="unselectable" width="14px"
+      height="14px"><span class="unselectable">
       JDULTRA</span>
   </div>
-  <div
-    id="help" class="outlinedText2" class="unselectable" style="position: absolute;bottom: 5px; right:25px; z-index: 99;font-size: 16px;font-family: 'Orbitron', sans-serif;letter-spacing: 0.3em;"
-    >
+  <div class="progress-container">
+    <div id="progressBar" class="progress-bar">0%</div>
+</div>
+  <div id="help" class="outlinedText2" class="unselectable"
+    style="position: absolute;bottom: 5px; right:25px; z-index: 99;font-size: 16px;font-family: 'Orbitron', sans-serif;letter-spacing: 0.3em;">
     <span class="unselectable">Pan: Left click | Rotate: Right click | Zoom: mouse wheel</span>
   </div>
   <script>
@@ -125,13 +154,13 @@
       event.preventDefault();
     }, { passive: false });
 
-    document.getElementById('website').addEventListener('click', function() {
-  window.location.href = 'http://www.jdultra.com';
-});
+    document.getElementById('website').addEventListener('click', function () {
+      window.location.href = 'http://www.jdultra.com';
+    });
   </script>
 
 
-  
+
 </body>
 
 </html>

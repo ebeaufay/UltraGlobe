@@ -158,7 +158,7 @@ var imagery = new SingleImageImageryLayer({
 });
 
 
-
+const progressBar = document.getElementById("progressBar");
 var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
@@ -174,7 +174,10 @@ var ogc3dTiles = new OGC3DTilesLayer({
     loadOutsideView: false,
     flatShading: true,
     loadingStrategy: "IMMEDIATE",
-    updateCallback: (stats)=>console.log(stats)
+    updateCallback: (stats)=>{
+        progressBar.style.width = stats.percentageLoaded*100 + '%';
+        progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
+    }
 });
 
 
@@ -215,9 +218,10 @@ function setupMap(globalElevationMap) {
     let map = new Map({
         divID: 'screen',
         atmosphere: true,
-        shadows: false,
+        shadows: true,
         space: true,
         clock: true,
+        debug: true,
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -268,13 +272,13 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:13.404954, y: 52.520008, z: 500 }, { x: 13.404954, y: 52.530008, z: 100 });
+    map.moveAndLookAt({ x:13.404954, y: 52.502008, z: 300 }, { x: 13.404954, y: 52.530008, z: 100 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    map.setLayer(ogc3dTiles, 3);
+    //map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
     //map.setLayer(environmentLayer, 8);

@@ -138,6 +138,7 @@ class ElevationLayer extends RasterLayer {
 
                     geometry.computeBoundingSphere();
                     geometry.computeBoundingBox();
+                    skirtGeometry.computeBoundingBox();
                     skirtGeometry.computeBoundingSphere();
                     resolve(new THREE.Vector3(response.shift.x, response.shift.y, response.shift.z));
                 }, (error) => {

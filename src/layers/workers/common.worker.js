@@ -243,7 +243,35 @@ const common = {
                 skirtUVs: skirtUVsSharedbuffer
             }
         
+            /* //sample code to merge skirt and tile geometry 
+            const indicesBuffer = new ArrayBuffer((indices.length+skirtIndices.length) * Int32Array.BYTES_PER_ELEMENT);
+            const verticesSharedbuffer = new ArrayBuffer((vertices.length+skirts.length) * Float32Array.BYTES_PER_ELEMENT);
+            const normalsSharedbuffer = new ArrayBuffer((normals.length+skirtNormals.length) * Float32Array.BYTES_PER_ELEMENT);
+            const uvsSharedbuffer = new ArrayBuffer((uvs.length + skirtUVs.length) * Float32Array.BYTES_PER_ELEMENT);
             
+        
+            const indicesArray = new Int32Array(indicesBuffer);
+            const verticesArray = new Float32Array(verticesSharedbuffer);
+            const normalsArray = new Float32Array(normalsSharedbuffer);
+            const uvsArray = new Float32Array(uvsSharedbuffer);
+        
+            // Copy the numbers into the Float32Array
+            indicesArray.set(indices, 0);
+            indicesArray.set(skirtIndices, indices.length);
+            verticesArray.set(vertices, 0);
+            verticesArray.set(skirts, vertices.length);
+            normalsArray.set(normals, 0);
+            normalsArray.set(skirtNormals, normals.length);
+            uvsArray.set(uvs, 0);
+            uvsArray.set(skirtUVs, uvs.length);
+            return {
+                shift: shift,
+                indices: indicesBuffer,
+                vertices: verticesSharedbuffer,
+                normals: normalsSharedbuffer,
+                uvs: uvsSharedbuffer
+            }
+                */
         
         };
         generateSouthPoleTile = function (resolution, bounds, elevation) {
