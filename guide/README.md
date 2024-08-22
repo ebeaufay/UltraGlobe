@@ -143,7 +143,38 @@ var ogc3dTiles = new OGC3DTilesLayer({
 map.setLayer(ogc3dTiles, 2);
 ````
 
-The 3DTiles support is done through this library: https://github.com/ebeaufay/3DTilesViewer
+##### loading strategy
+Specify a loading strategy, "INCREMENTAL" (default) or "IMMEDIATE". The "incremental" strategy loads intermediate LODs while the "immediate" strategy skips them.
+Immediate mode loads faster and has a lower memory footprint but holes can appear when moving the camera.
+
+````js
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "path/to/georeferenced/tileset.json",
+    geometricErrorMultiplier: 1.5,
+    loadingStrategy:"IMMEDIATE"
+});
+map.setLayer(ogc3dTiles, 2);
+````
+
+##### update callback
+The update callback will be called on every tileset update giving info on the number of tiles loaded/rendered, the max loaded LOD and the loaded percentage.
+````js
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 6,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "path/to/georeferenced/tileset.json",
+    geometricErrorMultiplier: 1.5,
+    updateCallback: (stats)=>console.log(stats)
+});
+map.setLayer(ogc3dTiles, 2);
+````
+
+
+The 3DTiles support is done through this library: https://github.com/ebeaufay/threedtiles
 
 #### Loading Google Maps 3D Tiles
 
