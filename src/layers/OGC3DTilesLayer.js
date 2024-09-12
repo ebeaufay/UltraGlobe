@@ -289,6 +289,7 @@ class OGC3DTilesLayer extends Layer {
         });
 
         this.object3D = new THREE.Object3D();
+        this.object3D.matrixAutoUpdate = false;
         this.object3D.add(this.tileset);
         this.object3D.updateMatrix();
         this.object3D.updateMatrixWorld(true);
