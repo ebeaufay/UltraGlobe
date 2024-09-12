@@ -70,8 +70,8 @@ class SingleImageElevationLayer extends ElevationLayer {
                 var elevationArray = new Array(extendedWidth * extendedHeight).fill(0);
                 for (let x = 0; x < extendedWidth; x++) {
                     for (let y = 0; y < extendedHeight; y++) {
-                        let lon = (extendedBounds.min.x + (x * ((extendedBounds.max.x - extendedBounds.min.x) / (width - 1))));
-                        let lat = -(extendedBounds.min.y + (y * ((extendedBounds.max.y - extendedBounds.min.y) / (height - 1))));
+                        let lon = (extendedBounds.min.x + (x * ((extendedBounds.max.x - extendedBounds.min.x) / (width +1))));
+                        let lat = -(extendedBounds.min.y + (y * ((extendedBounds.max.y - extendedBounds.min.y) / (height +1))));
 
                         if (lat > halfPI) {
                             lon += Math.PI;

@@ -109,14 +109,14 @@ var shaderLayer = new PerlinTerrainColorShader({
     max: 50000,
     transparency: 0.0
 });
-/* var jetElevationShaderLayer = new JetElevation({
+var jetElevationShaderLayer = new JetElevation({
     id: 57,
     name: "jet",
-    min: -11000,
+    min: -0,
     max: 8800,
     bounds: [-180, -90, 180, 90],
     transparency: 0.5
-}) */
+})
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
     name: "singleImageEarthElevation",
@@ -124,7 +124,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     visible: true,
     min: 0,
-    max: 0//8848
+    max: 8800//8848
 });
 var wmsLayer = new WMSLayer({
     id: 20,
@@ -311,7 +311,7 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:2, y: 40, z: 1000 }, { x: 2, y: 40, z: 100 });
+    map.moveAndLookAt({ x:2, y: 40, z: 1000000 }, { x: 2, y: 40, z: 100 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
@@ -320,6 +320,7 @@ function setupMap(globalElevationMap) {
     map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
+    map.setLayer(jetElevationShaderLayer, 7);
     //map.setLayer(environmentLayer, 8);
 
 
