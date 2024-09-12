@@ -124,7 +124,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     visible: true,
     min: 0,
-    max: 8848
+    max: 0//8848
 });
 var wmsLayer = new WMSLayer({
     id: 20,
@@ -159,7 +159,7 @@ var wmsLayer = new WMSLayer({
 
 
 const progressBar = document.getElementById("progressBar");
-var ogc3dTiles = new OGC3DTilesLayer({
+/* var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
@@ -178,10 +178,45 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.style.width = stats.percentageLoaded*100 + '%';
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
+}); */
+/* var ogc3dTiles = new OGC3DTilesLayer({
+    id: 2,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "http://localhost:8080/tileset.json",
+    scale: 1.0,
+    geometricErrorMultiplier: 1,
+    loadOutsideView: false,
+    flatShading: true,
+    loadingStrategy: "IMMEDIATE",
+    updateCallback: (stats)=>{
+        progressBar.style.width = stats.percentageLoaded*100 + '%';
+        progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
+    }
 });
-
-
-/* var environmentLayer = new NOAAGFSCloudsLayer({
+ */
+var ogc3dTiles = new OGC3DTilesLayer({
+    id: 2,
+    name: "OGC 3DTiles",
+    visible: true,
+    url: "http://localhost:8082/tileset.json",
+    longitude: 2,
+    latitude: 40,
+    height: 100,
+    //rotationY: 0.72,
+    rotationX: -3.1416*0.5,
+    scale: 1.00,
+    centerModel:false,
+    geometricErrorMultiplier: 10,
+    loadOutsideView: false,
+    flatShading: true,
+    //loadingStrategy: "IMMEDIATE",
+    updateCallback: (stats)=>{
+        progressBar.style.width = stats.percentageLoaded*100 + '%';
+        progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
+    }
+});
+/* var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.4,
@@ -221,11 +256,11 @@ function setupMap(globalElevationMap) {
         atmosphere: true,
         shadows: true,
         space: true,
-        clock: true,
+        clock: false,
         debug: true,
         loadOutsideView: false,
-        //ocean: generateLiquidColor(),
-        tileSize: 32
+        ocean: false,//generateLiquidColor(),
+        tileSize: 64
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -276,15 +311,15 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:13.404954, y: 52.502008, z: 100000 }, { x: 13.404954, y: 70.502008, z: 100 });
+    map.moveAndLookAt({ x:2, y: 40, z: 1000 }, { x: 2, y: 40, z: 100 });
     //52.50921677914625, 13.405685233710862
-    map.setLayer(perlinElevation, 0);
-    map.setLayer(shaderLayer, 1);
+    //map.setLayer(perlinElevation, 0);
+    //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    //map.setLayer(ogc3dTiles, 3);
-    //map.setLayer(earthElevation, 5);
-    //map.setLayer(wmsLayer, 4);
+    map.setLayer(ogc3dTiles, 3);
+    map.setLayer(earthElevation, 5);
+    map.setLayer(wmsLayer, 4);
     //map.setLayer(environmentLayer, 8);
 
 

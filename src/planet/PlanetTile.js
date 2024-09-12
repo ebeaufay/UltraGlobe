@@ -117,6 +117,7 @@ class PlanetTile extends Mesh {
 
         super();
         const self = this;
+        self.matrixAutoUpdate = false;
         self.tileSize = properties.tileSize ? properties.tileSize : TILE_SIZE;
         self.tileImagerySize = properties.tileImagerySize ? properties.tileImagerySize : TILE_IMAGERY_SIZE;
         self.shift = new THREE.Vector3();
@@ -257,8 +258,9 @@ class PlanetTile extends Mesh {
         }
         self.skirt.position.add(self.shift);
         self.planet.add(self.skirt);
-        
-        //self.skirt.matrixAutoUpdate = false;
+        self.updateMatrix();
+        self.skirt.matrixAutoUpdate = false;
+        self.skirt.updateMatrix();
         //self.buildMaterial(self);
         self.needsMaterialRebuild = true;
         self.loaded = true;

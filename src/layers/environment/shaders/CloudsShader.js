@@ -531,7 +531,7 @@ const CloudsShader = {
 			float depth = readDepth( tDepth, vUv );
 			vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
 			float frac = yfov/xfov;
-			vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*3.0);
+			vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*4.0);
 			
 
 			vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
@@ -680,7 +680,7 @@ const CloudsShader = {
 				float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 				float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
 				
-				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality))),0.35)*4.0;
+				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*3.0))),0.35)*4.0;
 				float fraction = distAlongRay/length1;
 
 				vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
@@ -718,7 +718,7 @@ const CloudsShader = {
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
+					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
 					if(localDensityToLight<=0.0) continue;
 					densityToLight +=localDensityToLight;
 					if(densityToLight > 1.0) {
@@ -767,7 +767,7 @@ const CloudsShader = {
 					float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
 				
 					
-					float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality))),0.35)*4.0;
+					float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*3.0))),0.35)*4.0;
 					float fraction = distAlongRay/length2;
 
 					vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
@@ -809,7 +809,7 @@ const CloudsShader = {
 					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -955,7 +955,7 @@ const CloudsShader = {
 				float depth = readDepth( tDepth, vUv );
 				vec3 worldDir = normalize(farPlanePosition-nonPostCameraPosition);
 				float frac = yfov/xfov;
-				vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*3.0);
+				vec4 random = texture(noise2D, vUv*vec2(1.0,frac)*4.0);
 				
 	
 				vec3 impact = mix(nearPlanePosition, farPlanePosition, depth);
@@ -1101,7 +1101,7 @@ const CloudsShader = {
 					float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 					float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
 				
-					float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality))),0.35)*4.0;
+					float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*3.0))),0.35)*4.0;
 					float fraction = distAlongRay/length1;
 
 					vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
@@ -1142,7 +1142,7 @@ const CloudsShader = {
 						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -1185,7 +1185,7 @@ const CloudsShader = {
 						float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
 				
 					
-						float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality))),0.35)*4.0;
+						float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*3.0))),0.35)*4.0;
 						float fraction = distAlongRay/length2;
 
 						vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
@@ -1226,7 +1226,7 @@ const CloudsShader = {
 						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*1.0;
+							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
 							if(localDensityToLight<=0.0) continue;
 							densityToLight +=localDensityToLight;
 							if(densityToLight > 1.0) {
@@ -1241,14 +1241,10 @@ const CloudsShader = {
 						densityToLight*= lengthToLight;
 				
 						float lightToSample = multiOctaveBeer(sunlight*10.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
-						lightToSample = multiOctaveBeer(lightToSample*localDensity,density2, 0.01, 0.5, biScatteringKappa, 1.0);
+						lightToSample = multiOctaveBeer(lightToSample*localDensity,density2, 0.01, 0.75, biScatteringKappa, 1.0);
 
-
-						light2 += vec3(min(1.0,pow(color.x,0.5)*lightToSample*max(dotLight,0.0)), min(1.0,pow(color.y,0.75)*lightToSample*pow(max(dotLight,0.0),1.2)), min(1.0,pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4)));
+						light2 += vec3(pow(color.x,0.5)*lightToSample*max(dotLight,0.0), pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2),pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4));
 						density2 += localDensity * (distAlongRayEnd - distAlongRay);
-
-
-
 
 
 						

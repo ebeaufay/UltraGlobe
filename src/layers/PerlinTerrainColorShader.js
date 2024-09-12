@@ -164,13 +164,15 @@ class PerlinTerrainColorShader extends ShaderColorLayer {
                 float dot = smoothstep(0.75,1.0,dot(normalize(xyz), normal));
                 // return vec3((llh.x+3.1416)/6.2832);
                 //return vec3((llh.x+3.1416)/6.2832,(llh.y+1.5708)/3.1416, 1.0);
+                float polar = abs(llh.y/3.1416);
+                
                 
                 float normalizedHeight = ((llh.z - `+ min + `) / ` + range + `)*0.95; // Normalize to [0, 0.95]
     
                 // large scale
                 float f = pickFromTexture(perlin, llh,matrix1, 5.0);
                 //float noiseLarge = pickFromTexture(`+ largeNoiseMap + `, llh, matrix2, 11.0)*f + pickFromTexture(` + largeNoiseMap + `, llh, matrix3, 13.0)*(1.0-f);
-                float noiseLarge= normalizedHeight*f*(0.5+f);
+                float noiseLarge= normalizedHeight*f*(0.5+f)+polar;
                 float f2 = pickFromTexture(perlin, llh,matrix4, 4.0);
                 vec3 large = texture2D(palette, vec2(noiseLarge, `+ palette1 + `)).xyz*f2+texture2D(palette, vec2(noiseLarge, ` + palette2 + `)).xyz*(1.0-f2);
 
@@ -180,7 +182,7 @@ class PerlinTerrainColorShader extends ShaderColorLayer {
                 float noiseSmall2 = pickFromTexture(`+ smallNoiseMap2 + `, llh, matrix3, 8625.0)*fSmall + pickFromTexture(` + smallNoiseMap2 + `, llh, matrix4, 8254.0)*(1.0-fSmall);
                 float noiseSmall = mix(noiseSmall1,noiseSmall2,dot);
                 //return vec3(noiseSmall);
-                noiseSmall= noiseSmall*0.10-(dot*0.25)+normalizedHeight*(f+`+colorModulation+`)*0.5;
+                noiseSmall= noiseSmall*0.10-(dot*0.25)+normalizedHeight*(f+`+colorModulation+`)*0.5 + polar;
                 
                 float f2Small = dot;
                 vec3 small = texture2D(palette, vec2(noiseSmall, `+ palette1 + `)).xyz*f2Small+texture2D(palette, vec2(noiseSmall, ` + palette2 + `)).xyz*(1.0-f2Small);

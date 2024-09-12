@@ -579,14 +579,17 @@ const PostShader = {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			code += `
 					float waterVolume = oceanVolume(worldDir, impact);
-					vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/100.0)));
+					vec3 waterColor = vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `);
+					//vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/100.0)));
 					waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.5);
 					float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/5000000.0));
 					if(mobile){
 						showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-100000.0)/300000.0));
 					}
-					float waterOpacity = min(0.7,max(0.0,waterVolume/200.0));
+					float waterOpacity = min(0.7,max(0.0,waterVolume/2000.0));
 					diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity,showWater));
+					float impactDepth = -heightAboveEllipsoid(impact);
+					diffuse.rgb = mix(diffuse,vec3(waterColor)*0.5,max(0.0,min(1.0,impactDepth*0.0004)));
 					`;
 		}
 		if (clouds) {
@@ -1104,10 +1107,11 @@ const PostShader = {
 				vec3 normal =  normalize( vec3( normalColor.r * 2.0 - 1.0, normalColor.b,  normalColor.g * 2.0 - 1.0 ) );
 				return mix(normal, vec3(0.0,1.0,0.0), max(0.0,heightAboveSeaLevel/100000.0));
 			}
-			vec3 oceanCalc(vec3 rayDirection, vec3 impact, vec3 sunVector, float cameraDepth){
+			vec4 oceanCalc(vec3 rayDirection, vec3 impact, vec3 sunVector, float cameraDepth){
 				float waterVolume = 0.0;
 				float oceanIlumination = 0.0;
 				float oceanLightReflection = 0.0;
+				float lightIncidence = 0.0;
 				
 				vec2 intersection = rayEllipsoidIntersection(planetPosition, nonPostCameraPosition, rayDirection, a, a, b);
 				
@@ -1147,6 +1151,7 @@ const PostShader = {
 								oceanIlumination = dot(sunVector, worldSpaceNormal);
 								waterVolume = min(length(surfaceExit - surfaceImpact), length(impact - surfaceImpact));
 								oceanLightReflection = dot(normalize(rayDirection), reflection(sunVector, worldSpaceNormal));
+								lightIncidence = 1.0-abs(dot(normalize(rayDirection), worldSpaceNormal));
 							}
 							
 						}
@@ -1163,19 +1168,20 @@ const PostShader = {
 						}else{ // camera outside ocean
 							vec3 normal = computeWaterNormal(surfaceImpact);
 							vec3 surfaceNormal = normalize(surfaceImpact);
-								vec4 rotationQuat = fromToRotation(vec3(0.0,1.0,0.0), surfaceNormal);
+							vec4 rotationQuat = fromToRotation(vec3(0.0,1.0,0.0), surfaceNormal);
 
-    							vec3 worldSpaceNormal = rotateVecByQuat(normal, rotationQuat);
+    						vec3 worldSpaceNormal = rotateVecByQuat(normal, rotationQuat);
 							vec3 surfaceExit = nonPostCameraPosition + rayDirection * intersection.y;
-							waterVolume = intersection.y - intersection.x;
-							oceanIlumination = (dot(sunVector, normalize(surfaceImpact))+dot(sunVector, normalize(surfaceExit)))*0.5;
+							waterVolume = (intersection.y - intersection.x);
+							oceanIlumination = dot(sunVector, normalize(surfaceImpact));
 							oceanLightReflection = dot(normalize(rayDirection), reflection(sunVector, worldSpaceNormal));
+							lightIncidence = 1.0-abs(dot(normalize(rayDirection), worldSpaceNormal));
 						}
 					}
 
 				}
 				
-				return vec3(waterVolume, oceanIlumination, oceanLightReflection);
+				return vec4(waterVolume, oceanIlumination, oceanLightReflection, lightIncidence);
 			}
 			vec4 normalizeQuaternion(vec4 q) {
 				float norm = sqrt(dot(q, q));
@@ -1510,32 +1516,35 @@ const PostShader = {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			const specularOcean = new THREE.Vector3(Math.sqrt(shallowOcean.x), Math.sqrt(shallowOcean.y), Math.sqrt(shallowOcean.z));
 			code += `
-							float cameraDepth = -cameraHeightAboveEllipsoid;
-							vec3 oceanMeasures = oceanCalc(rayDirection, impact, sunVector, cameraDepth);
+								float cameraDepth = -cameraHeightAboveEllipsoid;
+								vec4 oceanMeasures = oceanCalc(rayDirection, impact, sunVector, cameraDepth);
 								float waterVolume = oceanMeasures.x;
-								float oceanIlumination = max(0.2,oceanMeasures.y) ;
+								float oceanIlumination = max(0.1,oceanMeasures.y) ;
 								
 								float oceanLightReflection = max(0.2,pow(oceanMeasures.z,1.0));
-								vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/1000.0)))*oceanIlumination;
+								vec3 waterColor = mix(vec3(`+ shallowOcean.x.toFixed(3) + `,` + shallowOcean.y.toFixed(3) + `,` + shallowOcean.z.toFixed(3) + `), vec3(` + ocean.x.toFixed(3) + `,` + ocean.y.toFixed(3) + `,` + ocean.z.toFixed(3) + `), min(1.0,max(0.0,waterVolume/1000.0)));
+								waterColor*= oceanIlumination;
 								waterColor = mix(waterColor, vec3(`+ specularOcean.x.toFixed(3) + `,` + specularOcean.y.toFixed(3) + `,` + specularOcean.z.toFixed(3) + `), pow(oceanLightReflection,3.0));
 								
-								//vec3 waterColorATM = mix(waterColor, atmosphereColor, atmosphereThickness*0.5*shade);
-								//waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.5*shade);
 
-								float impactDepth = -heightAboveEllipsoid(impact);
+								
 								waterColor = mix(waterColor, waterColor*0.5, max(0.0,min(1.0,pow(waterVolume*0.000001,0.1))));
-								waterColor = mix(waterColor, atmosphereColor, atmosphereThickness*0.25*shade*(1.0-sign(cameraDepth)));
 								
 								float showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-2000000.0)/5000000.0));
 								if(mobile){
 									showWater = 1.0-min(1.0, max(0.0, (heightAboveSeaLevel-100000.0)/300000.0));
 								}
 								float waterOpacity = pow(min(1.0,max(0.0,max(0.0,waterVolume/10000.0))),0.1);
-								waterOpacity *= max(1.0,oceanLightReflection);
-								///waterOpacity = step(0.01, waterVolume);
-								//diffuse.rgb = mix(diffuse,waterColor,waterOpacity);
+								waterOpacity = max(waterOpacity,oceanLightReflection);
+								waterOpacity = max(waterOpacity, oceanMeasures.w);
+
+								/* if(waterVolume>0.0){
+								diffuse.rgb = vec3(oceanMeasures.w, 0.0,0.0);
+								} */
+								
 								diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity, showWater));
-								diffuse.rgb = mix(diffuse,vec3(waterColor)*0.5,max(0.0,min(1.0,impactDepth*0.0004)));
+								float impactDepth = -heightAboveEllipsoid(impact);
+								diffuse.rgb = mix(diffuse,waterColor,max(0.0,min(1.0,impactDepth*0.0004))*pow(1.0-showWater,0.25));
 							`;
 		}
 		if (clouds) {

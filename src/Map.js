@@ -16,7 +16,7 @@ import perlin from './images/noise2.png';
 import blueNoise from './images/blueNoise.png';
 import { Controller } from "./controls/Controller.js";
 import { getSunPosition } from "./Sun";
-import { CSM } from './csm/CSM.js';
+import { CSM } from 'three/addons/csm/CSM.js';
 import { CSMHelper } from 'three/addons/csm/CSMHelper.js';
 import ringsPalette from './images/ringsPalette.png';
 import stars from './images/stars.png';
@@ -306,7 +306,7 @@ class Map {
 
             this.sunPosition = getSunPosition(new Date())
             const csmSplits = [];
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < 6; i++) {
                 if (i == 0) csmSplits.push(1);
                 else {
                     csmSplits.push(csmSplits[i - 1] * 3);
@@ -452,6 +452,8 @@ class Map {
         this.postQuad = new THREE.Mesh(postPlane);
         this.postScene = new THREE.Scene();
         this.postScene.add(this.postQuad);
+        this.postScene.matrixAutoUpdate = false;
+        this.postQuad.matrixAutoUpdate = false;
     }
     _setupPostMaterial() {
 
@@ -656,15 +658,15 @@ class Map {
 
     _initRenderer(shadows) {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "low-power" });
         //self.renderer.getContext().getProgramInfoLog= function() { return '' }
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
             self.renderer.shadowMap.enabled = true;
             if (self.isMobile) {
-                self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                self.renderer.shadowMap.type = THREE.PCFShadowMap;
             } else {
-                self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                self.renderer.shadowMap.type = THREE.PCFShadowMap;
             }
 
         }
@@ -945,11 +947,11 @@ class Map {
     resetCameraNearFar() {
 
 
-        const heightAboveEllipsoid = this.camera.position.length() - this.planet.radius;
+        const heightAboveEllipsoid = Math.max(this.distToGround,this.camera.position.length() - this.planet.radius);
 
         this.camera.near = 0.1;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
-        this.camera.far = Math.max(2000000, distanceToHorizon * 1.5);
+        this.camera.far = Math.max(200000, distanceToHorizon * 1.5);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this._resetLogDepthBuffer();

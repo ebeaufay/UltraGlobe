@@ -11,6 +11,7 @@ const orientationHelper = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
+const tileLoaders = [];
 
 /**
  * A layer for loading a OGC3DTiles tileset. 
@@ -200,8 +201,8 @@ class OGC3DTilesLayer extends Layer {
 
         var tileLoader = !!self.properties.tileLoader ? self.properties.tileLoader : new TileLoader({
             renderer: map.renderer,
-            maxCachedItems: 200,
-            meshCallback: mesh => {
+            maxCachedItems: 0,
+            meshCallback: (mesh, geometricError) => {
                 //mesh.material = new THREE.MeshLambertMaterial({color: new THREE.Color("rgb("+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+", "+(Math.floor(Math.random()*256))+")")});
                 if (mesh.material.isMeshBasicMaterial) {
                     const newMat = new THREE.MeshStandardMaterial();
@@ -231,7 +232,7 @@ class OGC3DTilesLayer extends Layer {
 
                 mesh.material.flatShading = self.properties.flatShading;
 
-                const previousOnAfterRender = mesh.previousOnAfterRender; 
+                const previousOnAfterRender = mesh.onAfterRender; 
                 mesh.onAfterRender = () => {
                     if(previousOnAfterRender) previousOnAfterRender();
                     if(mesh.geometry && mesh.geometry.attributes){
@@ -262,12 +263,14 @@ class OGC3DTilesLayer extends Layer {
                         }
                     }
 
-                    if(previousOnAfterRender) mesh.onAfterRender = previousOnAfterRender;
+                    mesh.onAfterRender = previousOnAfterRender;
                 }
             },
-            pointsCallback: points => {
-                points.material.size = Math.min(1.0, 0.1 * Math.sqrt(points.geometricError));
+            pointsCallback: (points, geometricError) => {
+                points.material.size = 1*Math.max(1.0, 0.1 * Math.sqrt(geometricError));
                 points.material.sizeAttenuation = true;
+                points.material.receiveShadow = false;
+                points.material.castShadow = false;
             }
         });
         this.tileset = new OGC3DTile({
@@ -277,6 +280,7 @@ class OGC3DTilesLayer extends Layer {
             tileLoader: tileLoader,
             renderer: map.renderer,
             proxy: self.proxy,
+            static:true,
             queryParams: self.queryParams,
             displayErrors: self.displayErrors,
             displayCopyright: self.displayCopyright,
@@ -284,17 +288,25 @@ class OGC3DTilesLayer extends Layer {
             loadingStrategy: self.loadingStrategy
         });
 
+        this.object3D = new THREE.Object3D();
+        this.object3D.add(this.tileset);
+        this.object3D.updateMatrix();
+        this.object3D.updateMatrixWorld(true);
+        
+        
+        
+
     }
     setPlanet(planet) {
         this.planet = planet;
-        this.updateLocation();
+        
     }
 
     addToScene(scene, camera) {
         this.scene = scene;
         this.camera = camera;
-        scene.add(this.tileset);
-
+        scene.add(this.object3D);
+        this.updateLocation();
     }
 
     update(camera) {
@@ -315,12 +327,16 @@ class OGC3DTilesLayer extends Layer {
             //quaternionSelfRotation
             quaternionToEarthNormalOrientation.setFromUnitVectors(up, orientationHelper.copy(cartesianLocation).normalize());
             quaternionSelfRotation.setFromEuler(this.rotation);
-            this.tileset.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-            this.tileset.position.copy(cartesianLocation);
-            this.tileset.scale.set(this.scale, this.scale, this.scale);
+            this.object3D.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+            this.object3D.position.copy(cartesianLocation);
+            this.object3D.scale.set(this.scale, this.scale, this.scale);
+            
+            /* let matrix = new THREE.Matrix4();
+            matrix.compose(cartesianLocation, quaternionToEarthNormalOrientation.multiply(quaternionSelfRotation), new THREE.Vector3(this.scale, this.scale, this.scale));
 
-
-            if (this.boundingMesh) {
+            this.tileset.updateMatrix();
+            this.tileset.matrix.multiply(matrix); */
+            /* if (this.boundingMesh) {
                 this.boundingMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
                 this.boundingMesh.position.copy(cartesianLocation);
                 this.boundingMesh.scale.set(this.scale, this.scale, this.scale);
@@ -333,13 +349,16 @@ class OGC3DTilesLayer extends Layer {
                 this.selectionMesh.updateMatrix();
                 this.selectionMesh.updateMatrixWorld();
 
-            }
+            } */
         }
-
+        this.object3D.updateMatrix(true);
+        this.object3D.updateWorldMatrix(false, false);
+        this.tileset.updateMatrices();
 
     }
 
     dispose() {
+        this.scene.remove(this.object3D);
         this.tileset.dispose();
         if (this.updateInterval) this.updateInterval.clearInterval();
     }
@@ -368,6 +387,10 @@ class OGC3DTilesLayer extends Layer {
         }
 
     }
+}
+
+function _updateTileLoaders(){
+    tileLoaders.forEach(tileLoader=>tileLoader.update());
 }
 export { OGC3DTilesLayer }
 
