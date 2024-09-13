@@ -607,11 +607,17 @@ const PostShader = {
 								float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, worldDir, cloudDepth);
 								cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.1));
 								
-
-								vec3 atmosphereColorCloud = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(1.0,1.0,1.0), cloudsMieFactor);
+								`
+								if (!!atmosphere) {
+									code+=`vec3 atmosphereColorCloud = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(1.0,1.0,1.0), cloudsMieFactor);`;
+								}else{
+									code+=`vec3 atmosphereColorCloud = vec3(1.0);`;
+								}
+								code+=
+								`
+								
 								
 								cl.xyz = mix(cl.xyz,atmosphereColorCloud, cloudsMieFactor);
-								//cl.xyz = vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `);
 							}
 
 							if(cameraHeightAboveEllipsoid<0.0){
@@ -1583,12 +1589,16 @@ const PostShader = {
 			code += `
 					vec4 cl = texture2D(tClouds, vUv);
 					float cloudDepth = texture2D(tCloudsDepth, vUv).x;
-					if(cl.w > 0.0){
+					`;
+					
+					if(!!atmosphere){
+						code+=`
+						if(cl.w > 0.0){
 						float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, rayDirection, cloudDepth);
 						cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.1));
 						cloudsMieFactor-=(1.0-shade);
-						//cloudAtmosphereDepth = pow(cloudAtmosphereDepth,0.1);
 
+						
 						vec3 atmosphereColorCloud = mix(atmosphereColorBeforeMie, vec3(1.0,1.0,1.0), cloudsMieFactor);
 						vec3 atmosphereColorShadeCloud = vec3(
 							mix(atmosphereColorCloud.x,0.6+shade,pow(s,160.0*atm)),
@@ -1599,6 +1609,10 @@ const PostShader = {
 						cl.xyz = mix(cl.xyz,atmosphereColorCloud*shade, cloudsMieFactor);
 						//cl.xyz = vec3(atmosphereColorBeforeMie);
 					}
+						`;
+					}
+					code+=`
+					
 					if(cameraHeightAboveEllipsoid<0.0){
 						diffuse = mix(diffuse, cl.xyz, cl.w);
 					}

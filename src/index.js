@@ -254,14 +254,16 @@ function setupMap(globalElevationMap) {
 
     let map = new Map({
         divID: 'screen',
-        atmosphere: true,
-        shadows: true,
-        space: true,
         clock: true,
-        debug: true,
-        loadOutsideView: false,
-        ocean: false,//generateLiquidColor(),
-        tileSize: 64
+    shadows: true,
+    debug: false,
+    detailMultiplier: 1.0,
+    ocean: false,
+    atmosphere: false,
+    atmosphereDensity: 1.0,
+    sun: true,
+    rings:false,
+    space: true
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
