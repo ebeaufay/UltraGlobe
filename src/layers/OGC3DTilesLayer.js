@@ -311,11 +311,14 @@ class OGC3DTilesLayer extends Layer {
     }
 
     update(camera) {
-        const stats = this.tileset.update(camera);
-        if(!!this.updateCallback){
-            this.updateCallback(stats);
+        if(!this.paused && this.visible){
+            const stats = this.tileset.update(camera);
+            if(!!this.updateCallback){
+                this.updateCallback(stats);
+            }
+            this.tileset.tileLoader.update();
         }
-        this.tileset.tileLoader.update();
+        
     }
     updateLocation() {
 

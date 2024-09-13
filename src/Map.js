@@ -57,7 +57,6 @@ class Map {
     * @param {Boolean|THREE.Vector3} [properties.ocean=false] if true displays a blue ocean but a specific ocean color can be specified.
     * @param {THREE.DataTexture} [properties.globalElevation=false] A texture representing the global elevation (equidistant cylindrical projection) used for post processing effects.
     * @param {Boolean|Object} [properties.rings = false] Rings properties, if undefined, no rings are drawn 
-    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
     * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
     * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
@@ -69,6 +68,7 @@ class Map {
     * @param {Number} [properties.rings.outerRadius=this.rings.innerRadius+(0.1+Math.random())*6378137.0] the rings outer radius
     * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
     * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
+    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Number} [properties.space.starsIntensity=0.75] The intensity of stars
     * @param {Number} [properties.space.gasCloudsIntensity=0.25] the intensity of nebula like gasClouds
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
@@ -493,6 +493,7 @@ class Map {
                 nebulaTexture: { value: null },
                 nebulaPalette: { value: null },
                 tClouds: { value: null },
+                tCloudsDepth: { value: null },
                 time: { value: 0.0 },
                 atmosphereDensity: { value: this.atmosphereDensity}
             },
@@ -886,6 +887,7 @@ class Map {
                     self.cloudsLayer.updateUniforms(self);
                     self.cloudsLayer.render(self);
                     self.postMaterial.uniforms.tClouds.value = self.cloudsLayer.getOutputTexture();
+                    self.postMaterial.uniforms.tCloudsDepth.value = self.cloudsLayer.getOutputDepthTexture();
                 }
 
                 

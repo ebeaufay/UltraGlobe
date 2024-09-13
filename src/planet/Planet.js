@@ -12,7 +12,7 @@ const mat = new THREE.Matrix4();
  */
 class Planet extends Object3D {
 
-    
+
     /**
      * 
      * @param {Object} properties 
@@ -39,6 +39,8 @@ class Planet extends Object3D {
         self.llhToCartesian = TRANSFORM.transform("EPSG:4326", 'EPSG:4978');
         self.camera = properties.camera;
 
+        self.shadows = properties.shadows;
+
         /* self.a = 6378137.0;
         self.w = 7292115E-11;
         self.f = 0.00335281066;
@@ -56,50 +58,50 @@ class Planet extends Object3D {
 
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
+            layerManager: self.layerManager, planet: this, level: 0, shadows: self.shadows, detailMultiplier: properties.detailMultiplier,
             tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize, loadOutsideView: properties.loadOutsideView
         }));
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
-            layerManager: self.layerManager, planet: this, level: 0, shadows: properties.shadows, detailMultiplier:properties.detailMultiplier,
+            layerManager: self.layerManager, planet: this, level: 0, shadows: self.shadows, detailMultiplier: properties.detailMultiplier,
             tileSize: properties.tileSize, tileImagerySize: properties.tileImagerySize, loadOutsideView: properties.loadOutsideView
         }));
 
         self.matrixAutoUpdate = false;
         this.lastUpdateIndex = 0;
         this.tilesToUpdate;
-        
 
         
+
     }
 
-    update(){
+    update() {
         const self = this;
         if (!self.pause) {
             let startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-            
+
             frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
 
-            if(!self.tilesToUpdate || self.lastUpdateIndex>= self.tilesToUpdate.length){
+            if (!self.tilesToUpdate || self.lastUpdateIndex >= self.tilesToUpdate.length) {
                 self.tilesToUpdate = [];
                 self.lastUpdateIndex = 0;
-                self.traverse(o=>{
-                    if(o.isPlanetTile){
+                self.traverse(o => {
+                    if (o.isPlanetTile) {
                         self.tilesToUpdate.push(o);
                     }
                 });
-                self.tilesToUpdate.sort((a,b)=>b.level - a.level);
+                self.tilesToUpdate.sort((a, b) => b.level - a.level);
             }
-            while(self.lastUpdateIndex<self.tilesToUpdate.length){
+            while (self.lastUpdateIndex < self.tilesToUpdate.length) {
                 self.tilesToUpdate[self.lastUpdateIndex].update(self.camera, frustum, self.renderer);
                 self.lastUpdateIndex++;
-                if(self.lastUpdateIndex>=self.tilesToUpdate.length){
-                    
+                if (self.lastUpdateIndex >= self.tilesToUpdate.length) {
+
                     self.tilesToUpdate = undefined;
                     break;
                 }
-                const timeSpent = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now())-startTime
-                if(timeSpent>=0.5){ // spend no more than a millisecond on this before freeing up the CPU
+                const timeSpent = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()) - startTime
+                if (timeSpent >= 0.5) { // spend no more than a millisecond on this before freeing up the CPU
                     break;
                 }
             }
@@ -150,7 +152,7 @@ class Planet extends Object3D {
 
     setElevationExageration(elevationExageration) {
         this.elevationExageration = elevationExageration;
-        this.children.forEach(planetTile => planetTile.setElevationExageration());
+        this.children.forEach(planetTile => { if (planetTile.isPlanetTile) planetTile.setElevationExageration() });
     }
 
 

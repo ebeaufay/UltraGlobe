@@ -1,4 +1,4 @@
-import { RasterLayer } from "./RasterLayer";
+import { VISIBILITY_CHANGE } from "./Layer";
 import { ShaderColorLayer } from "./ShaderColorLayer";
 const LAYERS_CHANGED = "layers-changed";
 /**
@@ -30,6 +30,11 @@ class LayerManager{
         for (const element in this.listeners) {
             this.listeners[element](LAYERS_CHANGED, layer);
         }
+        layer.addListener("layerManager", (event, layer)=>{
+            for (const element in this.listeners) {
+                this.listeners[element](event, layer);
+            }
+        })
     }
 
     /**
@@ -84,6 +89,14 @@ class LayerManager{
     _getRasterLayers(sideEffect){
         this.layers.forEach(element => {
             if(element.isRasterLayer){
+                sideEffect.push(element);
+            }
+        });
+        return sideEffect;
+    }
+    _getImageryLayers(sideEffect){
+        this.layers.forEach(element => {
+            if(element.isImageryLayer){
                 sideEffect.push(element);
             }
         });

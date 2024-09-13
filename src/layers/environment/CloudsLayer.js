@@ -96,6 +96,9 @@ class CloudsLayer extends EnvironmentLayer {
     getOutputTexture(){
         return cloudsBlurTarget2.texture;
     }
+    getOutputDepthTexture(){
+        return cloudsTarget.textures[1];
+    }
 
     
 
@@ -206,11 +209,11 @@ class CloudsLayer extends EnvironmentLayer {
         const self = this;
 
         if (!cloudsTarget) {
-            cloudsTarget = new THREE.WebGLRenderTarget(Math.floor(map.domContainer.offsetWidth * self.resolution), Math.floor(map.domContainer.offsetHeight * self.resolution), {count:2});
+            cloudsTarget = new THREE.WebGLRenderTarget(Math.floor(map.domContainer.offsetWidth * self.resolution), Math.floor(map.domContainer.offsetHeight * self.resolution), {count:2,  samples:0});
             cloudsTarget.stencilBuffer = false;
             cloudsTarget.depthBuffer = false;
             cloudsTarget.textures[0].format = THREE.RGBAFormat;
-            cloudsTarget.textures[0].colorSpace = THREE.SRGBColorSpace;
+            cloudsTarget.textures[0].colorSpace = THREE.LinearSRGBColorSpace;
             cloudsTarget.textures[0].minFilter = THREE.LinearFilter;
             cloudsTarget.textures[0].magFilter = THREE.LinearFilter;
             cloudsTarget.textures[0].generateMipmaps = false;

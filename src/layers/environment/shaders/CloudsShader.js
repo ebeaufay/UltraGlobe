@@ -19,7 +19,7 @@ float sampleDensity(vec3 samplePosition, float lod){
     if(localDensity<=0.0) return -1.0;
     localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-6).r-0.4-(1.0-sm)),1.0);
     if(localDensity<=0.0) return -1.0;
-    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*5e-6).r-(1.0-sm)),1.0);
+    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-5).r-(1.0-sm)),1.0);
     if(localDensity<=0.0) return -1.0;
     localDensity *= 50.0;
     return localDensity;
@@ -447,10 +447,7 @@ const CloudsShader = {
 	}`,
 
 	fragmentShader: (ocean, atmosphere, sunColor, sampleDensityFunction, extraUniforms) => {
-		if (!atmosphere || !atmosphere.isVector3) {
-			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
-		}
-		const atmosphereHighlight = new THREE.Vector3(Math.pow(atmosphere.x, 1.0), Math.pow(atmosphere.y, 1.0), Math.pow(atmosphere.z, 1.0));
+		
 		//ocean = false;
 		let code = /* glsl */`
 		precision highp sampler3D;
@@ -854,7 +851,7 @@ const CloudsShader = {
 				pc_fragColor = vec4(
 					mix(
 						vec3(mix(0.35, 1.0, blend.x),mix(0.45, 1.0, blend.x),mix(0.65, 1.0, blend.x)),
-						vec3(`+ atmosphereHighlight.x.toFixed(2) + `,` + atmosphereHighlight.y.toFixed(2) + `,` + atmosphereHighlight.z.toFixed(2) + `),
+						vec3(0.2),
 						lengthThroughAtmosphere),
 					blend.y
 				); 
@@ -870,9 +867,7 @@ const CloudsShader = {
 	},
 
 	fragmentShaderShadows: (ocean, atmosphere, sunColor, densityFunction, extraUniforms) => {
-		if (!atmosphere || !atmosphere.isVector3) {
-			atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
-		}
+		
 		let code = /* glsl */`
 		
 
@@ -1270,8 +1265,8 @@ const CloudsShader = {
 					float depth = length(nonPostCameraPosition-surfacePosition);
 					gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
 					float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
-					vec3 fullDarkColor = vec3(`+ Math.pow(atmosphere.x, 0.5).toFixed(2) + `,` + Math.pow(atmosphere.y, 0.5).toFixed(2) + `,` + Math.pow(atmosphere.z, 0.5).toFixed(2) + `) * dotLight*0.5;
-					vec3 fullLightColor = color;
+					vec3 fullDarkColor = vec3(dotLight*0.2);
+					vec3 fullLightColor = vec3(1.0);
 
 					//pc_fragColor = vec4(light1*0.5, density1);
 					pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));

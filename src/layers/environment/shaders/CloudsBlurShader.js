@@ -46,7 +46,7 @@ const CloudsBlurShader = {
 		
 		float toRealDepth(float normalizedCloudDepth ){
 			return mix(cameraNear, cameraFar, normalizedCloudDepth);
-			return (normalizedCloudDepth*(cameraFar-cameraNear))+cameraNear;
+			//return (normalizedCloudDepth*(cameraFar-cameraNear))+cameraNear;
 		}
 
 		

@@ -21,7 +21,7 @@ class Layer {
         }else{
             this.bounds = new THREE.Box2(new THREE.Vector2(-180,-90), new THREE.Vector2(180,90));
         }
-        this.visible = properties.visible? properties.visible: true;
+        this.visible = properties.visible != undefined? properties.visible: true;
         this.listeners = {};
     }
 

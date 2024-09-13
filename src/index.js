@@ -115,7 +115,8 @@ var jetElevationShaderLayer = new JetElevation({
     min: -0,
     max: 8800,
     bounds: [-180, -90, 180, 90],
-    transparency: 0.5
+    transparency: 0.5,
+    visible: false
 })
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
@@ -216,7 +217,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
 });
-/* var environmentLayer = new RandomCloudsLayer({
+ var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.4,
@@ -225,7 +226,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     minHeight:2000,
     maxHeight:10000,
     quality:0.5
-}); */
+}); 
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
@@ -256,7 +257,7 @@ function setupMap(globalElevationMap) {
         atmosphere: true,
         shadows: true,
         space: true,
-        clock: false,
+        clock: true,
         debug: true,
         loadOutsideView: false,
         ocean: false,//generateLiquidColor(),
@@ -320,9 +321,14 @@ function setupMap(globalElevationMap) {
     map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
-    map.setLayer(jetElevationShaderLayer, 7);
-    //map.setLayer(environmentLayer, 8);
+    //map.setLayer(jetElevationShaderLayer, 7);
+    map.setLayer(environmentLayer, 8);
+    //map.setElevationExageration(100);
+    /* setTimeout(()=>{
 
+        jetElevationShaderLayer.setVisible(false);
+        shaderLayer.setVisible(true);
+    },4000) */
 
 
     /* gltfLoader.load("http://localhost:8081/billy_meier_ufo.glb", gltf=>{

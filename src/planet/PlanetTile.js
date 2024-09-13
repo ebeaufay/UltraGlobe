@@ -109,6 +109,7 @@ function planetTileUpdate() {
 function now() {
     return (typeof performance === 'undefined' ? Date : performance).now(); // see #10732
 }
+let planetTileIndexCounter = 0;
 
 class PlanetTile extends Mesh {
 
@@ -117,6 +118,7 @@ class PlanetTile extends Mesh {
 
         super();
         const self = this;
+        self.planetTileUid = "planetTile"+ (planetTileIndexCounter++);
         self.matrixAutoUpdate = false;
         self.tileSize = properties.tileSize ? properties.tileSize : TILE_SIZE;
         self.tileImagerySize = properties.tileImagerySize ? properties.tileImagerySize : TILE_IMAGERY_SIZE;
@@ -155,9 +157,11 @@ class PlanetTile extends Mesh {
 
 
         //Listen to changes in the list of layers, rebuild material if raster layer
-        self.layerManager.addListener(self, (eventName, layer) => {
+        self.layerManager.addListener(self.planetTileUid, (eventName, layer) => {
             if (LAYERS_CHANGED === eventName && layer instanceof RasterLayer) {
                 scheduleLoadLayers(self);
+            }else{
+                this.buildMaterial(self)
             }
         });
 
@@ -458,10 +462,10 @@ class PlanetTile extends Mesh {
      * Rebuilds the material completely. This method should be called when the number of imagery layers changes.
      */
     buildMaterial(self) {
-        let numLayers = 0;
         let shaderColorLayerCode;
         let shaderColorLayerTransparency = 0;
         let shaderColorLayerTextures;
+        let numLayers = 0;
         for (const id in self.layerDataMap) {
             if (self.layerDataMap.hasOwnProperty(id)) {
                 if (self.layerDataMap[id].layer && self.layerDataMap[id].layer.isImageryLayer) {
@@ -479,7 +483,7 @@ class PlanetTile extends Mesh {
 
 
         numLayers = Math.max(numLayers, 1);
-
+        //self.material.needsUpdate = true; 
 
         if (self.material) {
             self.material.dispose();
@@ -488,6 +492,10 @@ class PlanetTile extends Mesh {
             self.skirt.material.dispose();
         }
         self.material = new MeshStandardMaterial();
+        self.material.customProgramCacheKey = function() {
+            return "planetTile";  // or another unique identifier
+        };
+        self.material.needsUpdate = true;
         self.material.uid = sid++;
         self.material.side = THREE.FrontSide;
         if (self.shadows) {
@@ -521,10 +529,11 @@ class PlanetTile extends Mesh {
                 '#include <color_fragment>',
                 PlanetTileShaderChunks.fragmentMain(shaderColorLayerCode, shaderColorLayerTransparency)
             );
-
+            
         };
 
 
+        
         self.material.visible = false;
         self.material.wireframe = false;
         self.material.fog = false;
@@ -532,6 +541,7 @@ class PlanetTile extends Mesh {
         self.material.metalness = 0.0;
         self.material.roughness = 1.0;
         self.skirt.material = self.material;
+        self.material.needsUpdate = true;
 
     }
     setElevationExageration() {
@@ -636,9 +646,9 @@ class PlanetTile extends Mesh {
                     if (index !== -1) {
                         tilesToLoad.splice(index, 1);
                     }
-                    self.layerManager.removeListener(element);
+                    self.layerManager.removeListener(element.planetTileUid);
                     self.layerManager.getLayers().forEach(layer => {
-                        layer.removeListener(element);
+                        layer.removeListener(element.planetTileUid);
                     });
                     element.mapRequests.forEach(e => {
                         if (e instanceof Promise) {
