@@ -112,7 +112,7 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 
 Other demos:
 
-[Shadow analysis](https://www.jdultra.com/sunny/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
+[Shadow analysis](https://www.jdultra.com/sunny/index.html)
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
 
