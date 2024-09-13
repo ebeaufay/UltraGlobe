@@ -60,6 +60,8 @@ class Map {
     * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
     * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
     * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
+    * @param {Boolean} [properties.loadOutsideView = false] loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
+    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Boolean} [properties.clock.timezone = false] add time-zone select widget.
     * @param {Boolean} [properties.clock.dateTimePicker = false] add date picker widget.
     * @param {THREE.Vector3} [properties.rings.origin=new THREE.Vector3()] the center point of the rings
@@ -68,13 +70,11 @@ class Map {
     * @param {Number} [properties.rings.outerRadius=this.rings.innerRadius+(0.1+Math.random())*6378137.0] the rings outer radius
     * @param {Number} [properties.rings.colorMap=Math.random()] a modulation on the ring colors
     * @param {Number} [properties.rings.colorMapDisplace=Math.random()] rings displacement in a loop
-    * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
     * @param {Number} [properties.space.starsIntensity=0.75] The intensity of stars
     * @param {Number} [properties.space.gasCloudsIntensity=0.25] the intensity of nebula like gasClouds
     * @param {Number} [properties.space.colorMap=Math.random()] a modulation on gas cloud colors
     * @param {Number} [properties.space.texRotation1= Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
     * @param {Number} [properties.space.texRotation2 = Math.random()*Math.PI] a texture rotation to avoid obvious repetition.
-    * @param {Boolean} [properties.loadOutsideView = false] loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
     * 
     */
     constructor(properties) {
