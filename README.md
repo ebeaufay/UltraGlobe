@@ -41,13 +41,80 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 
 ## Demos
 
-[Google Map Tile API](https://www.jdultra.com/mapTiles/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/6552990b-80ed-419c-9165-69b0c9fd8415" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Getting started JS</a>    <a href="https://link2.com">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStartedTS">Getting started TS</a>   <a href="https://link3.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/8e232c42-9a05-4eef-baea-056c1fd9cd81" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Google 3D Tiles</a>  <a href="https://link2.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/864538b3-eeb7-445d-8476-44c3bc67e136" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Custom data through three.js</a>    <a href="https://link2.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/d9198a74-8024-4daf-aec7-51456c7b8f80" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Volumetric clouds NOAA forecast connector</a>    <a href="https://link2.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/e16e7779-b6d6-4e04-abee-adf6383e9ff8" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">programmable shader layers</a>    <a href="https://link2.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/359c959b-96da-49ba-9439-0d058e82d876" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">procedurally generated data</a>    <a href="https://link2.com">code</a></div>
+    </td>
+  </tr>
+</table>
+
+
+Other demos:
 
 [Shadow analysis](https://www.jdultra.com/sunny/index.html) limited availability from google API. if the quotas are used up, try again tomorrow.
 
 [3DTiles](https://ebeaufay.github.io/UltraGlobeDemo/)
-
-[Berlin (3 km²)](https://www.jdultra.com/berlin/index.html)
 
 [Geoid](https://storage.googleapis.com/jdultra.com/geoid/index.html)
 
@@ -59,9 +126,6 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 
 [More controls for selecting and moving 3DTiles tilesets](https://storage.googleapis.com/jdultra.com/tilesetplacement/index.html)
 
-[Random planet](https://www.jdultra.com/random/index.html)
-
-[Volumetric Clouds](https://www.jdultra.com/clouds/index.html).
 
 ## Latest development
 OGC3DTiles now have an alternate "immediate" loading mode that skips intermediate LODs which is faster overall but holes can appear when the camera moves.
