@@ -864,7 +864,6 @@ class Map {
             self.planet.update();
 
             if(delta < 1000/self.targetFPS) {
-                console.log("skipped")   
                 return;
             }
             lastTime = performance.now();
