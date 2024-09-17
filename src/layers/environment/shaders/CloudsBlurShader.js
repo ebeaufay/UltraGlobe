@@ -49,67 +49,60 @@ const CloudsBlurShader = {
 			//return (normalizedCloudDepth*(cameraFar-cameraNear))+cameraNear;
 		}
 
-		
+		float whiteNoise(vec2 uv) {
+    		return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453123);
+		}
 		
 		void main() {
 
-			vec4 center = texture2D( image, vUv );
-			if(center.a == 0.0) return;
-			//gl_FragColor = vec4(center.a, 0.0,0.0,center.a);
-			//return;
-			float cloudD = texture2D(cloudsDepth,vUv).x;
-			
-			vec4 noise = texture(noise2D, fract((vUv*4.0)));
-			vec2 offsetRand = (offset*0.5+offset*noise.xw)*min(max(cloudD*4.0,0.5),1.0)*pow(center.a,2.0);
-			//vec2 offsetRand = (offset)*min(0.8,cloudD*4.0*center.a);//min(max(cloudD*4.0,0.5),1.0);
-			
-			
-			vec2 uv1 = vUv + offsetRand;
-			vec2 uv2 = vUv - offsetRand;
-			vec2 uv3 = vUv + offsetRand * vec2( 1., -1. );
-			vec2 uv4 = vUv + offsetRand * vec2( -1., 1. );
+    vec4 center = texture2D(image, vUv);
+    if (center.a == 0.0) return;
 
-			
-			vec4 a = texture2D( image, uv1 );
-			vec4 b = texture2D( image, uv2 );
-			vec4 c = texture2D( image, uv3 );
-			vec4 d = texture2D( image, uv4 );
-			
-			
-			
-			float centerDepth = readDepth( tDepth, vUv );
-			float centerOrder = step(centerDepth, toRealDepth(cloudD));
-			
+    // Fetch cloud depth and generate noise
+    float cloudD = texture2D(cloudsDepth, vUv).x;
+    float noiseX = whiteNoise(vUv * 4.0);
+    float noiseY = whiteNoise(vUv * 4.0 + vec2(0.0, 1.0));
+    vec2 noiseVec = vec2(noiseX, noiseY);
 
-			float centerLuminosity = (center.r*0.2126 + center.g*0.7152 + center.b*0.0722);
+    // Compute scaling factors
+    float cloudFactor = cloudD * 4.0;
+    float alphaFactor = center.a * center.a;
+    float scaleFactor = clamp(cloudFactor * alphaFactor, 0.5, 1.0);
 
-			//float localOrder = step(readDepth( tDepth, uv1 ), toRealDepth(texture2D(cloudsDepth,uv1).x));
-			float w = 1.0;
-			w*=pow(a.a,2.0);
-			vec4 newColor = mix(center,a,w);
-			gl_FragColor += 0.25*newColor;
+    // Calculate random offset
+    vec2 offsetRand = offset * scaleFactor * (0.5 + noiseVec);
 
-			//localOrder = step(readDepth( tDepth, uv2 ), toRealDepth(texture2D(cloudsDepth,uv2).x));
-			w = 1.0;
-			w*=pow(b.a,2.0);
-			newColor = mix(center,b,w);
-			gl_FragColor += 0.25*newColor;
+    // Compute sample coordinates
+    vec2 uv1 = vUv + offsetRand;
+    vec2 uv2 = vUv - offsetRand;
+    vec2 uv3 = vUv + offsetRand * vec2(1.0, -1.0);
+    vec2 uv4 = vUv + offsetRand * vec2(-1.0, 1.0);
 
-			//localOrder = step(readDepth( tDepth, uv3 ), toRealDepth(texture2D(cloudsDepth,uv3).x));
-			w = 1.0;
-			w*=pow(c.a,2.0);
-			newColor = mix(center,c,w);
-			gl_FragColor += 0.25*newColor;
+    // Fetch neighboring samples
+    vec4 a = texture2D(image, uv1);
+    vec4 b = texture2D(image, uv2);
+    vec4 c = texture2D(image, uv3);
+    vec4 d = texture2D(image, uv4);
 
-			//localOrder = step(readDepth( tDepth, uv4 ), toRealDepth(texture2D(cloudsDepth,uv4).x));
-			w = 1.0;
-			w*=pow(d.a,2.0);
-			newColor = mix(center,d,w);
-			gl_FragColor += 0.25*newColor;
-			gl_FragColor.w = gl_FragColor.w;
-			
-			
-		}`;
+    // Initialize the output color
+    gl_FragColor = vec4(0.0);
+
+    // Define a function-like macro for repeated calculations (optional)
+    #define APPLY_SAMPLE(sampleColor) { \
+        float diff = 1.0 - abs(center.a - sampleColor.a); \
+        float w = diff * diff * diff * diff; \
+        gl_FragColor += 0.25 * mix(center, sampleColor, w); \
+    }
+
+    // Apply samples
+    APPLY_SAMPLE(a);
+    APPLY_SAMPLE(b);
+    APPLY_SAMPLE(c);
+    APPLY_SAMPLE(d);
+
+    // Preserve the alpha channel
+    gl_FragColor.a = center.a;
+}`;
 
 
 

@@ -3,15 +3,16 @@ import {CloudsLayer} from './CloudsLayer'
 
 let defaultSampleDensityFunction = `
 float sampleDensity(vec3 samplePosition, float lod){
-	vec3 samplePositionNormalized = normalize(samplePosition);
+    vec3 samplePositionNormalized = normalize(samplePosition);
     vec2 lonlatSample = vec2(atan(samplePositionNormalized.y, samplePositionNormalized.x),asin(samplePositionNormalized.z));
 	float localRadius = getEarthRadiusAtLatitude(lonlatSample.y);
 	float height = (length(samplePosition)-localRadius-startRadius) / (endRadius-startRadius);
     float sm= smoothstep(0.0,0.2,height) * (smoothstep(1.0,0.8,height));
+    float altitudeFactor = smoothstep(0.0,1.0,height);
 
-    float theta = time*windSpeed*0.00001;
+    float theta = time*windSpeed*0.000001;
     vec3 offsetPosition = vec3( samplePosition.x * cos(theta) - samplePosition.y * sin(theta), samplePosition.x * sin(theta) + samplePosition.y * cos(theta), samplePosition.z);
-    vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).g), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).g, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).g);
+    vec3 offset = vec3((texture(perlinWorley, samplePosition*3e-8).g), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*3e-8).g, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*3e-8).g);
     
     
 
@@ -19,25 +20,25 @@ float sampleDensity(vec3 samplePosition, float lod){
 
     //low frequency
     float lowFrequencyCoverage = coverage*0.2;
-    density += ((texture(perlinWorley, offsetPosition*2e-8+offset*1.5).r-(1.0-lowFrequencyCoverage))/lowFrequencyCoverage)*0.5;
+    density += ((texture(perlinWorley, offsetPosition*1e-7+(altitudeFactor*0.01)+offset*1.5+time*windSpeed*0.000001).r-(1.0-lowFrequencyCoverage))/lowFrequencyCoverage)*0.5;
     float lod3 = density-(1.0-sm);
     if(lod>=3.0)return lod3;
 
     //medium frequency
     float mediumFrequencyCoverage = coverage*0.2;
-    density += ((texture(perlinWorley, offsetPosition*8e-6).r-(1.0-mediumFrequencyCoverage))/mediumFrequencyCoverage)*0.25;
+    density += ((texture(perlinWorley, offsetPosition*8e-6+(altitudeFactor*0.05)+time*windSpeed*0.00001).r-(1.0-mediumFrequencyCoverage))/mediumFrequencyCoverage)*0.25;
     if(density<-0.25) return -1.0;
     float lod2 = density-(1.0-sm);
     if(lod>=2.0) return mix(lod2, lod3, pow(lod-2.0,2.0));
 
     //high frequency
-    density += ((texture(perlinWorley, offsetPosition*2e-5).r-(1.0-0.15))/0.15)*0.125;
+    density += ((texture(perlinWorley, offsetPosition*8e-5+(altitudeFactor*0.1)+time*windSpeed*0.0001).r-(1.0-0.15))/0.15)*0.125;
     if(density<-0.1) return -1.0;
     float lod1 = density-(1.0-sm);
     if(lod>=1.0) return mix(lod1, lod2, pow(lod-1.0,2.0));
 
     //ultra high frequency
-    density += ((texture(perlinWorley, offsetPosition*8e-5).r-(1.0-0.15))/0.15)*0.125;
+    density += ((texture(perlinWorley, offsetPosition*1e-4+time*windSpeed*0.0003).r-(1.0-0.15))/0.15)*0.125;
     return density-(1.0-sm);
 
     

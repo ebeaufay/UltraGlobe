@@ -217,15 +217,15 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
 });
- var environmentLayer = new RandomCloudsLayer({
+var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage:0.4,
-    debug:true,
-    windSpeed: 0.02,
+    debug:false,
+    windSpeed: 0.08,
     minHeight:2000,
     maxHeight:10000,
-    quality:0.5
+    quality:1.0
 }); 
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
@@ -258,12 +258,13 @@ function setupMap(globalElevationMap) {
     shadows: true,
     debug: false,
     detailMultiplier: 1.0,
-    ocean: false,
-    atmosphere: false,
+    ocean: true,
+    atmosphere: true,
     atmosphereDensity: 1.0,
     sun: true,
-    rings:false,
-    space: true
+    rings:true,
+    space: true,
+    tileSize: 64
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -316,13 +317,13 @@ function setupMap(globalElevationMap) {
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
     map.moveAndLookAt({ x:2, y: 40, z: 1000000 }, { x: 2, y: 40, z: 100 });
     //52.50921677914625, 13.405685233710862
-    //map.setLayer(perlinElevation, 0);
-    //map.setLayer(shaderLayer, 1);
+    map.setLayer(perlinElevation, 0);
+    map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    map.setLayer(ogc3dTiles, 3);
-    map.setLayer(earthElevation, 5);
-    map.setLayer(wmsLayer, 4);
+    //map.setLayer(ogc3dTiles, 3);
+    //map.setLayer(earthElevation, 5);
+    //map.setLayer(wmsLayer, 4);
     //map.setLayer(jetElevationShaderLayer, 7);
     map.setLayer(environmentLayer, 8);
     //map.setElevationExageration(100);

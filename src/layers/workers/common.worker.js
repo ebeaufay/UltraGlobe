@@ -245,15 +245,15 @@ const common = {
         
             /* //sample code to merge skirt and tile geometry 
             const indicesBuffer = new ArrayBuffer((indices.length+skirtIndices.length) * Int32Array.BYTES_PER_ELEMENT);
-            const verticesSharedbuffer = new ArrayBuffer((vertices.length+skirts.length) * Float32Array.BYTES_PER_ELEMENT);
-            const normalsSharedbuffer = new ArrayBuffer((normals.length+skirtNormals.length) * Float32Array.BYTES_PER_ELEMENT);
-            const uvsSharedbuffer = new ArrayBuffer((uvs.length + skirtUVs.length) * Float32Array.BYTES_PER_ELEMENT);
+            const verticesbuffer = new ArrayBuffer((vertices.length+skirts.length) * Float32Array.BYTES_PER_ELEMENT);
+            const normalsbuffer = new ArrayBuffer((normals.length+skirtNormals.length) * Float32Array.BYTES_PER_ELEMENT);
+            const uvsbuffer = new ArrayBuffer((uvs.length + skirtUVs.length) * Float32Array.BYTES_PER_ELEMENT);
             
         
             const indicesArray = new Int32Array(indicesBuffer);
-            const verticesArray = new Float32Array(verticesSharedbuffer);
-            const normalsArray = new Float32Array(normalsSharedbuffer);
-            const uvsArray = new Float32Array(uvsSharedbuffer);
+            const verticesArray = new Float32Array(verticesbuffer);
+            const normalsArray = new Float32Array(normalsbuffer);
+            const uvsArray = new Float32Array(uvsbuffer);
         
             // Copy the numbers into the Float32Array
             indicesArray.set(indices, 0);
@@ -267,9 +267,9 @@ const common = {
             return {
                 shift: shift,
                 indices: indicesBuffer,
-                vertices: verticesSharedbuffer,
-                normals: normalsSharedbuffer,
-                uvs: uvsSharedbuffer
+                vertices: verticesbuffer,
+                normals: normalsbuffer,
+                uvs: uvsbuffer
             }
                 */
         
@@ -484,23 +484,23 @@ const common = {
     
     
             const indicesBuffer = new ArrayBuffer(indices.length * Int32Array.BYTES_PER_ELEMENT);
-            const verticesSharedbuffer = new ArrayBuffer(vertices.length * Float32Array.BYTES_PER_ELEMENT);
-            const normalsSharedbuffer = new ArrayBuffer(normals.length * Float32Array.BYTES_PER_ELEMENT);
-            const uvsSharedbuffer = new ArrayBuffer(uvs.length * Float32Array.BYTES_PER_ELEMENT);
+            const verticesbuffer = new ArrayBuffer(vertices.length * Float32Array.BYTES_PER_ELEMENT);
+            const normalsbuffer = new ArrayBuffer(normals.length * Float32Array.BYTES_PER_ELEMENT);
+            const uvsbuffer = new ArrayBuffer(uvs.length * Float32Array.BYTES_PER_ELEMENT);
             
             const skirtIndicesBuffer = new ArrayBuffer(skirtIndices.length * Int32Array.BYTES_PER_ELEMENT);
-            const skirtVerticesSharedbuffer = new ArrayBuffer(skirts.length * Float32Array.BYTES_PER_ELEMENT);
-            const skirtNormalsSharedbuffer = new ArrayBuffer(skirtNormals.length * Float32Array.BYTES_PER_ELEMENT);
-            const skirtUVsSharedbuffer = new ArrayBuffer(skirtUVs.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtVerticesbuffer = new ArrayBuffer(skirts.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtNormalsbuffer = new ArrayBuffer(skirtNormals.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtUVsbuffer = new ArrayBuffer(skirtUVs.length * Float32Array.BYTES_PER_ELEMENT);
         
             const indicesArray = new Int32Array(indicesBuffer);
-            const verticesArray = new Float32Array(verticesSharedbuffer);
-            const normalsArray = new Float32Array(normalsSharedbuffer);
-            const uvsArray = new Float32Array(uvsSharedbuffer);
+            const verticesArray = new Float32Array(verticesbuffer);
+            const normalsArray = new Float32Array(normalsbuffer);
+            const uvsArray = new Float32Array(uvsbuffer);
             const skirtIndicesArray = new Int32Array(skirtIndicesBuffer);
-            const skirtVerticesArray = new Float32Array(skirtVerticesSharedbuffer);
-            const skirtNormalsArray = new Float32Array(skirtNormalsSharedbuffer);
-            const skirtUVsArray = new Float32Array(skirtUVsSharedbuffer);
+            const skirtVerticesArray = new Float32Array(skirtVerticesbuffer);
+            const skirtNormalsArray = new Float32Array(skirtNormalsbuffer);
+            const skirtUVsArray = new Float32Array(skirtUVsbuffer);
         
             // Copy the numbers into the Float32Array
             indicesArray.set(indices);
@@ -514,13 +514,13 @@ const common = {
             return {
                 shift: shift,
                 indices: indicesBuffer,
-                vertices: verticesSharedbuffer,
-                normals: normalsSharedbuffer,
-                uvs: uvsSharedbuffer,
+                vertices: verticesbuffer,
+                normals: normalsbuffer,
+                uvs: uvsbuffer,
                 skirtIndices: skirtIndicesBuffer,
-                skirts: skirtVerticesSharedbuffer,
-                skirtNormals: skirtNormalsSharedbuffer,
-                skirtUVs: skirtUVsSharedbuffer
+                skirts: skirtVerticesbuffer,
+                skirtNormals: skirtNormalsbuffer,
+                skirtUVs: skirtUVsbuffer
             }
         
         };
@@ -658,23 +658,23 @@ const common = {
             }
         
             const indicesBuffer = new ArrayBuffer(indices.length * Int32Array.BYTES_PER_ELEMENT);
-            const verticesSharedbuffer = new ArrayBuffer(vertices.length * Float32Array.BYTES_PER_ELEMENT);
-            const normalsSharedbuffer = new ArrayBuffer(normals.length * Float32Array.BYTES_PER_ELEMENT);
-            const uvsSharedbuffer = new ArrayBuffer(uvs.length * Float32Array.BYTES_PER_ELEMENT);
+            const verticesbuffer = new ArrayBuffer(vertices.length * Float32Array.BYTES_PER_ELEMENT);
+            const normalsbuffer = new ArrayBuffer(normals.length * Float32Array.BYTES_PER_ELEMENT);
+            const uvsbuffer = new ArrayBuffer(uvs.length * Float32Array.BYTES_PER_ELEMENT);
             
             const skirtIndicesBuffer = new ArrayBuffer(skirtIndices.length * Int32Array.BYTES_PER_ELEMENT);
-            const skirtVerticesSharedbuffer = new ArrayBuffer(skirts.length * Float32Array.BYTES_PER_ELEMENT);
-            const skirtNormalsSharedbuffer = new ArrayBuffer(skirtNormals.length * Float32Array.BYTES_PER_ELEMENT);
-            const skirtUVsSharedbuffer = new ArrayBuffer(skirtUVs.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtVerticesbuffer = new ArrayBuffer(skirts.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtNormalsbuffer = new ArrayBuffer(skirtNormals.length * Float32Array.BYTES_PER_ELEMENT);
+            const skirtUVsbuffer = new ArrayBuffer(skirtUVs.length * Float32Array.BYTES_PER_ELEMENT);
         
             const indicesArray = new Int32Array(indicesBuffer);
-            const verticesArray = new Float32Array(verticesSharedbuffer);
-            const normalsArray = new Float32Array(normalsSharedbuffer);
-            const uvsArray = new Float32Array(uvsSharedbuffer);
+            const verticesArray = new Float32Array(verticesbuffer);
+            const normalsArray = new Float32Array(normalsbuffer);
+            const uvsArray = new Float32Array(uvsbuffer);
             const skirtIndicesArray = new Int32Array(skirtIndicesBuffer);
-            const skirtVerticesArray = new Float32Array(skirtVerticesSharedbuffer);
-            const skirtNormalsArray = new Float32Array(skirtNormalsSharedbuffer);
-            const skirtUVsArray = new Float32Array(skirtUVsSharedbuffer);
+            const skirtVerticesArray = new Float32Array(skirtVerticesbuffer);
+            const skirtNormalsArray = new Float32Array(skirtNormalsbuffer);
+            const skirtUVsArray = new Float32Array(skirtUVsbuffer);
         
             // Copy the numbers into the Float32Array
             indicesArray.set(indices);
@@ -688,13 +688,13 @@ const common = {
             return {
                 shift: shift,
                 indices: indicesBuffer,
-                vertices: verticesSharedbuffer,
-                normals: normalsSharedbuffer,
-                uvs: uvsSharedbuffer,
+                vertices: verticesbuffer,
+                normals: normalsbuffer,
+                uvs: uvsbuffer,
                 skirtIndices: skirtIndicesBuffer,
-                skirts: skirtVerticesSharedbuffer,
-                skirtNormals: skirtNormalsSharedbuffer,
-                skirtUVs: skirtUVsSharedbuffer
+                skirts: skirtVerticesbuffer,
+                skirtNormals: skirtNormalsbuffer,
+                skirtUVs: skirtUVsbuffer
             }
         }
         

@@ -127,7 +127,11 @@ module.exports = {
     
     hot: true,
     open: true,
-    port: DEFAULT_WEBPACK_PORT
+    port: DEFAULT_WEBPACK_PORT,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp'
+    },
   },
   resolve: {
 

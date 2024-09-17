@@ -17,9 +17,9 @@ float sampleDensity(vec3 samplePosition, float lod){
     vec3 offset = vec3((texture(perlinWorley, samplePosition*1e-8).r), texture(perlinWorley, (offsetPosition+vec3(435.6,-875.157,69775.419))*1e-8).r, texture(perlinWorley, (offsetPosition+vec3(75358.1287,42247.563,189963.4772))*1e-8).r);
     float localDensity = pow(max(0.0,texture(perlinWorley, offsetPosition*1e-7+offset*0.8).r-0.4-(1.0-sm)),3.0);
     if(localDensity<=0.0) return -1.0;
-    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-6).r-0.4-(1.0-sm)),1.0);
+    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-5).r-0.4-(1.0-sm)),1.0);
     if(localDensity<=0.0) return -1.0;
-    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-5).r-(1.0-sm)),1.0);
+    localDensity *= pow(max(0.0,texture(perlinWorley, offsetPosition*1e-4).r-(1.0-sm)),1.0);
     if(localDensity<=0.0) return -1.0;
     localDensity *= 50.0;
     return localDensity;
@@ -677,7 +677,7 @@ const CloudsShader = {
 				float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 				float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
 				
-				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*3.0))),0.35)*4.0;
+				float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*6.0))),0.35)*4.0;
 				float fraction = distAlongRay/length1;
 
 				vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
@@ -715,7 +715,7 @@ const CloudsShader = {
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
+					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
 					if(localDensityToLight<=0.0) continue;
 					densityToLight +=localDensityToLight;
 					if(densityToLight > 1.0) {
@@ -764,7 +764,7 @@ const CloudsShader = {
 					float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
 				
 					
-					float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*3.0))),0.35)*4.0;
+					float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*6.0))),0.35)*4.0;
 					float fraction = distAlongRay/length2;
 
 					vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
@@ -806,7 +806,7 @@ const CloudsShader = {
 					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -845,14 +845,18 @@ const CloudsShader = {
 				float depth = length(nonPostCameraPosition-surfacePosition);
 				gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
 				float dotLight = 1.0;
-				float lengthThroughAtmosphere = max(0.0,min(1.0,((depth-near1)/400000.0)))*0.25;
 				
-				 vec2 blend = blendBackToFront(vec2(light2,density2), vec2(light1,density1));
+				vec2 blend = blendBackToFront(vec2(light2,density2), vec2(light1,density1));
+				/* float lengthThroughAtmosphere = max(0.0,min(1.0,((depth-near1)/400000.0)))*0.25;
 				pc_fragColor = vec4(
 					mix(
 						vec3(mix(0.35, 1.0, blend.x),mix(0.45, 1.0, blend.x),mix(0.65, 1.0, blend.x)),
 						vec3(0.2),
 						lengthThroughAtmosphere),
+					blend.y
+				);  */
+				pc_fragColor = vec4(
+					vec3(mix(0.25, 1.0, blend.x),mix(0.35, 1.0, blend.x),mix(0.55, 1.0, blend.x)),
 					blend.y
 				); 
 				
@@ -1096,7 +1100,7 @@ const CloudsShader = {
 					float distAlongRayStart = samplePositionAlongRay(near1, far1, i, numSamples);
 					float distAlongRayEnd = samplePositionAlongRay(near1, far1, i+1.0, numSamples);
 				
-					float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*3.0))),0.35)*4.0;
+					float lod = pow(min(1.0,((distAlongRay+near1) / (10000000.0 * quality*6.0))),0.35)*4.0;
 					float fraction = distAlongRay/length1;
 
 					vec3 samplePosition = mix(traverse1Entry,traverse1Exit,fraction);
@@ -1137,7 +1141,7 @@ const CloudsShader = {
 						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -1180,7 +1184,7 @@ const CloudsShader = {
 						float distAlongRayEnd = samplePositionAlongRay(near2, far2, i+1.0, numSamples);
 				
 					
-						float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*3.0))),0.35)*4.0;
+						float lod = pow(min(1.0,((distAlongRay+near2) / (10000000.0 * quality*6.0))),0.35)*4.0;
 						float fraction = distAlongRay/length2;
 
 						vec3 samplePosition = mix(traverse2Entry,traverse2Exit,fraction);
@@ -1221,7 +1225,7 @@ const CloudsShader = {
 						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*8.0;
+							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
 							if(localDensityToLight<=0.0) continue;
 							densityToLight +=localDensityToLight;
 							if(densityToLight > 1.0) {
@@ -1265,12 +1269,12 @@ const CloudsShader = {
 					float depth = length(nonPostCameraPosition-surfacePosition);
 					gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
 					float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
-					vec3 fullDarkColor = vec3(dotLight*0.2);
+					vec3 fullDarkColor = vec3(dotLight*0.25+0.02);
 					vec3 fullLightColor = vec3(1.0);
 
 					//pc_fragColor = vec4(light1*0.5, density1);
 					pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
-					pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),pc_fragColor.a);
+					pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),min(1.0,density1+density2));
 					
 				}
 
@@ -1289,7 +1293,7 @@ const CloudsShader = {
 				const texture = new THREE.Data3DTexture(data, 128, 128, 128);
 				texture.format = THREE.RGFormat;
 				texture.type = THREE.UnsignedByteType;
-				texture.minFilter = THREE.LinearFilter;
+				texture.minFilter = THREE.LinearMipmapLinearFilter;
 				texture.magFilter = THREE.LinearFilter;
 				texture.wrapS = THREE.RepeatWrapping;
 				texture.wrapT = THREE.RepeatWrapping;

@@ -605,7 +605,7 @@ const PostShader = {
 							float cloudDepth = texture2D(tCloudsDepth, vUv).x;
 							if(cl.w > 0.0){
 								float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, worldDir, cloudDepth);
-								cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.1));
+								cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.5));
 								
 								`
 								if (!!atmosphere) {
@@ -1047,12 +1047,13 @@ const PostShader = {
 		code += `	
 
 		float cameraToCloudAtmosphereMieFactor(in vec3 sphereOrigin,
-				in vec3 rayOrigin, in vec3 rayDirection, in float cloudDepth){
+				in vec3 rayOrigin, in vec3 rayDirection, in float cloudDepth, in vec3 sunVector,out float shadeClouds){
 
 				float distToCloud = mix(cameraNear, cameraFar, cloudDepth);
 				vec3 sphereToRayOrigin = normalize(sphereOrigin - rayOrigin);
 				
 				vec3 impact = rayOrigin + rayDirection * distToCloud;
+				shadeClouds = min(1.0,max(0.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector))));
 				float atmosphereCameraHeight = heightAboveSeaLevel/(radius*(atmosphereRadius-1.0));
 				if(atmosphereCameraHeight<=1.0){ //inside atmosphere
 					return (1.0-exp(-length(impact-rayOrigin)*0.00000025*atmosphereDensity));
@@ -1086,7 +1087,7 @@ const PostShader = {
 						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
 						//vec3 rayMidPoint = mix(rayOriginOnAtmosphereSurface, rayExitOnAtmosphereSurface, 0.75);
-						shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector))));
+						shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector))));
 						
 						atmosphereThickness = (1.0-exp(-length(impact-rayOrigin)*0.0000007*atmosphereDensity));
 						atmosphereThicknessForSun = 0.0;
@@ -1096,7 +1097,7 @@ const PostShader = {
 						
 						vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
-						shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
+						shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
 						vec2 optical = texture2D( opticalDepth, vec2(opticalX, atmosphereCameraHeight)).xy;
 						atmosphereThickness = max(0.0,min(1.0,optical.x*atmosphereDensity));
 						atmosphereThicknessForSun = optical.y*atmosphereDensity;
@@ -1118,13 +1119,13 @@ const PostShader = {
 						float opticalX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 						
 						if(depth<0.99){ // hit ground
-							shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector))));
+							shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector))));
 							atmosphereThickness = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000007*atmosphereDensity));
 							atmosphereThicknessForSun = 0.0;
 							mieCoefficient = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.00000025*atmosphereDensity));
 							
 						}else{ // to Space
-							shade = min(1.0,max(0.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
+							shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
 							vec2 optical = texture2D( opticalDepth, vec2(opticalX, atmosphereCameraHeight)).xy;
 							atmosphereThickness = max(0.0,min(1.0,optical.x*atmosphereDensity));
 							atmosphereThicknessForSun = optical.y*atmosphereDensity;
@@ -1455,8 +1456,7 @@ const PostShader = {
 					float mieCoefficient = 0.0;
 					atmosphereCalc(planetPosition, nonPostCameraPosition, rayDirection, depth, impact, sunVector, atmosphereImpactDistance, atmosphereThickness, atmosphereThicknessForSun, atmosphereCameraHeight, shade, mieCoefficient);
 					mieCoefficient *= atmosphereThicknessForSun;
-					mieCoefficient-=(1.0-shade);
-					//float mieScatter = atmosphereThicknessForSun;//pow(pow(normalizedLengthThroughAtmosphere*atmosphereThickness,4.0)*4.0,0.5)-(1.0-shade);
+					mieCoefficient-=(1.0-max(0.0,shade));
 					vec3 atmosphereColorBeforeMie = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(` + atmosphereHighlight.x.toFixed(3) + `,` + atmosphereHighlight.y.toFixed(3) + `,` + atmosphereHighlight.z.toFixed(3) + `), shade);
 					vec3 atmosphereColor = mix(atmosphereColorBeforeMie, vec3(1.0,1.0,1.0), mieCoefficient);
 					
@@ -1575,10 +1575,10 @@ const PostShader = {
 				float s = max(0.0,dot(cameraSun, rayDirection));
 				float atm = pow(1.0-atmosphereThicknessForSun*0.5,4.0)*(1.0/atmosphereDensity);
 				float sunVisibility = (depth>=0.9999?(pow(s,10.0*atm)):0.0)*(1.0-min(1.0,atmosphereCameraHeight));
-				float atmosphereOpacity = min(1.0,(atmosphereThickness*atmosphereDensity)*shade+sunVisibility);
-				atmosphereColor.x = mix(atmosphereColor.x,0.6+shade,pow(s,160.0*atm));
-				atmosphereColor.y = mix(atmosphereColor.y,0.5+shade,pow(s,120.0*atm));
-				atmosphereColor.z = mix(atmosphereColor.z,0.4+shade,pow(s,20.0*atm));
+				float atmosphereOpacity = min(1.0,max(0.0,(atmosphereThickness*atmosphereDensity)*(shade+0.15)+sunVisibility));
+				atmosphereColor.x = mix(atmosphereColor.x,0.6+max(0.0,shade),pow(s,160.0*atm));
+				atmosphereColor.y = mix(atmosphereColor.y,0.5+max(0.0,shade),pow(s,120.0*atm));
+				atmosphereColor.z = mix(atmosphereColor.z,0.4+max(0.0,shade),pow(s,20.0*atm));
 				diffuse = mix(diffuse, atmosphereColor,atmosphereOpacity);
 				`;
 
@@ -1594,20 +1594,21 @@ const PostShader = {
 					if(!!atmosphere){
 						code+=`
 						if(cl.w > 0.0){
-						float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, rayDirection, cloudDepth);
-						cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.1));
-						cloudsMieFactor-=(1.0-shade);
+						float shadeClouds = 0.0;
+						float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, rayDirection, cloudDepth, sunVector, shadeClouds);
+						cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.2));
+						cloudsMieFactor-=(1.0-shadeClouds);
 
 						
 						vec3 atmosphereColorCloud = mix(atmosphereColorBeforeMie, vec3(1.0,1.0,1.0), cloudsMieFactor);
 						vec3 atmosphereColorShadeCloud = vec3(
-							mix(atmosphereColorCloud.x,0.6+shade,pow(s,160.0*atm)),
-							mix(atmosphereColorCloud.y,0.5+shade,pow(s,120.0*atm)),
-							mix(atmosphereColorCloud.z,0.4+shade,pow(s,20.0*atm))
+							mix(atmosphereColorCloud.x,0.6+shadeClouds,pow(s,160.0*atm)),
+							mix(atmosphereColorCloud.y,0.5+shadeClouds,pow(s,120.0*atm)),
+							mix(atmosphereColorCloud.z,0.4+shadeClouds,pow(s,20.0*atm))
 						);
-						atmosphereColorCloud = mix(atmosphereColorCloud, atmosphereColorShadeCloud, shade);
-						cl.xyz = mix(cl.xyz,atmosphereColorCloud*shade, cloudsMieFactor);
-						//cl.xyz = vec3(atmosphereColorBeforeMie);
+						atmosphereColorCloud = mix(atmosphereColorCloud, atmosphereColorShadeCloud, shadeClouds);
+						cl.xyz = mix(cl.xyz,atmosphereColorCloud*shadeClouds, cloudsMieFactor);
+						//cl.xyz = vec3(shadeClouds);
 					}
 						`;
 					}

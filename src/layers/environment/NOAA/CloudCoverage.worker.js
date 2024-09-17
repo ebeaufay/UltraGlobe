@@ -81,7 +81,7 @@ const CloudCoverageWorker = {
                         cloudsArrayBuffer2:cloudsArrayBuffer2,
                         dateBefore: e.data.dateBefore, 
                         dateAfter: e.data.dateAfter 
-                    });
+                    }, [cloudsArrayBuffer1, cloudsArrayBuffer2, e.data.dateBefore, e.data.dateAfter]);
                 });
             }catch(error){
                 postMessage({error:error});

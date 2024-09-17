@@ -2,12 +2,24 @@ import { common } from "./common.worker.js"
 
 const PerlinElevationWorker = {
 
+    /*
+    indices: indicesBuffer,
+                vertices: verticesSharedbuffer,
+                normals: normalsSharedbuffer,
+                uvs: uvsSharedbuffer,
+                skirtIndices: skirtIndicesBuffer,
+                skirts: skirtVerticesSharedbuffer,
+                skirtNormals: skirtNormalsSharedbuffer,
+                skirtUVs: skirtUVsSharedbuffer
+    */
+
     getScript: () => {
         return `
         onmessage = function (e) {
             const id = e.data.id;
             try {
-                postMessage({ id: id, result: generateElevationAndMesh(e.data.input) });
+            const result = generateElevationAndMesh(e.data.input);
+                postMessage({ id: id, result: result }, [result.vertices, result.normals, result.uvs, result.skirtIndices, result.skirts, result.skirtNormals, result.skirtUVs, result.extendedElevationBuffer]);
             } catch (error) {
                 postMessage({ id: id, error: error });
             }

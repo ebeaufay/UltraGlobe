@@ -59,6 +59,7 @@ class Map {
     * @param {Boolean|Object} [properties.rings = false] Rings properties, if undefined, no rings are drawn 
     * @param {Number} [properties.detailMultiplier = 1.0] multiplier for loading terrain and 2D maps, a higher number loads higher detail data
     * @param {Number} [properties.tileSize = 32] mesh resolution per tile.
+    * @param {Number} [properties.targetFPS] target FPS: defaults to 60 for desktop and 30 for mobile (FPS may not be precisely respected depending on monitor refresh rate)
     * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
     * @param {Boolean} [properties.loadOutsideView = false] loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
     * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
@@ -85,6 +86,11 @@ class Map {
         this.previousCameraRotation = new THREE.Euler();
         this.loadOutsideView = properties.loadOutsideView? properties.loadOutsideView: false;
         
+        if(properties.targetFPS){
+            self.targetFPS = properties.targetFPS;
+        }else{
+            self.targetFPS = self.isMobile?31:61;
+        }
         self.tileSize = properties.tileSize? properties.tileSize:32;
         self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:256;
 
@@ -659,7 +665,7 @@ class Map {
 
     _initRenderer(shadows) {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "low-power" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true,  maxSamples:4, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.getContext().getProgramInfoLog= function() { return '' }
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
@@ -845,10 +851,23 @@ class Map {
     _startAnimation() {
         var self = this;
 
+        
+
+        
+
+        let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
-            self.planet.update();
+            const delta = performance.now() - lastTime;
             
+            //console.log(delta);
+            self.planet.update();
+
+            if(delta < 1000/self.targetFPS) {
+                console.log("skipped")   
+                return;
+            }
+            lastTime = performance.now();
             if (self.shadows) {
                 self.csm.update(self.camera.matrix);
 

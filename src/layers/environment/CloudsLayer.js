@@ -68,7 +68,7 @@ class CloudsLayer extends EnvironmentLayer {
 
         const isMobile = _isMobileDevice();
         this.quality = properties.quality;
-        if(!this.quality) this.quality = isMobile ? 0.25 : 0.5;
+        if(!this.quality) this.quality = isMobile ? 0.4 : 0.5;
         this.resolution = this.quality;
         this.numBlurPasses = 10/(this.quality*3);//Math.floor((1/this.quality)/5);//(1/this.quality)/5;
         this.proportionSamples = 0.3*this.quality;//this.quality;
@@ -127,7 +127,7 @@ class CloudsLayer extends EnvironmentLayer {
         blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
         blurMaterial.uniforms.image.value = cloudsTarget.textures[0];
         blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-        mul += 1.0;
+        mul += 0.5;
         
         map.postQuad.material = blurMaterial;
         map.renderer.setRenderTarget(cloudsBlurTarget1);
@@ -135,7 +135,7 @@ class CloudsLayer extends EnvironmentLayer {
 
         blurMaterial.uniforms.image.value = cloudsBlurTarget1.texture;
         blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * mul, texelSizeVertical * mul);
-        mul += 1.0;
+        mul += 0.5;
         
         map.renderer.setRenderTarget(cloudsBlurTarget2);
         map.renderer.render(map.postScene, map.postCamera);
@@ -144,13 +144,13 @@ class CloudsLayer extends EnvironmentLayer {
             blurMaterial.uniforms.preserveMaxOpacity.value = 0.0;
             blurMaterial.uniforms.image.value = cloudsBlurTarget2.texture;
             blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
-            mul += 1.0;
+            mul += 0.5;
             map.renderer.setRenderTarget(cloudsBlurTarget1);
             map.renderer.render(map.postScene, map.postCamera);
 
             blurMaterial.uniforms.image.value = cloudsBlurTarget1.texture;
             blurMaterial.uniforms.offset.value.set(texelSizeHorizontal * Math.min(this.maxBlurOffset,mul), texelSizeVertical * Math.min(this.maxBlurOffset,mul));
-            mul += 1.0;
+            mul += 0.5;
             
             map.renderer.setRenderTarget(cloudsBlurTarget2);
             map.renderer.render(map.postScene, map.postCamera);
@@ -209,7 +209,7 @@ class CloudsLayer extends EnvironmentLayer {
         const self = this;
 
         if (!cloudsTarget) {
-            cloudsTarget = new THREE.WebGLRenderTarget(Math.floor(map.domContainer.offsetWidth * self.resolution), Math.floor(map.domContainer.offsetHeight * self.resolution), {count:2,  samples:0});
+            cloudsTarget = new THREE.WebGLRenderTarget(Math.floor(map.domContainer.offsetWidth*self.resolution), Math.floor(map.domContainer.offsetHeight*self.resolution), {count:2,  samples:8});
             cloudsTarget.stencilBuffer = false;
             cloudsTarget.depthBuffer = false;
             cloudsTarget.textures[0].format = THREE.RGBAFormat;
@@ -220,8 +220,9 @@ class CloudsLayer extends EnvironmentLayer {
             cloudsTarget.textures[0].premultiplyAlpha = false;
 
             cloudsTarget.textures[1].format = THREE.RedFormat;
+            cloudsTarget.textures[1].type = THREE.HalfFloatType;
             cloudsTarget.textures[1].colorSpace = THREE.LinearSRGBColorSpace;
-            cloudsTarget.textures[1].minFilter = THREE.LinearFilter;
+            cloudsTarget.textures[1].minFilter = THREE.NearestFilter;
             cloudsTarget.textures[1].magFilter = THREE.LinearFilter;
             cloudsTarget.textures[1].generateMipmaps = false;
             cloudsTarget.textures[1].premultiplyAlpha = false;
