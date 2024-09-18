@@ -19,19 +19,6 @@ Oh, and volumetric clouds are implemented out of the box.
 
 Vector Layers and physics are in the works.
 
-## startup project
-Here's a simple getting started project: [ULTRAGLOBE getting started](https://drive.google.com/file/d/1ECn7C98WRZRlaNhz_CG5sVFWkwG4mvTb/view?usp=share_link)
-
-unzip and run:
-
-```
-npm install
-```
-```
-npm run dev
-```
-
-and here's the same project in typescript: [ULTRAGLOBE getting started TypeScript](https://drive.google.com/file/d/1TPZiEL6xq_qNbfiWT-BE08S5SozcPc0S/view?usp=sharing)
 ## Documentation
 
 [jsdoc](https://www.jdultra.com/ultraglobe/docs/Map.html)
@@ -39,7 +26,7 @@ and here's the same project in typescript: [ULTRAGLOBE getting started TypeScrip
 [guide](https://github.com/ebeaufay/UltraGlobe/blob/master/guide/README.md)
 
 
-## Demos
+## Demos and Code
 
 
 <table>
