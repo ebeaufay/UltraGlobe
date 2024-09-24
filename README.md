@@ -17,7 +17,7 @@ There are also a few custom layers allowing fancy visualizations (Google earth 3
 
 Oh, and volumetric clouds are implemented out of the box.
 
-Vector Layers and physics are in the works.
+Video layers, Vector Layers and physics are in the works.
 
 ## Documentation
 
