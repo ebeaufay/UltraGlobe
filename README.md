@@ -126,11 +126,11 @@ Other demos:
 
 
 ## Latest development
-OGC3DTiles now have an alternate "immediate" loading mode that skips intermediate LODs which is faster overall but holes can appear when the camera moves.
+Projected layers allow projecting a texture onto other data from a given view point. Can be used for video projection, line of sight and anything you can imagine. 
 
-There is also a new callback that indicates, amongst a few other stats, the percentage of tiles loaded.
+https://github.com/user-attachments/assets/e9401d9b-1ee9-42f8-84bf-f445ed05c597
 
-https://github.com/user-attachments/assets/09f43f0b-2eeb-4f58-8c99-67b1c5ebfb44
+
 
 
 
