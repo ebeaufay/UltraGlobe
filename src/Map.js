@@ -7,6 +7,7 @@ import { RotateController } from './controls/RotateController.js';
 import { ZoomController } from './controls/ZoomController.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { PostShader } from './PostShader.js';
+import { VideoPostShader } from './VideoPostShader.js';
 import { MapNavigator } from "./MapNavigator.js";
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import opticalDepth from './images/optical_depth.png';
@@ -24,6 +25,7 @@ import nebula from './images/nebula2.png';
 import nebulaPalette from './images/paletteNebula.png';
 import perlinWorley3D from "./images/perlinWorley3D_128.bin"
 import { ultraClock } from './controls/clock';
+import { PositionBufferShaderMaterial } from "./materials/PositionBufferShaderMaterial.js";
 
 
 // reused variables
@@ -82,19 +84,20 @@ class Map {
 
         const self = this;
         self.isMobile = _isMobileDevice();
+        self.positionBufferMaterial = PositionBufferShaderMaterial();
         this.previousCameraPosition = new THREE.Vector3();
         this.previousCameraRotation = new THREE.Euler();
-        this.loadOutsideView = properties.loadOutsideView? properties.loadOutsideView: false;
-        
-        if(properties.targetFPS){
-            self.targetFPS = properties.targetFPS;
-        }else{
-            self.targetFPS = self.isMobile?31:61;
-        }
-        self.tileSize = properties.tileSize? properties.tileSize:32;
-        self.tileImagerySize = properties.tileImagerySize? properties.tileImagerySize:256;
+        this.loadOutsideView = properties.loadOutsideView ? properties.loadOutsideView : false;
 
-        this.detailMultiplier = properties.detailMultiplier? properties.detailMultiplier:1.0;
+        if (properties.targetFPS) {
+            self.targetFPS = properties.targetFPS;
+        } else {
+            self.targetFPS = self.isMobile ? 31 : 61;
+        }
+        self.tileSize = properties.tileSize ? properties.tileSize : 32;
+        self.tileImagerySize = properties.tileImagerySize ? properties.tileImagerySize : 256;
+
+        this.detailMultiplier = properties.detailMultiplier ? properties.detailMultiplier : 1.0;
         this.layerManager = new LayerManager();
         this.layerManager.addListener("mapEnvLayerListener", this._layersChangedListener());
         this.debug = properties.debug;
@@ -110,8 +113,8 @@ class Map {
             if (!this.rings.colorMap) this.rings.colorMap = Math.random();
             if (!this.rings.colorMapDisplace) this.rings.colorMapDisplace = Math.random();
         }
-        
-        
+
+
 
         this.globalElevation = properties.globalElevation;
         if (!!properties.domContainer) {
@@ -122,12 +125,15 @@ class Map {
             throw "cannot create Map without a domContainer or divID"
         }
         this.camera = !!properties.camera ? properties.camera : this._initCamera();
-        this.scene = !!properties.scene ? properties.scene : this._initScene(properties.shadows);
+        this.camera.layers.enable(31);
+        this.renderCamera = this.camera.clone();
         
-        if(properties.space && properties.space.isColor){
+        this.scene = !!properties.scene ? properties.scene : this._initScene(properties.shadows);
+
+        if (properties.space && properties.space.isColor) {
             this.space = false;
             this.scene.background = properties.space;
-        }else{
+        } else {
             this.space = properties.space;
             if (this.space) {
                 if (!(typeof this.space === 'object' && Array.isArray(this.space))) this.space = {};
@@ -149,15 +155,15 @@ class Map {
 
         this.ultraClock = ultraClock(properties.clock);
         this.ultraClock.addListener(date => self._setDate(date));
-        
+
 
         this.ocean = properties.ocean;
         this.atmosphere = properties.atmosphere;
-        if(!!this.atmosphere&&!this.atmosphere.isVector3) this.atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
-        this.atmosphereDensity = properties.atmosphereDensity?properties.atmosphereDensity:1.0;
+        if (!!this.atmosphere && !this.atmosphere.isVector3) this.atmosphere = new THREE.Vector3(0.1, 0.4, 1.0);
+        this.atmosphereDensity = properties.atmosphereDensity ? properties.atmosphereDensity : 1.0;
         this.sunColor = properties.sun;
-        
-        
+
+
 
         this._initRenderer(properties.shadows);
         this._initLabelRenderer();
@@ -169,8 +175,9 @@ class Map {
         this._setupPostScene();
         this._setupPostMaterial();
 
-        
+
         this._setupDepthPassMaterial();
+        this._setupVideoPassMaterial();
 
 
         this._startAnimation();
@@ -236,7 +243,7 @@ class Map {
         if (layer.isOGC3DTilesLayer) {
             layer.setMap(this);
             layer.setPlanet(this.planet);
-            layer.addToScene(this.scene, this.camera);
+            layer.addToScene(this.scene);
         }
         if (layer.isI3SLayer) {
             layer.addToScene(this.scene, this.camera);
@@ -282,22 +289,27 @@ class Map {
         return this.layerManager.getLayerByID(id);
     }
 
-    _layersChangedListener(){
+    _layersChangedListener() {
         const self = this;
-        return ()=>{
-            let cloudsLayerEncountered  = false;
-            self.layerManager.getLayers().forEach(layer=>{
-                if(layer.isCloudsLayer && !cloudsLayerEncountered){
-                    if(layer.visible){
+        return () => {
+            let cloudsLayerEncountered = false;
+            self.layerManager.getLayers().forEach(layer => {
+                if (layer.isCloudsLayer && !cloudsLayerEncountered) {
+                    if (layer.visible) {
                         cloudsLayerEncountered = true;
-                        if(!self.cloudsLayer || self.cloudsLayer != layer){
+                        if (!self.cloudsLayer || self.cloudsLayer != layer) {
                             self.cloudsLayer = layer;
-                            self.cloudsLayer.init(self);
+                            if (!layer.isInitialized) self.cloudsLayer._init(self);
                             console.log("new clouds layer loaded");
                         }
                     }
-                    
-                    
+
+
+                }
+
+                if (layer.isProjectedLayer && !layer.map) {
+                    layer._init(self);
+
                 }
             })
         }
@@ -312,7 +324,7 @@ class Map {
 
             this.sunPosition = getSunPosition(new Date())
             const csmSplits = [];
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 8; i++) {
                 if (i == 0) csmSplits.push(1);
                 else {
                     csmSplits.push(csmSplits[i - 1] * 3);
@@ -433,26 +445,43 @@ class Map {
 
         if (this.target2) this.target2.dispose();
 
-        this.target2 = new THREE.WebGLRenderTarget(Math.floor(this.domContainer.offsetWidth * 1.0), Math.floor(this.domContainer.offsetHeight * 1.0));
+        this.target2 = new THREE.WebGLRenderTarget(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
         this.target2.texture.format = THREE.RGBAFormat;
         this.target2.texture.colorSpace = THREE.SRGBColorSpace;
         this.target2.texture.minFilter = THREE.NearestFilter;
-        this.target2.texture.magFilter = THREE.LinearFilter;
+        this.target2.texture.magFilter = THREE.NearestFilter;
+        this.target2.texture.premultiplyAlpha = true;
         this.target2.texture.generateMipmaps = false;
-        this.target2.texture.premultiplyAlpha = false;
         this.target2.stencilBuffer = false;
-        this.target2.depthBuffer = false;
+        this.target2.depthBuffer = true;
+        this.target2.depthTexture = new THREE.DepthTexture();
+        this.target2.depthTexture.format = THREE.DepthFormat;
+        this.target2.depthTexture.type = THREE.FloatType;
 
-        
 
+        if (this.targetWorld) this.targetWorld.dispose();
+
+        this.targetWorld = new THREE.WebGLRenderTarget(this.domContainer.offsetWidth, this.domContainer.offsetHeight);
+        this.targetWorld.texture.format = THREE.RGBAFormat;
+        this.targetWorld.texture.type = THREE.FloatType;
+        this.targetWorld.texture.colorSpace = THREE.NoColorSpace;
+        this.targetWorld.texture.minFilter = THREE.NearestFilter;
+        this.targetWorld.texture.magFilter = THREE.NearestFilter;
+        this.targetWorld.texture.premultiplyAlpha = false;
+        this.targetWorld.texture.generateMipmaps = false;
+        this.targetWorld.stencilBuffer = false;
+        this.targetWorld.depthBuffer = true;
+        this.targetWorld.depthTexture = new THREE.DepthTexture();
+        this.targetWorld.depthTexture.format = THREE.DepthFormat;
+        this.targetWorld.depthTexture.type = THREE.FloatType;
     }
 
-    
+
     _setupBlurMaterials() {
 
 
     }
-    
+
     _setupPostScene() {
         const postPlane = new THREE.PlaneGeometry(2, 2);
         this.postQuad = new THREE.Mesh(postPlane);
@@ -475,7 +504,7 @@ class Map {
                 tDiffuse: { value: null },
                 tDepth: { value: null },
                 radius: { value: 0 },
-                mobile:{ value: this.isMobile},
+                mobile: { value: this.isMobile },
                 xfov: { value: 0 },
                 yfov: { value: 0 },
                 planetPosition: { value: new THREE.Vector3(0, 0, 0) },
@@ -501,7 +530,7 @@ class Map {
                 tClouds: { value: null },
                 tCloudsDepth: { value: null },
                 time: { value: 0.0 },
-                atmosphereDensity: { value: this.atmosphereDensity}
+                atmosphereDensity: { value: this.atmosphereDensity }
             },
             depthTest: false,
             depthWrite: false
@@ -663,9 +692,32 @@ class Map {
 
     }
 
+    _setupVideoPassMaterial() {
+        this.videoPassMaterial = new THREE.ShaderMaterial({
+            vertexShader: VideoPostShader.vertexShader(),
+            fragmentShader: VideoPostShader.fragmentShader(),
+            uniforms: {
+                tColor: { value: null },
+                tWorld: { value: null },
+                tVideoColor: { value: null },
+                tVideoWorld: { value: null },
+                videoProjectionMatrix: { value: new THREE.Matrix4() },
+                videoViewMatrix: { value: new THREE.Matrix4() },
+                depthTest: {value: true},
+                chromaKeying: {value: false},
+                chromaKey: {value: null},
+                chromaKeyTolerance: {value: 0.2}
+            },
+            depthTest: false,
+            depthWrite: false,
+            precision: "highp"
+        });
+
+    }
+
     _initRenderer(shadows) {
         let self = this;
-        self.renderer = new THREE.WebGLRenderer({ antialias: true,  maxSamples:4, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+        self.renderer = new THREE.WebGLRenderer({ antialias: true, maxSamples: 4, logarithmicDepthBuffer: true, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
         //self.renderer.getContext().getProgramInfoLog= function() { return '' }
         //self.renderer.debug.checkShaderErrors = false;
         if (shadows) {
@@ -707,25 +759,25 @@ class Map {
 
             self.target.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.depthTarget.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
-            self.target2.setSize(Math.floor(self.domContainer.offsetWidth * 1.0), Math.floor(self.domContainer.offsetHeight * 1.0));
+            self.target2.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             if (self.cloudsLayer) {
                 self.cloudsLayer.changeSize(self.domContainer);
-                
+
             }
-            
+
             self.renderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
             self.labelRenderer.setSize(self.domContainer.offsetWidth, self.domContainer.offsetHeight);
         }
         setTimeout(onWindowResize, 1000);
 
-        if(self.debug){
+        if (self.debug) {
             const gl = self.renderer.getContext(); // Get the underlying WebGL context
 
             // WebGL provides a few parameters that can help us infer depth precision
             // Although not directly specifying the depth buffer precision, these can offer some insights
             const depthBits = gl.getParameter(gl.DEPTH_BITS);
             console.log(`Depth Bits: ${depthBits}`);
-    
+
             // Additionally, you can check for the presence of certain WebGL extensions
             const depthTextureExtension = gl.getExtension('WEBGL_depth_texture');
             if (depthTextureExtension) {
@@ -734,7 +786,7 @@ class Map {
                 console.log('Depth texture extension not supported.');
             }
         }
-        
+
     }
 
     _initLabelRenderer() {
@@ -767,15 +819,15 @@ class Map {
     _initPlanet() {
 
         this.planet = new Planet({
-            camera: this.camera,
+            camera: this.renderCamera,
             center: new THREE.Vector3(0, 0, 0),
             shadows: this.csm,
             layerManager: this.layerManager,
             renderer: this.renderer,
             detailMultiplier: this.detailMultiplier,
-            tileSize : this.tileSize,
-            tileImagerySize : this.tileImagerySize,
-            loadOutsideView : this.loadOutsideView
+            tileSize: this.tileSize,
+            tileImagerySize: this.tileImagerySize,
+            loadOutsideView: this.loadOutsideView
         });
         this.resetCameraNearFar();
     }
@@ -851,43 +903,72 @@ class Map {
     _startAnimation() {
         var self = this;
 
-        
 
-        
+
+
 
         let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
             const delta = performance.now() - lastTime;
-            
+
             //console.log(delta);
             self.planet.update();
 
-            if(delta < 1000/self.targetFPS) {
+            if (delta < 1000 / self.targetFPS) {
                 return;
             }
             lastTime = performance.now();
-            if (self.shadows) {
-                self.csm.update(self.camera.matrix);
 
-            }
+
+
+
             if (!self.pause) {
                 self.controller.update();
-                self.layerManager.layers.forEach(layer=>{
-                    if(layer.isOGC3DTilesLayer){
-                        layer.update(self.camera);
-                    }if(layer.isTracksLayer){
+                const cameraOffset = self.renderCamera.position.length();
+                if (cameraOffset > 1000) {
+                    self.scene.position.set(-self.camera.position.x, -self.camera.position.y, -self.camera.position.z);
+                    self.scene.updateMatrix();
+                    self.scene.updateMatrixWorld(true);
+                    self.layerManager.layers.forEach((layer) => {
+                        
+                        if (layer.isOGC3DTilesLayer) {
+                            layer.tileset.updateMatrices();
+                        }
+                    })
+                }
+                
+                self.renderCamera.copy(self.camera, true);
+                self.renderCamera.position.add(self.scene.position)
+                self.renderCamera.updateMatrix();
+                self.renderCamera.updateMatrixWorld(true);
+                self.renderCamera.updateProjectionMatrix();
+                if (self.shadows) {
+                    self.csm.update(self.renderCamera.matrix);
+
+                }
+                
+                let hasVideo = false;
+                self.layerManager.layers.forEach(layer => {
+                    if (layer.isOGC3DTilesLayer) {
+                        
+                        layer.update(self.renderCamera);
+                    }
+                    if (layer.isTracksLayer) {
                         layer.update(clock);
+                    }
+                    if (layer.isProjectedLayer && layer.visible && layer.isReady()) {
+                        hasVideo = true;
                     }
                 })
                 //self.controller.update();
-                frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
+                //frustum.setFromProjectionMatrix(mat.multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse));
 
 
                 //self.camera.updateMatrixWorld();
 
                 self.renderer.setRenderTarget(self.target);
-                self.renderer.render(self.scene, self.camera);
+                self.renderer.render(self.scene, self.renderCamera);
 
 
                 /// depth
@@ -900,28 +981,108 @@ class Map {
                 self.postQuad.material = self.depthPassMaterial;
                 self.renderer.render(self.postScene, self.postCamera);
 
+                // compute values for post
+                self.postMaterial.uniforms.cameraNear.value = self.camera.near;
+                self.postMaterial.uniforms.cameraFar.value = self.camera.far;
+                self.postMaterial.uniforms.xfov.value = 2 * Math.atan(Math.tan(self.camera.fov * Math.PI / 180 / 2) * self.camera.aspect) * 180 / Math.PI;
+                self.postMaterial.uniforms.yfov.value = self.camera.fov;
+                self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
+                self.postMaterial.uniforms.ldf.value = self.logDepthBufFC;
+
+                self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
+                self.postMaterial.uniforms.viewCenterNear.value.copy(self.postMaterial.uniforms.viewCenterFar.value);
+                self.postMaterial.uniforms.up.value = self.camera.up.normalize();
+                self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
+                self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
+                self.postMaterial.uniforms.viewCenterNear.value.multiplyScalar(self.camera.near).add(self.camera.position);
+
+
+
+                /// video
+
+                let t1 = self.target;
+                let t2 = self.target2;
+
+                //self.camera.updateProjectionMatrix()
+
+                if (hasVideo) {
+                    self.renderer.setRenderTarget(self.targetWorld);
+                    //self.renderer.clearDepth();
+                    self.scene.overrideMaterial = self.positionBufferMaterial;
+                    self.renderer.render(self.scene, self.renderCamera);
+                    
+
+                    // copy main camera params to video post shader
+                    
+                    
+
+                    self.layerManager.layers.forEach(layer => {
+                        if (layer.isProjectedLayer && layer.visible && layer.isReady()) {
+                            if (true) {
+                                layer.projectionRenderCamera.copy(layer.projectionCamera, true);
+                                layer.projectionRenderCamera.position.add(self.scene.position);
+                                layer.projectionRenderCamera.updateMatrix();
+                                layer.projectionRenderCamera.updateMatrixWorld(true);
+                                layer.projectionRenderCamera.updateProjectionMatrix();
+                                self.renderer.setRenderTarget(layer.renderTarget);
+                                //self.renderer.setClearColor(0xff0000, 1); // Set a clear color
+                                //self.renderer.clear(true, true, true);
+                                self.renderer.render(self.scene, layer.projectionRenderCamera);
+
+                                self.videoPassMaterial.uniforms.tColor.value = t1.texture;
+                                self.videoPassMaterial.uniforms.tWorld.value = self.targetWorld.texture;
+                                self.videoPassMaterial.uniforms.tVideoColor.value = layer.texture;
+                                self.videoPassMaterial.uniforms.tVideoWorld.value = layer.renderTarget.texture;
+                                self.videoPassMaterial.uniforms.depthTest.value = layer.depthTest;
+                                self.videoPassMaterial.uniforms.chromaKeying.value = layer.chromaKeying;
+                                self.videoPassMaterial.uniforms.chromaKey.value = layer.chromaKey;
+                                self.videoPassMaterial.uniforms.chromaKeyTolerance.value = layer.chromaKeyTolerance;
+
+                                self.videoPassMaterial.uniforms.videoProjectionMatrix.value.copy(layer.projectionRenderCamera.projectionMatrix);
+                                self.videoPassMaterial.uniforms.videoViewMatrix.value.copy(layer.projectionRenderCamera.matrixWorldInverse);
+
+
+
+
+
+
+
+
+                                self.postQuad.material = self.videoPassMaterial;
+
+                                self.renderer.setRenderTarget(t2);
+                                //self.renderer.clear(true, true, true);
+                                self.renderer.render(self.postScene, self.postCamera);
+
+                                let temp = t2;
+                                t2 = t1;
+                                t1 = temp;
+                            }
+
+                        }
+                    })
+                    self.scene.overrideMaterial = null;
+                }
+
+
+
+
+
                 /// clouds
-                if(self.cloudsLayer){
+                if (self.cloudsLayer) {
                     self.cloudsLayer.updateUniforms(self);
                     self.cloudsLayer.render(self);
                     self.postMaterial.uniforms.tClouds.value = self.cloudsLayer.getOutputTexture();
                     self.postMaterial.uniforms.tCloudsDepth.value = self.cloudsLayer.getOutputDepthTexture();
                 }
 
-                
-
-
                 /// post final
-                self.postMaterial.uniforms.tDiffuse.value = self.target.texture;
+                self.postMaterial.uniforms.tDiffuse.value = t1.texture;
                 self.postMaterial.uniforms.tDepth.value = self.target.depthTexture;
-                self.postMaterial.uniforms.cameraNear.value = self.camera.near;
-                self.postMaterial.uniforms.cameraFar.value = self.camera.far;
                 self.postMaterial.uniforms.radius.value = self.planet.radius;
-                self.postMaterial.uniforms.xfov.value = 2 * Math.atan(Math.tan(self.camera.fov * Math.PI / 180 / 2) * self.camera.aspect) * 180 / Math.PI;
-                self.postMaterial.uniforms.yfov.value = self.camera.fov;
+
                 self.postMaterial.uniforms.planetPosition.value = self.planet.position;
-                self.postMaterial.uniforms.nonPostCameraPosition.value = self.camera.position;
-                self.postMaterial.uniforms.ldf.value = self.logDepthBufFC;
+
 
                 self.postMaterial.uniforms.projMatrixInv.value.copy(self.camera.projectionMatrixInverse);
 
@@ -930,12 +1091,7 @@ class Map {
                     self.postMaterial.uniforms.sunLocation.value.copy(self.sunPosition);
                 }
 
-                self.camera.getWorldDirection(self.postMaterial.uniforms.viewCenterFar.value).normalize();
-                self.postMaterial.uniforms.viewCenterNear.value.copy(self.postMaterial.uniforms.viewCenterFar.value);
-                self.postMaterial.uniforms.up.value = self.camera.up.normalize();
-                self.postMaterial.uniforms.right.value.crossVectors(self.camera.up, self.postMaterial.uniforms.viewCenterFar.value);
-                self.postMaterial.uniforms.viewCenterFar.value.multiplyScalar(self.camera.far).add(self.camera.position);
-                self.postMaterial.uniforms.viewCenterNear.value.multiplyScalar(self.camera.near).add(self.camera.position);
+
 
                 self.postMaterial.uniforms.heightAboveSeaLevel.value = self.camera.position.length() - self.planet.radius;
 
@@ -967,9 +1123,9 @@ class Map {
     resetCameraNearFar() {
 
 
-        const heightAboveEllipsoid = Math.max(this.distToGround,this.camera.position.length() - this.planet.radius);
+        const heightAboveEllipsoid = Math.max(this.distToGround, this.camera.position.length() - this.planet.radius);
 
-        this.camera.near = 0.1;
+        this.camera.near = 0.0001;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
         this.camera.far = Math.max(200000, distanceToHorizon * 1.5);
         //console.log(distanceToHorizon)
@@ -1006,6 +1162,8 @@ class Map {
                 this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
             }
         } catch (e) { }
+
+
 
     }
 

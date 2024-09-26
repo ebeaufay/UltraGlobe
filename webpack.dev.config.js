@@ -23,6 +23,9 @@ module.exports = {
   },
   plugins: [
     new webpack.ProgressPlugin(),
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+    }),
     new HtmlWebpackPlugin({
       template: "index.html",
       filename: "index.html",
@@ -128,17 +131,18 @@ module.exports = {
     hot: true,
     open: true,
     port: DEFAULT_WEBPACK_PORT,
-    headers: {
+    /* headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp'
-    },
+    }, */
   },
   resolve: {
 
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {
       "fs": false,
-      "path": require.resolve("path-browserify")
+      "path": require.resolve("path-browserify"),
+      "buffer": require.resolve('buffer/'),
     }
   },
   experiments: {

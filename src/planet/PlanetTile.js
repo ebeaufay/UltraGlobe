@@ -124,7 +124,9 @@ class PlanetTile extends Mesh {
         self.tileImagerySize = properties.tileImagerySize ? properties.tileImagerySize : TILE_IMAGERY_SIZE;
         self.shift = new THREE.Vector3();
         self.skirt = new THREE.Mesh();
-        self.skirt.material.visible = false;
+        self.skirt.layers.disable(0);
+        self.layers.disable(0);
+        //self.skirt.material.visible = false;
         self.tileChildren = [];
         self.isPlanetTile = true;
         self.frustumCulled = false;
@@ -140,7 +142,7 @@ class PlanetTile extends Mesh {
         ///// Important, a tile cannot be made visible while "loaded" is false.
         self.loaded = false;
         self.loading = 0;
-        self.material.visible = false;
+        //self.material.visible = false;
         self.elevationDisplayed = false;
 
         self.priority = self.level;
@@ -329,6 +331,19 @@ class PlanetTile extends Mesh {
         }
     }
 
+    _changeContentVisibility(visibility){
+        const self = this;
+        if(visibility) {
+            self.layers.enable(0);
+            self.skirt.layers.enable(0);
+        }
+        else {
+            self.layers.disable(0);
+            self.skirt.layers.disable(0);
+        }
+        
+        
+    }
 
     update(camera, frustum, renderer) {
         const self = this;
@@ -339,7 +354,8 @@ class PlanetTile extends Mesh {
         }
 
         if (self.layerManager._getRasterLayers([]).length == 0) {
-            self.material.visible = false;
+            self._changeContentVisibility(false);
+            //self.material.visible = false;
             return;
         }
 
@@ -350,7 +366,8 @@ class PlanetTile extends Mesh {
         }
 
         if (metric == -1 && self.rendered) { // outside frustum or facing away from camera
-            self.material.visible = true;
+            self._changeContentVisibility(true);
+            // self.material.visible = true;
             if (self.rendered) {
                 self.disposeChildren(self);
                 return true;
@@ -359,7 +376,8 @@ class PlanetTile extends Mesh {
         }
         if (metric < self.level + 1 || self.level >= MAX_LEVEL) { // if self is ideal LOD
             if (self.loaded) { // if layers are loaded
-                self.material.visible = true;
+                self._changeContentVisibility(true);
+                // self.material.visible = true;
                 self.disposeChildren(self);
                 return true;
             } else { // layers not yet loaded
@@ -381,7 +399,8 @@ class PlanetTile extends Mesh {
                     return true; // continue
                 });
                 if (childrenReadyCounter == self.children.length) {
-                    self.material.visible = false;
+                    self._changeContentVisibility(false);
+                    // self.material.visible = false;
                     return true;
                 }
             } else { // if self tile doesn't have children yet
@@ -449,10 +468,12 @@ class PlanetTile extends Mesh {
 
             // If the tile has loaded children, the method already returned
             if (self.loaded) { // if this tile is itself loaded
-                self.material.visible = true;
+                self._changeContentVisibility(true);
+                //self.material.visible = true;
                 return true;
             } else { // if this tile isn't loaded
-                self.material.visible = false;
+                self._changeContentVisibility(false);
+                //self.material.visible = false;
                 return false;
             }
         }
@@ -534,7 +555,7 @@ class PlanetTile extends Mesh {
 
 
         
-        self.material.visible = false;
+        //self.material.visible = false;
         self.material.wireframe = false;
         self.material.fog = false;
         self.material.flatShading = false;
@@ -542,6 +563,8 @@ class PlanetTile extends Mesh {
         self.material.roughness = 1.0;
         self.skirt.material = self.material;
         self.material.needsUpdate = true;
+
+        self._changeContentVisibility(false);
 
     }
     setElevationExageration() {

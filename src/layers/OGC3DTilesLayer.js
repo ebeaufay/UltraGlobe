@@ -232,7 +232,7 @@ class OGC3DTilesLayer extends Layer {
 
                 mesh.material.flatShading = self.properties.flatShading;
 
-                const previousOnAfterRender = mesh.onAfterRender; 
+                /* const previousOnAfterRender = mesh.onAfterRender; 
                 mesh.onAfterRender = () => {
                     if(previousOnAfterRender) previousOnAfterRender();
                     if(mesh.geometry && mesh.geometry.attributes){
@@ -264,7 +264,7 @@ class OGC3DTilesLayer extends Layer {
                     }
 
                     mesh.onAfterRender = previousOnAfterRender;
-                }
+                } */
             },
             pointsCallback: (points, geometricError) => {
                 points.material.size = 1*Math.max(1.0, 0.1 * Math.sqrt(geometricError));
@@ -303,9 +303,8 @@ class OGC3DTilesLayer extends Layer {
         
     }
 
-    addToScene(scene, camera) {
+    addToScene(scene) {
         this.scene = scene;
-        this.camera = camera;
         scene.add(this.object3D);
         this.updateLocation();
     }
@@ -317,6 +316,7 @@ class OGC3DTilesLayer extends Layer {
                 this.updateCallback(stats);
             }
             this.tileset.tileLoader.update();
+            
         }
         
     }
@@ -355,8 +355,8 @@ class OGC3DTilesLayer extends Layer {
 
             } */
         }
-        this.object3D.updateMatrix(true);
-        this.object3D.updateWorldMatrix(false, false);
+        this.object3D.updateMatrix();
+        this.object3D.updateMatrixWorld(true);
         this.tileset.updateMatrices();
 
     }
@@ -364,7 +364,6 @@ class OGC3DTilesLayer extends Layer {
     dispose() {
         this.scene.remove(this.object3D);
         this.tileset.dispose();
-        if (this.updateInterval) this.updateInterval.clearInterval();
     }
 
     getSelectableObjects() {

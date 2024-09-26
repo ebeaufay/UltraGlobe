@@ -18,6 +18,7 @@ export { PerlinElevationLayer } from "./layers/PerlinElevationLayer";
 export { NOAAGFSCloudsLayer } from "./layers/environment/NOAA/NOAAGFSCloudsLayer";
 export { CloudsLayer } from "./layers/environment/CloudsLayer";
 export { RandomCloudsLayer } from "./layers/environment/RandomCloudsLayer";
+export { ProjectedLayer } from "./layers/ProjectedLayer.js";
 export { TracksLayer } from "./layers/tracks/TracksLayer";
 export { UserControlledTrack } from "./layers/tracks/UserControlledTrack";
 export { MapNavigator } from "./MapNavigator";

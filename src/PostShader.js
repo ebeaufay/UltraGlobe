@@ -22,6 +22,8 @@ const PostShader = {
 	uniform float yfov;
 	uniform float cameraNear;
 	uniform float cameraFar;
+
+	
 	
 	
 
@@ -41,7 +43,7 @@ const PostShader = {
 		nearPlanePosition -= right * distX;
 		nearPlanePosition += up * distY;
 
-		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		gl_Position = vec4(position, 1.0);
 	}`,
 
 	fragmentShader: (atmosphere, ocean, rings, space, clouds) => {
@@ -396,7 +398,6 @@ const PostShader = {
 			}
 			float readDepth( sampler2D depthSampler, vec2 coord ) {
 				vec4 fragCoord = texture2D( depthSampler, coord );
-				//float logDepthBufFC = 2.0 / ( log( cameraFar + 1.0 ) / log(2.0) );
 				float viewZ = exp2(fragCoord.x / (ldf * 0.5)) - 1.0;
 				return viewZToOrthographicDepth( -viewZ, cameraNear, cameraFar );
 			  }
@@ -1726,11 +1727,7 @@ const PostShader = {
 			uniform sampler2D tDepth;
 			uniform float ldf;
 
-			float readDepth( sampler2D depthSampler, vec2 coord ) {
-				float depth = texture2D(depthSampler, coord).x;
-    			float viewSpaceZ = -(exp2(depth * 2.0) - 1.0) / ldf;
-    			return -viewSpaceZ;
-			  }
+			
 			
 
 			vec2 PackDepth16( float depth ) {

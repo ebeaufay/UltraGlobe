@@ -26,8 +26,12 @@ import Perlin from "./layers/environment/shaders/Perlin2"
 import { RandomCloudsLayer } from "./layers/environment/RandomCloudsLayer.js";
 import { UserControlledTrack } from "./layers/tracks/UserControlledTrack.js";
 import { transformWGS84ToCartesian } from "./GeoUtils.js";
+import { ProjectedLayer } from "./layers/ProjectedLayer.js";
+import { GoProVideoLayer } from "./layers/GoProVideoLayer.js";
+import techno2 from './images/techno2.png';
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
 
 /* function remap(x, a, b, c, d) {
     return (((x - a) / (b - a)) * (d - c)) + c;
@@ -89,18 +93,18 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
-/* var googleMaps3DTiles = new GoogleMap3DTileLayer({
+var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "",
+    apiKey: "AIzaSyC-Vx57C2vx9KyXAR4cOOPuhV1D0uQlsG0",
     loadOutsideView: false,
     displayCopyright: true,
     flatShading: false,
-    geometricErrorMultiplier: 0.5,
-    loadingStrategy: "IMMEDIATE",
-    updateCallback: (stats)=>console.log(stats)
-}); */
+    geometricErrorMultiplier: 0.4,
+    loadingStrategy: "INCREMENTAL",
+    //updateCallback: (stats)=>console.log(stats)
+});
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -125,7 +129,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     visible: true,
     min: 0,
-    max: 8800//8848
+    max: 8848
 });
 var wmsLayer = new WMSLayer({
     id: 20,
@@ -174,10 +178,10 @@ const progressBar = document.getElementById("progressBar");
     geometricErrorMultiplier: 0.03,
     loadOutsideView: false,
     flatShading: true,
-    loadingStrategy: "IMMEDIATE",
-    updateCallback: (stats)=>{
-        progressBar.style.width = stats.percentageLoaded*100 + '%';
-        progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
+    //loadingStrategy: "IMMEDIATE",
+    updateCallback: (stats) => {
+        progressBar.style.width = stats.percentageLoaded * 100 + '%';
+        progressBar.innerHTML = (stats.percentageLoaded * 100).toFixed(0) + '%';
     }
 }); */
 /* var ogc3dTiles = new OGC3DTilesLayer({
@@ -196,7 +200,7 @@ const progressBar = document.getElementById("progressBar");
     }
 });
  */
-var ogc3dTiles = new OGC3DTilesLayer({
+/* var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
@@ -216,22 +220,25 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.style.width = stats.percentageLoaded*100 + '%';
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
-});
+}); */
 var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
-    coverage:0.4,
-    debug:false,
+    coverage: 0.4,
+    debug: false,
     windSpeed: 0.08,
-    minHeight:2000,
-    maxHeight:10000,
-    quality:1.0
-}); 
+    minHeight: 2000,
+    maxHeight: 10000,
+    quality: 0.5
+});
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
     bounds: [-180, -90, 180, 90],
 });
+
+
+
 
 
 
@@ -255,16 +262,16 @@ function setupMap(globalElevationMap) {
     let map = new Map({
         divID: 'screen',
         clock: true,
-    shadows: true,
-    debug: false,
-    detailMultiplier: 1.0,
-    ocean: true,
-    atmosphere: true,
-    atmosphereDensity: 1.0,
-    sun: true,
-    rings:true,
-    space: true,
-    tileSize: 64
+        shadows: true,
+        debug: false,
+        detailMultiplier: 1.0,
+        ocean: false,
+        atmosphere: true,
+        atmosphereDensity: 1.0,
+        sun: true,
+        rings: true,
+        space: true,
+        tileSize: 64
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -287,7 +294,7 @@ function setupMap(globalElevationMap) {
             console.log("{ position: new THREE.Vector3(" + cam.position.x + "," + cam.position.y + "," + cam.position.z + "), quaternion: new THREE.Quaternion(" + cam.quaternion.x + "," + cam.quaternion.y + "," + cam.quaternion.z + "," + cam.quaternion.w + ") }")
         }
     });
-    
+
     /* let d = new Date();
         setInterval(() => {
             d.setSeconds(d.getSeconds() + 1);
@@ -315,23 +322,151 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x:2, y: 40, z: 1000000 }, { x: 2, y: 40, z: 100 });
+    map.moveAndLookAt({ x: 13.4, y: 52.52, z: 1000 }, { x: 13.4, y: 52.52, z: 0 });
     //52.50921677914625, 13.405685233710862
-    map.setLayer(perlinElevation, 0);
-    map.setLayer(shaderLayer, 1);
+    //map.setLayer(perlinElevation, 0);
+    //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
-    //map.setLayer(googleMaps3DTiles, 2);
+    map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
     //map.setLayer(earthElevation, 5);
     //map.setLayer(wmsLayer, 4);
+
     //map.setLayer(jetElevationShaderLayer, 7);
     map.setLayer(environmentLayer, 8);
-    //map.setElevationExageration(100);
-    /* setTimeout(()=>{
 
-        jetElevationShaderLayer.setVisible(false);
-        shaderLayer.setVisible(true);
-    },4000) */
+
+    const video = document.createElement('video');
+    const videoTexture = new THREE.VideoTexture(video);
+    const projectedLayer = new ProjectedLayer({
+        id: 983,
+        name: "projected",
+        texture: videoTexture,
+        cameraLLH: new THREE.Vector3(13.4, 52.52, 300),
+        yaw: 90,
+        pitch: -45,
+        roll: 0,
+        fov: 30,
+        depthTest: true,
+        chromaKeying: true,
+        chromaKey: new THREE.Vector3(0.5,1.0,0.5),
+        chromaKeyTolerance: 0.5
+    });
+    map.setLayer(projectedLayer, 9);
+        let yaw = 0;
+        let lat = 52.52;
+        setInterval(() => {
+            yaw += 0.1;
+            lat += 0.00001;
+            projectedLayer.setCameraFromLLHYawPitchRollFov(new THREE.Vector3(13.4, lat, 300), 90, -45, 0, 40);
+        }, 17);
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const constraints = { video: { width: 1280, height: 720, facingMode: 'user' } };
+
+        navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+
+            // apply the stream to the video element used in the texture
+
+            video.srcObject = stream;
+            video.play();
+
+        }).catch(function (error) {
+
+            console.error('Unable to access the camera/webcam.', error);
+
+        });
+    } else {
+
+        console.error('MediaDevices interface not available.');
+
+    }
+
+    /* fetch("http://localhost:8080/karma.mp4").then(response => response.arrayBuffer()).then(arrayBuffer => {
+        arrayBuffer.fileStart = 0;
+        const videoBlob = new Blob([arrayBuffer], { type: 'video/mp4' });
+        const blobUrl = URL.createObjectURL(videoBlob);
+        const video = document.createElement('video');
+        video.src = blobUrl;
+        video.crossOrigin = 'anonymous'; // Enable CORS if needed
+        video.loop = true;               // Optional: loop the video
+        video.muted = true;              // Optional: mute the video to allow autoplay
+        video.playsInline = true;        // For iOS Safari
+
+        video.play();
+        const videoTexture = new THREE.VideoTexture(video);
+        var projectedLayer = new ProjectedLayer({
+            id: 983,
+            name: "projected",
+            texture: videoTexture,
+            cameraLLH: new THREE.Vector3(13.4, 52.52, 300),
+            yaw: 0,
+            pitch: -45,
+            roll: 0,
+            fov: 30,
+            depthTest: true
+        })
+        map.setLayer(projectedLayer, 9);
+        let yaw = 0;
+        let lat = 52.52;
+        setInterval(() => {
+            yaw += 0.1;
+            lat += 0.000001;
+            projectedLayer.setCameraFromLLHYawPitchRollFov(new THREE.Vector3(13.4, lat, 500), yaw, -45, 0, 40);
+        }, 17);
+    }) */
+
+
+    /* setTimeout(() => {
+        const video = document.createElement('videoX');
+        video.src = "http://localhost:8080/karma.mp4";
+        const videoTexture = new THREE.VideoTexture(video);
+        projectedLayer.setTexture(videoTexture);
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            const constraints = { video: { width: 1280, height: 720, facingMode: 'user' } };
+            navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+                video.srcObject = stream;
+                video.play();
+            });
+        }
+    }, 5000) */
+
+
+    /* const playButton = document.createElement('button');
+    playButton.innerText = 'Play';
+    playButton.style.position = 'fixed';
+    playButton.style.top = '50%';
+    playButton.style.left = '50%';
+    playButton.style.transform = 'translate(-50%, -50%)';
+    playButton.style.padding = '10px 20px';
+    playButton.style.fontSize = '18px';
+    playButton.style.backgroundColor = '#28a745';
+    playButton.style.color = '#fff';
+    playButton.style.border = 'none';
+    playButton.style.borderRadius = '5px';
+    playButton.style.cursor = 'pointer';
+    playButton.style.zIndex = '10000'; // Make sure it's on top of everything else
+
+    // Append the button to the body
+    document.body.appendChild(playButton);
+
+    // Add click event listener to the button
+    playButton.addEventListener('click', () => {
+        // Hide the button after user interaction
+        playButton.style.display = 'none';
+
+        const videoLayer = new GoProVideoLayer({
+            id: 54566,
+            name: "dji",
+            video: "http://localhost:8080/hero8.mp4"
+        })
+        map.setLayer(videoLayer, 10);
+        setTimeout(() => {
+            videoLayer.updateTelemetry();
+        }, 5000);
+    }); */
+
+
+
 
 
     /* gltfLoader.load("http://localhost:8081/billy_meier_ufo.glb", gltf=>{
@@ -354,8 +489,8 @@ function setupMap(globalElevationMap) {
         map.controller.clear();
         map.controller.append(new ThirdPersonCameraController(map.camera, map.domContainer, map, ufo.getTracks(), 3, 30));
     }); */
-    
-    
+
+
     /* map.sunPosition.set(0,0,1);
     map.sunPosition.normalize();
     map.csm.lightDirection.copy(map.sunPosition).negate(); */
@@ -365,10 +500,10 @@ function setupMap(globalElevationMap) {
         if (e.key === 't') {
             let position = new THREE.Vector3();
             map.screenPixelRayCast(map.domContainer.offsetWidth * (0.5), map.domContainer.offsetHeight * (0.5), position);
-
+ 
             let l = position.length();
             position.normalize().multiplyScalar(l + 50);
-
+ 
             
             gltfLoader.load("http://localhost:8081/little_hover_tank.glb", gltf => {
                 gltf.scene.position.copy(position);
@@ -379,8 +514,8 @@ function setupMap(globalElevationMap) {
                 gltf.scene.traverse(node => {
                     if (node.isMesh) node.castShadow = true;
                 });
-
-
+ 
+ 
                 map.scene.add(gltf.scene);
                 let hoveringVehicle = new HoveringVehicle({
                     object3D: gltf.scene,
@@ -390,9 +525,9 @@ function setupMap(globalElevationMap) {
                 setInterval(() => {
                     hoveringVehicle.update(clock.getDelta())
                 }, 1);
-
+ 
                 map.controller = new ThirdPersonCameraController(map.camera, map.domContainer, map, gltf.scene, 10, 30)
-
+ 
                 document.addEventListener('keyup', (e) => {
                     switch (e.key) {
                         case 'ArrowUp': hoveringVehicle.moveForward = false;
@@ -444,8 +579,8 @@ var imagery = new SingleImageImageryLayer({
     url: earthElevationImage,
     visible: true
 })
-
-
+ 
+ 
 var wmsLayer = new WMSLayer({
     id: 20,
     name: "BlueMarble",
@@ -456,8 +591,8 @@ var wmsLayer = new WMSLayer({
     version: "1.1.1",
     visible: true
 })
-
-
+ 
+ 
 var bingMaps = new BingMapsLayer({
     id: 21,
     name: "BingAerial",
@@ -465,7 +600,7 @@ var bingMaps = new BingMapsLayer({
     key: "AvCowrXLkgv3AJiVzJANlwC-RCYsP-u7bNLzhaK9vpWvtIQhHERhz7luBbFx40oS",
     visible: true
 })
-
+ 
 var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
@@ -476,7 +611,7 @@ var ogc3dTiles = new OGC3DTilesLayer({
     latitude: 0,
     height: 100,
     //centerModel:true,
-
+ 
     rotationX: -1.57,
     //rotationY: 180,
     //rotationZ: 180,

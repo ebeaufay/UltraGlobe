@@ -205,9 +205,9 @@ class CloudsLayer extends EnvironmentLayer {
         cloudsBlurTarget2.setSize(Math.floor(dom.offsetWidth), Math.floor(dom.offsetHeight));
     }
 
-    init(map) {
+    _init(map) {
         const self = this;
-
+        self.isInitialized = true;
         if (!cloudsTarget) {
             cloudsTarget = new THREE.WebGLRenderTarget(Math.floor(map.domContainer.offsetWidth*self.resolution), Math.floor(map.domContainer.offsetHeight*self.resolution), {count:2,  samples:8});
             cloudsTarget.stencilBuffer = false;

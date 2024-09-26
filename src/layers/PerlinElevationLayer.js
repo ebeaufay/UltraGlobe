@@ -96,7 +96,6 @@ class PerlinElevationLayer extends ElevationLayer {
         }
         let l = Math.pow(200000/f, 1/(15-this.lacunarities.length));
         this.lacunarities.push(l);
-        console.log(this.lacunarities)
         this.noiseTypes = Array.from({ length: 20 }, () => Math.floor(Math.random()*3)); //0 normal, 1 ridged, 2 turbulent
 
         
