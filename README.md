@@ -88,6 +88,17 @@ Video layers, Vector Layers and physics are in the works.
 <table>
   <tr>
     <td>
+      <img src="https://github.com/user-attachments/assets/785a7c5e-47e5-455e-83d2-b541a037abbb" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/videoProjection/index.html">Video projection</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/videoProjection">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
       <img src="https://github.com/user-attachments/assets/359c959b-96da-49ba-9439-0d058e82d876" width="200" />
     </td>
     <td>
