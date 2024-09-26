@@ -13,11 +13,9 @@ The existing layer system can be used and extended to import data sources withou
 The earth model is wgs 84. and uses a modified UV-sphere for terrain tiles.
 
 There's support for WMS and OGC 3DTiles and partial I3S support. 
-There are also a few custom layers allowing fancy visualizations (Google earth 3DTiles, volumetric clouds, Moving tracks..).
+There are also a few custom layers allowing fancy visualizations (Google earth 3DTiles, volumetric clouds, Video projection, Line of sight, Moving tracks..).
 
-Oh, and volumetric clouds are implemented out of the box.
-
-Video layers, Vector Layers and physics are in the works.
+Vector Layers and physics are in the works.
 
 ## Documentation
 
