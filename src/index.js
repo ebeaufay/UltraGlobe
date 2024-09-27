@@ -337,7 +337,7 @@ function setupMap(globalElevationMap) {
     map.setLayer(environmentLayer, 8);
 
 
-    const geometry = new THREE.BoxGeometry( 100, 100, 100 ); 
+    const geometry = new THREE.BoxGeometry( 1000000, 1000000, 1000000 ); 
     const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); 
     const cube = new THREE.Mesh( geometry, material );
 
@@ -347,7 +347,7 @@ function setupMap(globalElevationMap) {
         object: cube,
         longitude: 13.4,
         latitude: 52.52,
-        height: 250
+        height: 400000
     });
     map.setLayer(objectLayer, 10);
 

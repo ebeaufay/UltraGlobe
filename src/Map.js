@@ -1129,7 +1129,7 @@ class Map {
 
         this.camera.near = 0.0001;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
-        this.camera.far = Math.max(200000, distanceToHorizon * 1.5);
+        this.camera.far = Math.max(200000, distanceToHorizon * 2.0);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this._resetLogDepthBuffer();

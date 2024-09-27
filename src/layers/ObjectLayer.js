@@ -92,6 +92,15 @@ class ObjectLayer extends Layer {
 
     }
 
+    setVisible(visible) {
+        if(visible){
+            this.object3D.layers.enable(0);
+        }else{
+            this.object3D.layers.disable(0);
+        }
+        super.setVisible(visible);
+    }
+
     dispose() {
         this.scene.remove(this.object3D);
     }

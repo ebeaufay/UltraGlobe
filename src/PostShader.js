@@ -1087,10 +1087,14 @@ const PostShader = {
 						vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
 						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
-						//vec3 rayMidPoint = mix(rayOriginOnAtmosphereSurface, rayExitOnAtmosphereSurface, 0.75);
 						shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOrigin), sunVector),dot(normalize(impact), sunVector))));
 						
 						atmosphereThickness = (1.0-exp(-length(impact-rayOrigin)*0.0000007*atmosphereDensity));
+
+						float impactRadius = length(impact);
+						float atmosphereThicknessMultiplier = (impactRadius-radius)/(radius*atmosphereRadius - radius);
+						atmosphereThickness*= max(0.0,min(1.0, 1.0-atmosphereThicknessMultiplier));
+
 						atmosphereThicknessForSun = 0.0;
 						mieCoefficient = (1.0-exp(-length(impact-rayOrigin)*0.00000025*atmosphereDensity));
 						
@@ -1117,15 +1121,21 @@ const PostShader = {
 						
 						//opticalDepthY = 1.0;
 						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
-						float opticalX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
+						
 						
 						if(depth<0.99){ // hit ground
 							shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector))));
 							atmosphereThickness = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000007*atmosphereDensity));
+							float impactRadius = length(impact);
+							float atmosphereThicknessMultiplier = (impactRadius-radius)/(radius*atmosphereRadius - radius);
+							atmosphereThickness*= max(0.0,min(1.0, 1.0-atmosphereThicknessMultiplier));
+							
 							atmosphereThicknessForSun = 0.0;
 							mieCoefficient = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.00000025*atmosphereDensity));
 							
 						}else{ // to Space
+							sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
+							float opticalX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 							shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(rayExitOnAtmosphereSurface), sunVector))));
 							vec2 optical = texture2D( opticalDepth, vec2(opticalX, atmosphereCameraHeight)).xy;
 							atmosphereThickness = max(0.0,min(1.0,optical.x*atmosphereDensity));
