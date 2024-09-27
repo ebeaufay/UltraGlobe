@@ -196,7 +196,7 @@ class OGC3DTilesLayer extends Layer {
         this.update();
     }
 
-    setMap(map) {
+    _setMap(map) {
         const self = this;
 
         var tileLoader = !!self.properties.tileLoader ? self.properties.tileLoader : new TileLoader({
@@ -298,12 +298,12 @@ class OGC3DTilesLayer extends Layer {
         
 
     }
-    setPlanet(planet) {
+    _setPlanet(planet) {
         this.planet = planet;
         
     }
 
-    addToScene(scene) {
+    _addToScene(scene) {
         this.scene = scene;
         scene.add(this.object3D);
         this.updateLocation();

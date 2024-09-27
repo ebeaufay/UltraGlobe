@@ -13,6 +13,7 @@ class ProjectedLayer extends Layer {
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {THREE.Texture} [properties.texture = null] a three.js texture
      * @param {Number} [properties.fov = 20] frustum vertical field of view of the video camera.
+     * @param {Number} [properties.far = 3000] maximum distance for projecting the texture in meters 
      * @param {THREE.Vector3} [properties.cameraLLH = new THREE.Vector3(0,0,0)] the position of the camera in longitude (degrees) latitude (degrees) height (meters)
      * @param {Number} [properties.yaw = 0] - Yaw angle in degrees
      * @param {Number} [properties.pitch = -90] - Pitch angle in degrees.
@@ -29,11 +30,12 @@ class ProjectedLayer extends Layer {
         this.isProjectedLayer = true;
         this.depthTest = properties.depthTest != undefined ? properties.depthTest : true;
         
-        this._cameraLLH = !!properties.cameraLLH ? properties.cameraLLH : new THREE.Vector3(0, 0, 0);
-        this._yaw = !!properties.yaw ? properties.yaw : 0;
-        this._pitch = !!properties.camerapitch ? properties.camerapitch : -90;
-        this._roll = !!properties.roll ? properties.roll : 0;
-        this._fov = !!properties.fov ? properties.fov : 20;
+        this._cameraLLH = properties.cameraLLH!=undefined ? properties.cameraLLH : new THREE.Vector3(0, 0, 0);
+        this._yaw = properties.yaw!=undefined ? properties.yaw : 0;
+        this._pitch = properties.pitch!=undefined ? properties.pitch : -90;
+        this._roll = properties.roll!=undefined ? properties.roll : 0;
+        this._fov = properties.fov!=undefined ? properties.fov : 20;
+        this._far = properties.far!=undefined ? properties.far : 3000;
 
         this.showFrustum = properties.showFrustum!=undefined?properties.showFrustum:true;
 
@@ -86,7 +88,7 @@ class ProjectedLayer extends Layer {
     _initCameraAndTarget() {
         this.projectionCamera = new THREE.PerspectiveCamera(this._fov, this.width / this.height, 0.1, 3000);
         this.projectionRenderCamera = this.projectionCamera.clone();
-        this.setCameraFromLLHYawPitchRollFov(this._cameraLLH, this._yaw, this._pitch, this._roll, this._fov);
+        this.setCameraFromLLHYawPitchRollFov(this._cameraLLH, this._yaw, this._pitch, this._roll, this._fov, this._far);
         if(this.renderTarget) this.renderTarget.dispose();
         this.renderTarget = new THREE.WebGLRenderTarget(Math.min(1080,this.width), Math.min(1080,this.height));
         this.renderTarget.texture.format = THREE.RGBAFormat;
@@ -142,14 +144,16 @@ class ProjectedLayer extends Layer {
   * @param {number} roll - Roll angle in degrees.
   *   - Rotation around the Forward vector (local Y-axis).
   * @param {number} fov - The camera's vertical field of view in degrees.
+  * @param {number} far - The max distance to project the texture.
   */
-    setCameraFromLLHYawPitchRollFov(llh, yaw, pitch, roll, fov) {
+    setCameraFromLLHYawPitchRollFov(llh, yaw, pitch, roll, fov, far) {
         pitch = Math.min(89.9, Math.max(-89.9, pitch));
-        this._cameraLLH = llh;
-        this._yaw = yaw;
-        this._pitch = pitch;
-        this._roll = roll;
-        this._fov = fov;
+        if(llh)this._cameraLLH.copy(llh);
+        if(yaw)this._yaw = yaw;
+        if(pitch)this._pitch = pitch;
+        if(roll)this._roll = roll;
+        if(fov)this._fov = fov;
+        if(far)this._far = far;
         if(!this.projectionCamera) return;
         const cartesian = new THREE.Vector3(llh.x, llh.y, llh.z);
         this._llhToCartesianFastSFCT(cartesian, false); // Convert LLH to Cartesian in-place
@@ -202,6 +206,7 @@ class ProjectedLayer extends Layer {
 
         // Step 12: Set FOV and update camera matrices
         this.projectionCamera.fov = fov;
+        this.projectionCamera.far = this._far;
         this.projectionCamera.matrixWorldNeedsUpdate = true;
         this.projectionCamera.updateMatrix();
         this.projectionCamera.updateMatrixWorld(true);

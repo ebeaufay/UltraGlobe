@@ -29,6 +29,7 @@ import { transformWGS84ToCartesian } from "./GeoUtils.js";
 import { ProjectedLayer } from "./layers/ProjectedLayer.js";
 import { GoProVideoLayer } from "./layers/GoProVideoLayer.js";
 import techno2 from './images/techno2.png';
+import { ObjectLayer } from "./entry.js";
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
 const textureLoader = new THREE.TextureLoader();
@@ -327,14 +328,28 @@ function setupMap(globalElevationMap) {
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
-    map.setLayer(googleMaps3DTiles, 2);
+    //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    //map.setLayer(earthElevation, 5);
-    //map.setLayer(wmsLayer, 4);
+    map.setLayer(earthElevation, 5);
+    map.setLayer(wmsLayer, 4);
 
     //map.setLayer(jetElevationShaderLayer, 7);
     map.setLayer(environmentLayer, 8);
 
+
+    const geometry = new THREE.BoxGeometry( 100, 100, 100 ); 
+    const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); 
+    const cube = new THREE.Mesh( geometry, material );
+
+    const objectLayer = new ObjectLayer({
+        id: 342,
+        name: "object",
+        object: cube,
+        longitude: 13.4,
+        latitude: 52.52,
+        height: 250
+    });
+    map.setLayer(objectLayer, 10);
 
     const video = document.createElement('video');
     const videoTexture = new THREE.VideoTexture(video);
@@ -342,24 +357,22 @@ function setupMap(globalElevationMap) {
         id: 983,
         name: "projected",
         texture: videoTexture,
-        cameraLLH: new THREE.Vector3(13.4, 52.52, 300),
+        cameraLLH: new THREE.Vector3(13.4, 52.52, 400),
         yaw: 90,
         pitch: -45,
         roll: 0,
         fov: 30,
         depthTest: true,
-        chromaKeying: true,
-        chromaKey: new THREE.Vector3(0.5,1.0,0.5),
-        chromaKeyTolerance: 0.5
+        chromaKeying: false
     });
     map.setLayer(projectedLayer, 9);
-        let yaw = 0;
+        /* let yaw = 0;
         let lat = 52.52;
         setInterval(() => {
             yaw += 0.1;
             lat += 0.00001;
             projectedLayer.setCameraFromLLHYawPitchRollFov(new THREE.Vector3(13.4, lat, 300), 90, -45, 0, 40);
-        }, 17);
+        }, 17); */
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const constraints = { video: { width: 1280, height: 720, facingMode: 'user' } };
 

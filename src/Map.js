@@ -241,9 +241,11 @@ class Map {
 
     _prepareLayer(layer) {
         if (layer.isOGC3DTilesLayer) {
-            layer.setMap(this);
-            layer.setPlanet(this.planet);
-            layer.addToScene(this.scene);
+            layer._setMap(this);
+        }
+        if (layer.isOGC3DTilesLayer || layer.isObjectLayer) {
+            layer._setPlanet(this.planet);
+            layer._addToScene(this.scene);
         }
         if (layer.isI3SLayer) {
             layer.addToScene(this.scene, this.camera);

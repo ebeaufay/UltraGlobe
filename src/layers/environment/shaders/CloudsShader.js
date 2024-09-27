@@ -1269,7 +1269,7 @@ const CloudsShader = {
 					float depth = length(nonPostCameraPosition-surfacePosition);
 					gPosition = vec4(normalizeDepth(depth),0.0,0.0,0.0);
 					float dotLight = clamp(dot(sunLocation, normalize(traverse1Entry+traverse1Exit))+0.5,0.0,1.0);
-					vec3 fullDarkColor = vec3(dotLight*0.25+0.02);
+					vec3 fullDarkColor = vec3(max(0.0,dotLight)*0.25+0.05);
 					vec3 fullLightColor = vec3(1.0);
 
 					//pc_fragColor = vec4(light1*0.5, density1);

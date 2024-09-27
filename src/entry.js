@@ -13,6 +13,7 @@ export { PerlinTerrainColorShader } from "./layers/PerlinTerrainColorShader";
 export { OGC3DTilesLayer } from "./layers/OGC3DTilesLayer";
 export { ImageryLayer } from "./layers/ImageryLayer";
 export { GoogleMap3DTileLayer } from "./layers/GoogleMap3DTileLayer";
+export { ObjectLayer } from "./layers/ObjectLayer";
 export { ElevationLayer } from "./layers/ElevationLayer";
 export { PerlinElevationLayer } from "./layers/PerlinElevationLayer";
 export { NOAAGFSCloudsLayer } from "./layers/environment/NOAA/NOAAGFSCloudsLayer";

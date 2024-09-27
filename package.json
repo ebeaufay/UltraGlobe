@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "4.6.1",
+    "version": "4.7.0",
     "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
@@ -45,7 +45,6 @@
         "moment-timezone": "^0.5.43",
         "mp4box": "^0.5.2",
         "noaa-gfs-js": "^1.0.0",
-        "path-browserify": "^1.0.1",
         "path-browserify": "^1.0.1",
         "proj4": "^2.9.0",
         "regenerator-runtime": "^0.13.11",
