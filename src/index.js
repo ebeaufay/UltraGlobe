@@ -264,7 +264,7 @@ function setupMap(globalElevationMap) {
         divID: 'screen',
         clock: true,
         shadows: true,
-        debug: false,
+        debug: true,
         detailMultiplier: 1.0,
         ocean: false,
         atmosphere: true,
