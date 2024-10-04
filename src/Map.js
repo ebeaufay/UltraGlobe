@@ -329,7 +329,7 @@ class Map {
             for (let i = 0; i < 8; i++) {
                 if (i == 0) csmSplits.push(1);
                 else {
-                    csmSplits.push(csmSplits[i - 1] * 3);
+                    csmSplits.push(csmSplits[i - 1] * 3.2);
                 }
             }
             for (let i = 0; i < csmSplits.length; i++) {
@@ -353,9 +353,10 @@ class Map {
                 //shadowNormalBias : -5000,
                 camera: this.camera
             });
+            this.csm.csmSplits = csmSplits;
 
             for (let i = 0; i < this.csm.lights.length; i++) {
-                this.csm.lights[i].shadow.bias = 0.001 * csmSplits[i];
+                this.csm.lights[i].shadow.bias = 0.0001 * csmSplits[i];
                 this.csm.lights[i].shadow.normalBias = 0.1;
                 this.csm.lights[i].shadow.camera.near = 1;
                 this.csm.lights[i].shadow.camera.updateProjectionMatrix();
@@ -432,6 +433,7 @@ class Map {
         this.target.depthTexture = new THREE.DepthTexture();
         this.target.depthTexture.format = THREE.DepthFormat;
         this.target.depthTexture.type = THREE.FloatType;
+        this.target.samples = 8;
 
         // the depth render target is used to render depth to the main texture so that it can read retrieved on the CPU
         if (this.depthTarget) this.depthTarget.dispose();
@@ -459,6 +461,7 @@ class Map {
         this.target2.depthTexture = new THREE.DepthTexture();
         this.target2.depthTexture.format = THREE.DepthFormat;
         this.target2.depthTexture.type = THREE.FloatType;
+        
 
 
         if (this.targetWorld) this.targetWorld.dispose();
@@ -935,7 +938,10 @@ class Map {
                     self.layerManager.layers.forEach((layer) => {
                         
                         if (layer.isOGC3DTilesLayer) {
-                            layer.tileset.updateMatrices();
+                            layer._updateMatrices();
+                        }
+                        if (layer.isObjectLayer) {
+                            layer._updateMatrices();
                         }
                     })
                 }
@@ -1134,12 +1140,19 @@ class Map {
         this.camera.updateProjectionMatrix();
         this._resetLogDepthBuffer();
 
-        /* if(this.csm){
-            this.csm.maxFar = Math.min(1000000, this.camera.far);
-            
+        if(this.csm){
+            this.csm.maxFar = Math.min(500000, this.camera.far);
+            for (let i = 0; i < this.csm.lights.length; i++) {
+                this.csm.lights[i].shadow.bias = 0.0001 * this.csm.csmSplits[i];
+                this.csm.lights[i].shadow.normalBias = 0.1;
+                this.csm.lights[i].shadow.camera.near = 1;
+                this.csm.lights[i].shadow.camera.updateProjectionMatrix();
+                this.csm.lights[i].shadow.camera.far = this.csm.lightMargin + this.csm.maxFar * 2 * this.csm.csmSplits[i];
+                this.csm.lights[i].shadow.needsUpdate = true;
+            }
             
             this.csm.updateFrustums()
-        } */
+        }
 
     }
 

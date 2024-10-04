@@ -158,9 +158,10 @@ class Planet extends Object3D {
 
 
     /**
-     * Transforms a lon lat height point (degrees) to cartesian coordinates (EPSG:4978).
-     * The transform is slightly inaccurate compared to proj4 but it's 3 times faster
+     * Transforms a lon lat height point (EPSG:4326) to cartesian coordinates (EPSG:4978).
+     * The transform is slightly inaccurate compared to proj4 but it's 3 times faster and accurate enough for most needs
      * @param {THREE.Vector3} llh
+     * @param {boolean} [radians = false] set to true if the input longitude and latitude are in radians. height is always expected in meters.
      */
     llhToCartesianFastSFCT(llh, radians = false) {
         const lon = radians ? llh.x : 0.017453292519 * llh.x;
@@ -176,9 +177,9 @@ class Planet extends Object3D {
     }
 
     /**
-     * Transforms a xyz point (degrees) to llh coordinates (EPSG:4326).
+     * Transforms a xyz point (EPSG:4978) to lon lat height coordinates (EPSG:4326) with longitude and latitude in degrees.
      * The transform is slightly inaccurate compared to proj4 but it's 2.5 times faster
-     * @param {THREE.Vector3} llh
+     * @param {THREE.Vector3} llh lon/lat/height
      */
     cartesianToLlhFastSFCT(xyz) {
         const a = 6378137.0;

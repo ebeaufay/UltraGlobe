@@ -1,7 +1,16 @@
 import { Layer } from './Layer.js';
 import * as THREE from 'three';
+import { llhToCartesianFastSFCT } from '../GeoUtils.js';
 
-
+const cartesianLocation = new THREE.Vector3();
+const Up = new THREE.Vector3();
+const East = new THREE.Vector3();
+const North = new THREE.Vector3();
+const globalNorth = new THREE.Vector3(0,0,1);
+const quaternionToEarthNormalOrientation = new THREE.Quaternion();
+const quaternionSelfRotation = new THREE.Quaternion();
+const rotationMatrix = new THREE.Matrix4();
+const rotation = new THREE.Euler(0,0,0, "ZYX");
 /**
  * Projected layers are draped onto other data from the given perspective
  */
@@ -147,7 +156,6 @@ class ProjectedLayer extends Layer {
   * @param {number} far - The max distance to project the texture.
   */
     setCameraFromLLHYawPitchRollFov(llh, yaw, pitch, roll, fov, far) {
-        pitch = Math.min(89.9, Math.max(-89.9, pitch));
         if(llh)this._cameraLLH.copy(llh);
         if(yaw)this._yaw = yaw;
         if(pitch)this._pitch = pitch;
@@ -155,54 +163,30 @@ class ProjectedLayer extends Layer {
         if(fov)this._fov = fov;
         if(far)this._far = far;
         if(!this.projectionCamera) return;
-        const cartesian = new THREE.Vector3(llh.x, llh.y, llh.z);
-        this._llhToCartesianFastSFCT(cartesian, false); // Convert LLH to Cartesian in-place
 
-        // Step 2: Compute Local Up vector (points away from Earth's center)
-        const Up = cartesian.clone().normalize();
+        
+        rotation.set(
+            pitch*0.0174533, yaw*0.0174533, roll*0.0174533, "ZYX");
 
-        // Step 3: Define Global North (assumed Y-axis)
-        const globalNorth = new THREE.Vector3(0, 1, 0);
+        cartesianLocation.set(llh.x, llh.y, llh.z);
+        llhToCartesianFastSFCT(cartesianLocation, false); // Convert LLH to Cartesian in-place
 
-        // Step 4: Compute Local East vector
-        const East = new THREE.Vector3().crossVectors(Up, globalNorth).normalize();
-        // Handle the singularity at the poles
-        if (East.length() === 0) {
-            // At the poles, define East arbitrarily
+        Up.copy(cartesianLocation).normalize();
+        East.crossVectors(globalNorth, Up).normalize();
+        if (East.lengthSq() === 0) {
             East.set(1, 0, 0);
         }
+        North.crossVectors(East, Up).normalize();
 
-        // Step 5: Compute Local North vector
-        const North = new THREE.Vector3().crossVectors(East, Up).normalize();
+        
+        rotationMatrix.makeBasis(East, Up, North);
 
-        // Step 5: Initialize Forward vector as North
-        let Forward = North.clone();
+        quaternionToEarthNormalOrientation.setFromRotationMatrix(rotationMatrix);
 
-        // Step 6: Apply Yaw rotation around Up vector
-        const yawRad = THREE.MathUtils.degToRad(yaw);
-        Forward.applyAxisAngle(Up, yawRad).normalize();
-
-        // Step 7: Compute Right vector as cross of Up and Forward
-        const Right = new THREE.Vector3().crossVectors(Forward, Up).normalize();
-
-        // Step 8: Apply Pitch rotation around Right vector
-        const pitchRad = THREE.MathUtils.degToRad(pitch);
-        Forward.applyAxisAngle(Right, pitchRad).normalize();
-
-        // Step 9: Compute the target point the camera should look at
-        const target = cartesian.clone().add(Forward);
-
-
-
-        // Step 11: Apply Roll by rotating the Up vector around Forward vector
-        const rollRad = THREE.MathUtils.degToRad(roll);
-        Up.crossVectors(Right, Forward);
-        Up.applyAxisAngle(Forward, rollRad).normalize();
-        this.projectionCamera.up.copy(Up);
-
-        // Step 10: Set camera position and orientation using lookAt
-        this.projectionCamera.position.copy(cartesian);
-        this.projectionCamera.lookAt(target);
+        quaternionSelfRotation.setFromEuler(rotation);
+        this.projectionCamera.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+        this.projectionCamera.position.copy(cartesianLocation);
+        
 
         // Step 12: Set FOV and update camera matrices
         this.projectionCamera.fov = fov;
@@ -213,17 +197,6 @@ class ProjectedLayer extends Layer {
         this.projectionCamera.updateProjectionMatrix();
     }
 
-    _llhToCartesianFastSFCT(llh, radians = false) {
-        const lon = radians ? llh.x : 0.017453292519 * llh.x;
-        const lat = radians ? llh.y : 0.017453292519 * llh.y;
-        const N = 6378137.0 / (Math.sqrt(1.0 - (0.006694379990141316 * Math.pow(Math.sin(lat), 2.0))));
-        const cosLat = Math.cos(lat);
-        const cosLon = Math.cos(lon);
-        const sinLat = Math.sin(lat);
-        const sinLon = Math.sin(lon);
-        const nPh = (N + llh.z);
-
-        llh.set(nPh * cosLat * cosLon, nPh * cosLat * sinLon, (0.993305620009858684 * N + llh.z) * sinLat);
-    }
+    
 }
 export { ProjectedLayer }

@@ -3,15 +3,20 @@ import { OGC3DTile } from "@jdultra/threedtiles/dist/threedtiles.min.js";
 import * as THREE from 'three';
 import { TileLoader } from '@jdultra/threedtiles/dist/threedtiles.min.js';
 import { OBB } from '@jdultra/threedtiles/dist/threedtiles.min.js';
-import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-import moveUpSVG from "./../images/double-arrow.png";
+import { llhToCartesianFastSFCT } from '../GeoUtils.js';
+
+
+const tileLoaders = [];
 
 const cartesianLocation = new THREE.Vector3();
-const orientationHelper = new THREE.Vector3();
-const up = new THREE.Vector3(0, 1, 0);
+const Up = new THREE.Vector3();
+const East = new THREE.Vector3();
+const North = new THREE.Vector3();
+const globalNorth = new THREE.Vector3(0,0,1);
 const quaternionToEarthNormalOrientation = new THREE.Quaternion();
 const quaternionSelfRotation = new THREE.Quaternion();
-const tileLoaders = [];
+const rotationMatrix = new THREE.Matrix4();
+const rotation = new THREE.Euler(0,0,0, "ZYX");
 
 /**
  * A layer for loading a OGC3DTiles tileset. 
@@ -29,10 +34,12 @@ class OGC3DTilesLayer extends Layer {
      * @param {Boolean} [properties.displayErrors = false] (optional) display loading errors
      * @param {Boolean} [properties.proxy = undefined] (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
      * @param {Boolean} [properties.queryParams = undefined] (optional) path params to add to individual tile urls (starts with "?").
-     * @param {Number} [properties.scale = 1] (optional) scale the model
-     * @param {Number} [properties.rotationX = 0] (optional) rotates the model on its x axis in radians
-     * @param {Number} [properties.rotationY = 0] (optional) rotates the model on its y axis in radians
-     * @param {Number} [properties.rotationZ = 0] (optional) rotates the model on its z axis in radians
+     * @param {number} [scaleX = 1] - scale on X axes.
+     * @param {number} [scaleY = 1] - scale on Y axes. defaults to the scaleX property if defined.
+     * @param {number} [scaleZ = 1] - scale on Z axes. defaults to the scaleX property if defined.
+     * @param {number} [yaw = 0] - Yaw angle in degrees. (0 means local z axis points north ccw rotation)
+     * @param {number} [pitch = 0] - Pitch angle in degrees (0 means the x-z plane alligns with the horizon )
+     * @param {number} [roll = 0] - Roll angle in degrees. (ccw rotation about the local z axis)
      * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
      * @param {Number} [properties.longitude = 0] (optional) longitude of the model's center point in degrees.
      * @param {Number} [properties.latitude = 0] (optional) latitude of the model's center point in degrees.
@@ -58,21 +65,14 @@ class OGC3DTilesLayer extends Layer {
         self.displayErrors = properties.displayErrors;
         self.proxy = properties.proxy;
         self.queryParams = properties.queryParams;
-        this.scale = !!properties.scale ? properties.scale : 1;
-
-        this.rotation = new THREE.Euler(
-            !!properties.rotationX ? properties.rotationX : 0,
-            !!properties.rotationY ? properties.rotationY : 0,
-            !!properties.rotationZ ? properties.rotationZ : 0,
-            "ZYX");
+        this.move(properties.longitude, properties.latitude, properties.height, properties.yaw, properties.pitch, properties.roll, properties.scaleX, properties.scaleY, properties.scaleZ);
+        
 
 
         this.geometricErrorMultiplier = !!properties.geometricErrorMultiplier ? properties.geometricErrorMultiplier : 1.0;
         this.loadingStrategy = !!properties.loadingStrategy ? properties.loadingStrategy : "INCREMENTAL";
         this.updateCallback = !!properties.updateCallback ? properties.updateCallback : undefined;
-        if (!!properties.longitude && !!properties.latitude) {
-            this.llh = new THREE.Vector3(properties.longitude, properties.latitude, !!properties.height ? properties.height : 0)
-        }
+        
 
         this.url = properties.url;
         this.loadOutsideView = !!properties.loadOutsideView ? properties.loadOutsideView : false;
@@ -83,13 +83,9 @@ class OGC3DTilesLayer extends Layer {
         this.selectable = !!properties.selectable;
     }
 
-    setLLH(llh) {
-        this.llh.x = llh.x;
-        this.llh.y = llh.y;
-        this.llh.z = llh.z;
-    }
+    
     getCenter(sfct) {
-        sfct.copy(this.llh);
+        sfct.set(this._longitude, this._latitude, this._height);
     }
     getRadius() {
         return this.bounds.min.distanceTo(this.bounds.max);
@@ -267,7 +263,7 @@ class OGC3DTilesLayer extends Layer {
                 } */
             },
             pointsCallback: (points, geometricError) => {
-                points.material.size = 1*Math.max(1.0, 0.1 * Math.sqrt(geometricError));
+                points.material.size = 1 * Math.max(1.0, 0.1 * Math.sqrt(geometricError));
                 points.material.sizeAttenuation = true;
                 points.material.receiveShadow = false;
                 points.material.castShadow = false;
@@ -280,7 +276,7 @@ class OGC3DTilesLayer extends Layer {
             tileLoader: tileLoader,
             renderer: map.renderer,
             proxy: self.proxy,
-            static:true,
+            static: true,
             queryParams: self.queryParams,
             displayErrors: self.displayErrors,
             displayCopyright: self.displayCopyright,
@@ -293,34 +289,98 @@ class OGC3DTilesLayer extends Layer {
         this.object3D.add(this.tileset);
         this.object3D.updateMatrix();
         this.object3D.updateMatrixWorld(true);
-        
-        
-        
+
+
+
 
     }
     _setPlanet(planet) {
         this.planet = planet;
-        
+
     }
 
     _addToScene(scene) {
         this.scene = scene;
         scene.add(this.object3D);
-        this.updateLocation();
+        this.move(this._longitude, this._latitude, this._height, this._yaw, this._pitch, this._roll, this._scaleX, this._scaleY, this._scaleZ);
     }
 
     update(camera) {
-        if(!this.paused && this.visible){
+        if (!this.paused && this.visible) {
             const stats = this.tileset.update(camera);
-            if(!!this.updateCallback){
+            if (!!this.updateCallback) {
                 this.updateCallback(stats);
             }
-            this.tileset.tileLoader.update();
+            try{
+                this.tileset.tileLoader.update();
+            }catch(error){
+                //silence
+            }
             
+
+        }
+
+    }
+
+    /**
+    * Sets the object position and orientation based on Longitude, Latitude, Height, Yaw, Pitch, Roll
+    *
+    * @param {number} [longitude = 0] - a longitude in degrees
+    * @param {number} [latitude = 0] - a latitude in degrees
+    * @param {number} [height = 0] - a height in meters above WGS 84 sea level
+    * @param {number} [yaw = 0] - Yaw angle in degrees. (0 points north ccw rotation)
+    * @param {number} [pitch = 0] - Pitch angle in degrees (-90 to 90)
+    * @param {number} [roll = 0] - Roll angle in degrees.
+    * @param {number} [scaleX = 1] - scale on X axes.
+    * @param {number} [scaleY = 1] - scale on Y axes. defaults to the scaleX property if defined.
+    * @param {number} [scaleZ = 1] - scale on Z axes. defaults to the scaleX property if defined.
+    */
+    move(longitude = 0, latitude = 0, height = 0, yaw = 0, pitch = 0, roll = 0, scaleX = 1, scaleY = 1, scaleZ = 1 ) {
+        
+        this._longitude = longitude;
+        this._latitude = latitude;
+        this._height = height;
+        this._yaw = yaw;
+        this._pitch = pitch;
+        this._roll = roll;
+        this._scaleX = scaleX;
+        this._scaleY = scaleY;
+        this._scaleZ = scaleZ;
+        if(!this.planet) return;
+
+        rotation.set(
+            pitch*0.0174533, yaw*0.0174533, roll*0.0174533, "ZYX");
+
+        cartesianLocation.set(longitude, latitude, height);
+        llhToCartesianFastSFCT(cartesianLocation, false); // Convert LLH to Cartesian in-place
+
+        Up.copy(cartesianLocation).normalize();
+        East.crossVectors(Up, globalNorth).normalize();
+        if (East.lengthSq() === 0) {
+            East.set(1, 0, 0);
         }
         
+        North.crossVectors(East, Up).normalize();
+
+        
+        rotationMatrix.makeBasis(East, Up, North);
+
+        quaternionToEarthNormalOrientation.setFromRotationMatrix(rotationMatrix);
+
+        quaternionSelfRotation.setFromEuler(rotation);
+        this.object3D.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
+        this.object3D.position.copy(cartesianLocation);
+        this.object3D.scale.set(scaleX, scaleY, scaleZ);
+
+
+        this._updateMatrices();
     }
-    updateLocation() {
+    _updateMatrices(){
+        this.object3D.updateMatrix();
+        this.object3D.updateMatrixWorld(true);
+        this.tileset.updateMatrices();
+    }
+    /* updateLocation() {
 
         if (!this.planet) {
             return;
@@ -334,32 +394,14 @@ class OGC3DTilesLayer extends Layer {
             this.object3D.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
             this.object3D.position.copy(cartesianLocation);
             this.object3D.scale.set(this.scale, this.scale, this.scale);
+
             
-            /* let matrix = new THREE.Matrix4();
-            matrix.compose(cartesianLocation, quaternionToEarthNormalOrientation.multiply(quaternionSelfRotation), new THREE.Vector3(this.scale, this.scale, this.scale));
-
-            this.tileset.updateMatrix();
-            this.tileset.matrix.multiply(matrix); */
-            /* if (this.boundingMesh) {
-                this.boundingMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-                this.boundingMesh.position.copy(cartesianLocation);
-                this.boundingMesh.scale.set(this.scale, this.scale, this.scale);
-                this.boundingMesh.updateMatrix();
-                this.boundingMesh.updateMatrixWorld();
-
-                this.selectionMesh.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-                this.selectionMesh.position.copy(cartesianLocation);
-                this.selectionMesh.scale.set(this.scale, this.scale, this.scale);
-                this.selectionMesh.updateMatrix();
-                this.selectionMesh.updateMatrixWorld();
-
-            } */
         }
         this.object3D.updateMatrix();
         this.object3D.updateMatrixWorld(true);
         this.tileset.updateMatrices();
 
-    }
+    } */
 
     dispose() {
         this.scene.remove(this.object3D);
@@ -392,8 +434,8 @@ class OGC3DTilesLayer extends Layer {
     }
 }
 
-function _updateTileLoaders(){
-    tileLoaders.forEach(tileLoader=>tileLoader.update());
+function _updateTileLoaders() {
+    tileLoaders.forEach(tileLoader => tileLoader.update());
 }
 export { OGC3DTilesLayer }
 

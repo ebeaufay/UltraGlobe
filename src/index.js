@@ -6,6 +6,7 @@ import { PerlinElevationLayer } from "./layers/PerlinElevationLayer.js";
 import { JetElevation } from "./layers/JetElevation.js";
 import { SingleImageElevationLayer } from "./layers/SingleImageElevationLayer.js";
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer.js';
 import { WMSLayer } from './layers/WMSLayer';
 import { SingleImageImageryLayer } from './layers/SingleImageImageryLayer';
@@ -30,8 +31,10 @@ import { ProjectedLayer } from "./layers/ProjectedLayer.js";
 import { GoProVideoLayer } from "./layers/GoProVideoLayer.js";
 import techno2 from './images/techno2.png';
 import { ObjectLayer } from "./entry.js";
+
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
+const objLoader = new OBJLoader();
 const textureLoader = new THREE.TextureLoader();
 
 /* function remap(x, a, b, c, d) {
@@ -94,18 +97,18 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
-var googleMaps3DTiles = new GoogleMap3DTileLayer({
+/* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "AIzaSyC-Vx57C2vx9KyXAR4cOOPuhV1D0uQlsG0",
+    apiKey: "",
     loadOutsideView: false,
     displayCopyright: true,
     flatShading: false,
     geometricErrorMultiplier: 0.4,
     loadingStrategy: "INCREMENTAL",
     //updateCallback: (stats)=>console.log(stats)
-});
+}); */
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -165,26 +168,27 @@ var wmsLayer = new WMSLayer({
 
 
 const progressBar = document.getElementById("progressBar");
-/* var ogc3dTiles = new OGC3DTilesLayer({
+var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
     visible: true,
-    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
-    longitude: 13.404954,
-    latitude: 52.520008,
+    url: "http://localhost:8081/tileset.json",
+    longitude: 13.4,
+    latitude: 52.52,
     height: 200,
-    rotationY: 0.72,
-    rotationX: 3.1416,
-    scale: 1.0,
-    geometricErrorMultiplier: 0.03,
+    yaw: 0.72,
+    pitch: 0,
+    pitch: -90,
+    roll: 0,
+    geometricErrorMultiplier: 1,
     loadOutsideView: false,
-    flatShading: true,
+    flatShading: false,
     //loadingStrategy: "IMMEDIATE",
     updateCallback: (stats) => {
         progressBar.style.width = stats.percentageLoaded * 100 + '%';
         progressBar.innerHTML = (stats.percentageLoaded * 100).toFixed(0) + '%';
     }
-}); */
+});
 /* var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
     name: "OGC 3DTiles",
@@ -323,56 +327,76 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x: 13.4, y: 52.52, z: 1000 }, { x: 13.4, y: 52.52, z: 0 });
+    map.moveAndLookAt({ x: 13.4, y: 52.52, z: 3000 }, { x: 13.4, y: 52.52, z: 0 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    //map.setLayer(ogc3dTiles, 3);
+    map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
     map.setLayer(wmsLayer, 4);
 
     //map.setLayer(jetElevationShaderLayer, 7);
     map.setLayer(environmentLayer, 8);
+    /* gltfLoader.load("http://localhost:8080/ar6m5g5hhkf-model.glb_/model.glb",object =>{
+        object.scene.traverse(o=>{
+            if(o.material){
+                o.material.shadowSide = THREE.FrontSide;
+            }
+            if(o.materials){
+                o.materials.forEach(m=>{
+                    m.receiveShadows = true;
+                })
+            }
+            if(o.castShadow != undefined){
+                o.castShadow = true;
+                o.receiveShadow = true;
+            }
+        })
+        
+        const objectLayer = new ObjectLayer({
+            id: 342,
+            name: "object",
+            object: object.scene,
+            longitude: 13.4,
+            latitude: 52.52,
+            height: 20,
+            yaw:20,
+            pitch:0,
+            roll:0,
+            scaleX:1
+        });
+        map.setLayer(objectLayer, 10);
+        
+    }); */
 
+    
 
-    const geometry = new THREE.BoxGeometry( 1000000, 1000000, 1000000 ); 
-    const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); 
-    const cube = new THREE.Mesh( geometry, material );
+    
 
-    const objectLayer = new ObjectLayer({
-        id: 342,
-        name: "object",
-        object: cube,
-        longitude: 13.4,
-        latitude: 52.52,
-        height: 400000
-    });
-    map.setLayer(objectLayer, 10);
-
-    const video = document.createElement('video');
+    /* const video = document.createElement('video');
     const videoTexture = new THREE.VideoTexture(video);
     const projectedLayer = new ProjectedLayer({
         id: 983,
         name: "projected",
         texture: videoTexture,
         cameraLLH: new THREE.Vector3(13.4, 52.52, 400),
-        yaw: 90,
-        pitch: -45,
+        yaw: 20,
+        pitch: -125,
         roll: 0,
         fov: 30,
         depthTest: true,
         chromaKeying: false
     });
     map.setLayer(projectedLayer, 9);
-        /* let yaw = 0;
+        let yaw = 0;
         let lat = 52.52;
         setInterval(() => {
             yaw += 0.1;
             lat += 0.00001;
             projectedLayer.setCameraFromLLHYawPitchRollFov(new THREE.Vector3(13.4, lat, 300), 90, -45, 0, 40);
-        }, 17); */
+        }, 17);
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const constraints = { video: { width: 1280, height: 720, facingMode: 'user' } };
 
@@ -392,7 +416,7 @@ function setupMap(globalElevationMap) {
 
         console.error('MediaDevices interface not available.');
 
-    }
+    } */
 
     /* fetch("http://localhost:8080/karma.mp4").then(response => response.arrayBuffer()).then(arrayBuffer => {
         arrayBuffer.fileStart = 0;
