@@ -226,7 +226,11 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
 }); */
-var environmentLayer = new RandomCloudsLayer({
+var environmentLayer = new NOAAGFSCloudsLayer({
+    id: 84,
+    name: "clouds"
+});
+/* var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage: 0.4,
@@ -235,7 +239,7 @@ var environmentLayer = new RandomCloudsLayer({
     minHeight: 2000,
     maxHeight: 10000,
     quality: 0.5
-});
+}); */
 var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",

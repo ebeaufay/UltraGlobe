@@ -31,6 +31,7 @@ const CloudCoverageWorker = {
                         [e.data.beforeIndex, e.data.afterIndex],  // forecast indices
                         'lcdclcll' // The requested data item
                     ).then((result) => {
+                        if(result[0].length == 0) throw "No clouds data for given date";
                         for (let y = 0; y < 361; y++) {
                             for (let x = 0; x < 721; x++) {
                                 const index = (y * 721 + x) * 4;
@@ -49,7 +50,7 @@ const CloudCoverageWorker = {
                         [e.data.beforeIndex, e.data.afterIndex],  // forecast indices
                         'mcdcmcll' // The requested data item
                     ).then((result) => {
-                        
+                        if(result[0].length == 0) throw "No clouds data for given date";
                         for (let y = 0; y < 361; y++) {
                             for (let x = 0; x < 721; x++) {
                                 const index = (y * 721 + x) * 4 + 1;
@@ -67,6 +68,7 @@ const CloudCoverageWorker = {
                         [e.data.beforeIndex, e.data.afterIndex],  // forecast indices
                         'hcdchcll' // The requested data item
                     ).then((result) => {
+                        if(result[0].length == 0) throw "No clouds data for given date";
                         for (let y = 0; y < 361; y++) {
                             for (let x = 0; x < 721; x++) {
                                 const index = (y * 721 + x) * 4 + 2;
