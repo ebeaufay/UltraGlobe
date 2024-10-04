@@ -25,32 +25,32 @@ const rotation = new THREE.Euler(0,0,0, "ZYX");
  */
 class OGC3DTilesLayer extends Layer {
     /**
-     * 
+     *
      * @param {Object} properties
-     * @param {String|Number} properties.id layer id should be unique
-     * @param {String} properties.name the name can be anything you want and is intended for labeling
-     * @param {String} properties.url url of the root tileset.json
-     * @param {Boolean} [properties.displayCopyright = false] (optional) display copyright information when present in tiles by concatenating all copyright info for all displayed tiles
-     * @param {Boolean} [properties.displayErrors = false] (optional) display loading errors
-     * @param {Boolean} [properties.proxy = undefined] (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
-     * @param {Boolean} [properties.queryParams = undefined] (optional) path params to add to individual tile urls (starts with "?").
-     * @param {number} [scaleX = 1] - scale on X axes.
-     * @param {number} [scaleY = 1] - scale on Y axes. defaults to the scaleX property if defined.
-     * @param {number} [scaleZ = 1] - scale on Z axes. defaults to the scaleX property if defined.
-     * @param {number} [yaw = 0] - Yaw angle in degrees. (0 means local z axis points north ccw rotation)
-     * @param {number} [pitch = 0] - Pitch angle in degrees (0 means the x-z plane alligns with the horizon )
-     * @param {number} [roll = 0] - Roll angle in degrees. (ccw rotation about the local z axis)
-     * @param {Number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
-     * @param {Number} [properties.longitude = 0] (optional) longitude of the model's center point in degrees.
-     * @param {Number} [properties.latitude = 0] (optional) latitude of the model's center point in degrees.
-     * @param {Number} [properties.height = 0] (optional) height in meters above sea level.
-     * @param {Boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
-     * @param {Boolean} [properties.selectable = false] (optional) if true, the tileset can be selected.
-     * @param {Number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
-     * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
-     * @param {String} [properties.loadingStrategy = "INCREMENTAL"] loading strategy, "INCREMENTAL" (default) or "IMMEDIATE". "IMMEDIATE" mode loads only the ideal LOD while "INCREMENTAL" loads intermediate LODs.
+     * @param {string|number} properties.id layer id should be unique
+     * @param {string} properties.name the name can be anything you want and is intended for labeling
+     * @param {string} properties.url url of the root tileset.json
+     * @param {boolean} [properties.displayCopyright = false] (optional) display copyright information when present in tiles by concatenating all copyright info for all displayed tiles
+     * @param {boolean} [properties.displayErrors = false] (optional) display loading errors
+     * @param {boolean} [properties.proxy = undefined] (optional) the url to a proxy service. Instead of fetching tiles via a GET request, a POST will be sent to the proxy url with the real tile address in the body of the request.
+     * @param {boolean} [properties.queryParams = undefined] (optional) path params to add to individual tile urls (starts with "?").
+     * @param {number} [properties.scaleX = 1] - scale on X axes.
+     * @param {number} [properties.scaleY = 1] - scale on Y axes. defaults to the scaleX property if defined.
+     * @param {number} [properties.scaleZ = 1] - scale on Z axes. defaults to the scaleX property if defined.
+     * @param {number} [properties.yaw = 0] - Yaw angle in degrees. (0 means local z axis points north ccw rotation)
+     * @param {number} [properties.pitch = 0] - Pitch angle in degrees (0 means the x-z plane alligns with the horizon )
+     * @param {number} [properties.roll = 0] - Roll angle in degrees. (ccw rotation about the local z axis)
+     * @param {number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
+     * @param {number} [properties.longitude = 0] (optional) longitude of the model's center point in degrees.
+     * @param {number} [properties.latitude = 0] (optional) latitude of the model's center point in degrees.
+     * @param {number} [properties.height = 0] (optional) height in meters above sea level.
+     * @param {boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
+     * @param {boolean} [properties.selectable = false] (optional) if true, the tileset can be selected.
+     * @param {number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {boolean} [properties.visible = true] layer will be rendered if true (true by default)
+     * @param {string} [properties.loadingStrategy = "INCREMENTAL"] loading strategy, "INCREMENTAL" (default) or "IMMEDIATE". "IMMEDIATE" mode loads only the ideal LOD while "INCREMENTAL" loads intermediate LODs.
      * @param {Function} [properties.updateCallback = undefined] A callback called on every tileset update with a stats object indicating number of tiles loaded/visualized, max loaded LOD, and percentage of the tileset loaded
-     * 
+     *
      */
     constructor(properties) {
 
