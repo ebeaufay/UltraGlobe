@@ -9,7 +9,7 @@ class JetElevation extends ShaderColorLayer{
     /**
      * A color layer where the color is fully computed in the shader.
      * The given shader glsl code will be inserted in the main planet shader and 
-     * color per fragment will be computed via a call to "vec3 getShaderLayerColor(float lon, float lat, float height);"
+     * color per fragment will be computed via a call to "vec3 getShaderLayerColor(vec3 llh, vec3 xyz, vec3 normal, float level);"
      * 
      * Only one visible ShaderColorLayer will be taken into account at a time.
      * 

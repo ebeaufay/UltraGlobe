@@ -2,6 +2,7 @@ const PlanetTileShaderChunks = {
     vertexPreMain: () => `
     uniform vec4 bounds;
     uniform sampler2D elevation;
+    uniform vec3 offset;
     varying vec3 llh;
     varying vec2 vUv;
     varying vec3 vSurfacePosition;
@@ -16,9 +17,9 @@ const PlanetTileShaderChunks = {
     vUv = uv;
     terrainNormal = normal;
     #if defined( USE_ENVMAP ) || defined( DISTANCE ) || defined ( USE_SHADOWMAP ) || defined ( USE_TRANSMISSION ) || NUM_SPOT_LIGHT_COORDS > 0
-        vSurfacePosition = worldPosition.xyz;
+        vSurfacePosition = worldPosition.xyz - offset;
     #else
-        vSurfacePosition = (modelMatrix * vec4(position,1.0)).xyz;
+        vSurfacePosition = (modelMatrix * vec4(position,1.0)).xyz - offset;
     #endif
     
     `,
@@ -31,6 +32,7 @@ const PlanetTileShaderChunks = {
 		uniform vec4 imageryUVBounds[`+ numImageryLayers + `];
 		uniform int imageryProjections[`+ numImageryLayers + `];
 		uniform float level;
+        
 
 		`;
 

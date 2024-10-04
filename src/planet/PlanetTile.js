@@ -626,6 +626,7 @@ class PlanetTile extends Mesh {
         shader.uniforms.planetPosition = { type: "v3", value: self.planet.center };
         shader.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         shader.uniforms.level = { type: "f", value: self.level };
+        shader.uniforms.offset = { type: "v3", value: self.planet.offset };
 
     }
 

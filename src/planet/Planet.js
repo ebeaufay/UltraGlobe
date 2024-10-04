@@ -28,6 +28,7 @@ class Planet extends Object3D {
      */
     constructor(properties) {
         super();
+        this.offset = new THREE.Vector3();
         this.frustumCulled = true;
         this.elevationExageration = 1;
         this.renderer = properties.renderer;
@@ -148,6 +149,10 @@ class Planet extends Object3D {
     }
     _resumeRendering() {
         this.pause = false;
+    }
+
+    _setOffset(offset){
+        this.offset.copy(offset);
     }
 
     setElevationExageration(elevationExageration) {

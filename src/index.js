@@ -124,7 +124,7 @@ var jetElevationShaderLayer = new JetElevation({
     max: 8800,
     bounds: [-180, -90, 180, 90],
     transparency: 0.5,
-    visible: false
+    visible: true
 })
 var earthElevation = new SingleImageElevationLayer({
     id: 9,
@@ -334,15 +334,15 @@ function setupMap(globalElevationMap) {
     map.moveAndLookAt({ x: 13.4, y: 52.52, z: 3000 }, { x: 13.4, y: 52.52, z: 0 });
     //52.50921677914625, 13.405685233710862
     //map.setLayer(perlinElevation, 0);
-    //map.setLayer(shaderLayer, 1);
+    map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
-    map.setLayer(ogc3dTiles, 3);
+    //map.setLayer(ogc3dTiles, 3);
     map.setLayer(earthElevation, 5);
-    map.setLayer(wmsLayer, 4);
+    //map.setLayer(wmsLayer, 4);
 
     //map.setLayer(jetElevationShaderLayer, 7);
-    map.setLayer(environmentLayer, 8);
+    //map.setLayer(environmentLayer, 8);
     /* gltfLoader.load("http://localhost:8080/ar6m5g5hhkf-model.glb_/model.glb",object =>{
         object.scene.traverse(o=>{
             if(o.material){

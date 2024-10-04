@@ -943,7 +943,8 @@ class Map {
                         if (layer.isObjectLayer) {
                             layer._updateMatrices();
                         }
-                    })
+                    });
+                    self.planet._setOffset(self.scene.position);
                 }
                 
                 self.renderCamera.copy(self.camera, true);
