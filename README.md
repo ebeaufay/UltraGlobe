@@ -129,6 +129,16 @@ Projected layers allow projecting a texture onto other data from a given view po
 https://github.com/user-attachments/assets/e9401d9b-1ee9-42f8-84bf-f445ed05c597
 
 
+Cloud shadows give a bit more realism. works on all data like google tiles of course
+
+https://github.com/user-attachments/assets/351a84db-3f0b-4f9e-879e-b758d303b2ca
+
+
+ObjectLayer simplifies geolocating any three.js object
+
+https://github.com/user-attachments/assets/5aa63a07-fb06-4654-af50-6d06db924040
+
+
 
 
 
