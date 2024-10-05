@@ -230,21 +230,21 @@ var environmentLayer = new NOAAGFSCloudsLayer({
     id: 84,
     name: "clouds"
 });
-/* var environmentLayer = new RandomCloudsLayer({
+var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
-    coverage: 0.4,
-    debug: false,
-    windSpeed: 0.08,
-    minHeight: 2000,
-    maxHeight: 10000,
+    coverage: 0.35,
+    debug: true,
+    windSpeed: 0.0,
+    minHeight: 20000,
+    maxHeight: 40000,
     quality: 0.5
-}); */
-var simpleElevationLayer = new SimpleElevationLayer({
+});
+/* var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
     bounds: [-180, -90, 180, 90],
-});
+}); */
 
 
 
@@ -270,11 +270,11 @@ function setupMap(globalElevationMap) {
 
     let map = new Map({
         divID: 'screen',
-        clock: true,
+        clock: false,
         shadows: true,
-        debug: true,
+        debug: false,
         detailMultiplier: 1.0,
-        ocean: false,
+        ocean: true,
         atmosphere: true,
         atmosphereDensity: 1.0,
         sun: true,
@@ -333,16 +333,16 @@ function setupMap(globalElevationMap) {
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
     map.moveAndLookAt({ x: 13.4, y: 52.52, z: 3000 }, { x: 13.4, y: 52.52, z: 0 });
     //52.50921677914625, 13.405685233710862
-    //map.setLayer(perlinElevation, 0);
+    map.setLayer(perlinElevation, 0);
     map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    map.setLayer(earthElevation, 5);
+    //map.setLayer(earthElevation, 5);
     //map.setLayer(wmsLayer, 4);
 
     //map.setLayer(jetElevationShaderLayer, 7);
-    //map.setLayer(environmentLayer, 8);
+    map.setLayer(environmentLayer, 8);
     /* gltfLoader.load("http://localhost:8080/ar6m5g5hhkf-model.glb_/model.glb",object =>{
         object.scene.traverse(o=>{
             if(o.material){

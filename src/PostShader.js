@@ -1668,7 +1668,8 @@ const PostShader = {
 		if (clouds) {
 			code += `
 			if(cameraHeightAboveEllipsoid>=0.0){
-				diffuse = mix(diffuse, cl.xyz, cl.w);
+				vec4 cc = texture2D(tClouds, vUv);
+				diffuse = mix(diffuse, cc.xyz, cc.w);
 			}
 			`;
 		}

@@ -356,7 +356,7 @@ class Map {
             this.csm.csmSplits = csmSplits;
 
             for (let i = 0; i < this.csm.lights.length; i++) {
-                this.csm.lights[i].shadow.bias = 0.0001 * csmSplits[i];
+                this.csm.lights[i].shadow.bias = 0.00025 * csmSplits[i];
                 this.csm.lights[i].shadow.normalBias = 0.1;
                 this.csm.lights[i].shadow.camera.near = 1;
                 this.csm.lights[i].shadow.camera.updateProjectionMatrix();
@@ -1144,7 +1144,7 @@ class Map {
         if(this.csm){
             this.csm.maxFar = Math.min(500000, this.camera.far);
             for (let i = 0; i < this.csm.lights.length; i++) {
-                this.csm.lights[i].shadow.bias = 0.0001 * this.csm.csmSplits[i];
+                this.csm.lights[i].shadow.bias = 0.00025 * this.csm.csmSplits[i];
                 this.csm.lights[i].shadow.normalBias = 0.1;
                 this.csm.lights[i].shadow.camera.near = 1;
                 this.csm.lights[i].shadow.camera.updateProjectionMatrix();

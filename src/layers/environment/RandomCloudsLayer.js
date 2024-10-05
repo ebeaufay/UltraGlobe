@@ -20,25 +20,25 @@ float sampleDensity(vec3 samplePosition, float lod){
 
     //low frequency
     float lowFrequencyCoverage = coverage*0.2;
-    density += ((texture(perlinWorley, offsetPosition*1e-7+(altitudeFactor*0.01)+offset*1.5+time*windSpeed*0.000001).r-(1.0-lowFrequencyCoverage))/lowFrequencyCoverage)*0.5;
+    density += ((texture(perlinWorley, offsetPosition*1e-7+(altitudeFactor*0.01)+offset*1.5+time*windSpeed*0.00001).r-(1.0-lowFrequencyCoverage))/lowFrequencyCoverage)*0.5;
     float lod3 = density-(1.0-sm);
     if(lod>=3.0)return lod3;
 
     //medium frequency
     float mediumFrequencyCoverage = coverage*0.2;
-    density += ((texture(perlinWorley, offsetPosition*8e-6+(altitudeFactor*0.05)+time*windSpeed*0.00001).r-(1.0-mediumFrequencyCoverage))/mediumFrequencyCoverage)*0.25;
+    density += ((texture(perlinWorley, offsetPosition*3e-6+(altitudeFactor*0.05)+time*windSpeed*0.00001).r-(1.0-mediumFrequencyCoverage))/mediumFrequencyCoverage)*0.25;
     if(density<-0.25) return -1.0;
     float lod2 = density-(1.0-sm);
     if(lod>=2.0) return mix(lod2, lod3, pow(lod-2.0,2.0));
 
     //high frequency
-    density += ((texture(perlinWorley, offsetPosition*8e-5+(altitudeFactor*0.1)+time*windSpeed*0.0001).r-(1.0-0.15))/0.15)*0.125;
+    density += ((texture(perlinWorley, offsetPosition*4e-5+(altitudeFactor*0.1)+time*windSpeed*0.00003).r-(1.0-0.15))/0.15)*0.125;
     if(density<-0.1) return -1.0;
     float lod1 = density-(1.0-sm);
     if(lod>=1.0) return mix(lod1, lod2, pow(lod-1.0,2.0));
 
     //ultra high frequency
-    density += ((texture(perlinWorley, offsetPosition*1e-4+time*windSpeed*0.0003).r-(1.0-0.15))/0.15)*0.125;
+    density += ((texture(perlinWorley, offsetPosition*1e-4+time*windSpeed*0.00006).r-(1.0-0.15))/0.15)*0.125;
     return density-(1.0-sm);
 
     

@@ -193,10 +193,7 @@ function common(densityFunction) {
 				impact/=rescale;
 				tValues.y = length(translatedRayOrigin-impact);
 			}
-			/* tValues /= length(newRayOrigin);
-			tValues*= length(translatedRayOrigin); */
-			/* tValues.x /= length(rescale);
-			tValues.y /= length(rescale); */
+			
 			return tValues;
 		}
 
@@ -715,7 +712,7 @@ const CloudsShader = {
 					
 					vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
+					float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*15.0;
 					if(localDensityToLight<=0.0) continue;
 					densityToLight +=localDensityToLight;
 					if(densityToLight > 1.0) {
@@ -806,7 +803,7 @@ const CloudsShader = {
 					
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 					
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*15.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -948,7 +945,37 @@ const CloudsShader = {
 		code += `
 			
 		
-			
+			float computeTerrainShadow(vec3 impact, float trueEndRadius, float startRadius, vec4 random){
+					vec3 impactNormalized = normalize(impact);
+					vec3 lightEnter = impact;
+					float innerRadiusIntersectionDistance = rayEllipsoidIntersection(planetPosition, impact, sunLocation, a+startRadius, a+startRadius, b+startRadius).y;
+					if(innerRadiusIntersectionDistance > 0.0){
+						lightEnter = impact + sunLocation*innerRadiusIntersectionDistance;
+					}
+					vec3 lightExit = impact + (sunLocation)*rayEllipsoidIntersection(planetPosition, impact, sunLocation, a+trueEndRadius, a+trueEndRadius, b+trueEndRadius).y;
+
+					float lengthToLight = length(lightExit-lightEnter);
+					
+					float densityToLight = 0.0;
+				
+					float numSamplesToLightLocal = 5.0;
+					
+					for(float j = 0.0; j<numSamplesToLightLocal; j++){
+						float indexLightSample = j+random.b;
+	
+						
+						vec3 secondSamplePosition = mix(lightEnter,lightExit,indexLightSample/numSamplesToLightLocal);
+						
+						float localDensityToLight = sampleDensity(secondSamplePosition, 1.0)*densityMultiplier*lengthToLight*0.0008;
+						if(localDensityToLight<=0.0) continue;
+						densityToLight +=localDensityToLight;
+						if(densityToLight > 1.0) {
+							densityToLight = 1.0;
+							break;
+						}
+					}
+				return densityToLight*0.6;
+			}
 			void main() {
 				gPosition = vec4(1.0,1.0,0.0,0.0);
 				float depth = readDepth( tDepth, vUv );
@@ -1030,6 +1057,7 @@ const CloudsShader = {
 				// depth check
 				`;
 		// ocean check
+		
 		if (ocean) {
 			code += `
 				if(depth>0.9999){
@@ -1050,8 +1078,9 @@ const CloudsShader = {
 			float far2 = length(traverse2Exit-nonPostCameraPosition);
 			if(depth<0.9999){
 				if( lengthToEarthImpact < near1) {
-					pc_fragColor = vec4(vec3(dot(sunLocation, normalize(impact))),0.0);
-				
+					//pc_fragColor = vec4(vec3(dot(sunLocation, normalize(impact))),0.0);
+					pc_fragColor = vec4(0.0,0.0,0.0, computeTerrainShadow(impact, trueEndRadius, startRadius, random));
+					
 					return;
 				}
 				if( lengthToEarthImpact < far1) {
@@ -1071,6 +1100,8 @@ const CloudsShader = {
 				}
 			
 			}
+
+			
 
 				/// First deal with traverse1 (nearer to the camera) and only deal with traverse 2 if opacity is less than 100%
 				
@@ -1141,7 +1172,7 @@ const CloudsShader = {
 						
 						vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
+						float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*15.0;
 						if(localDensityToLight<=0.0) continue;
 						densityToLight +=localDensityToLight;
 						if(densityToLight > 1.0) {
@@ -1163,6 +1194,7 @@ const CloudsShader = {
 					light1 += vec3(pow(color.x,0.5)*lightToSample*max(dotLight,0.0), pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2),pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4));
 					density1 += localDensity * (distAlongRayEnd - distAlongRay);
 
+					
 				}
 				
 				if(secondTraverse && density1<1.0){
@@ -1225,7 +1257,7 @@ const CloudsShader = {
 						
 							vec3 secondSamplePosition = mix(samplePosition,lightExit,fractionToLight);
 						
-							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*25.0;
+							float localDensityToLight = sampleDensity(secondSamplePosition, lod)*densityMultiplier*15.0;
 							if(localDensityToLight<=0.0) continue;
 							densityToLight +=localDensityToLight;
 							if(densityToLight > 1.0) {
@@ -1258,12 +1290,13 @@ const CloudsShader = {
 				
 				
 				
-
+				
 
 
 				if(density1+density2 == 0.0){
 					gPosition = vec4(1.0,0.0,0.0,0.0);
 					pc_fragColor = vec4(vec3(dot(sunLocation, normalize(impact))),0.0);
+					
 					
 				}else{
 					float depth = length(nonPostCameraPosition-surfacePosition);
@@ -1276,6 +1309,10 @@ const CloudsShader = {
 					pc_fragColor = blendBackToFront(vec4(light2, density2), vec4(light1, density1));
 					pc_fragColor = vec4(fullDarkColor + pc_fragColor.rgb * (vec3(2.0) - fullDarkColor) / vec3(1.0),min(1.0,density1+density2));
 					
+				}
+
+				if(density1+density2<1.0 && depth<0.99){
+					pc_fragColor = blendBackToFront(vec4(0.0,0.0,0.0, computeTerrainShadow(impact, trueEndRadius, startRadius, random)), pc_fragColor);
 				}
 
 		}`;

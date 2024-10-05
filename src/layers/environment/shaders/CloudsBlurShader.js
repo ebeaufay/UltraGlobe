@@ -56,7 +56,7 @@ const CloudsBlurShader = {
 		void main() {
 
     vec4 center = texture2D(image, vUv);
-    if (center.a == 0.0) return;
+    //if (center.a == 0.0) return;
 
     // Fetch cloud depth and generate noise
     float cloudD = texture2D(cloudsDepth, vUv).x;
@@ -87,10 +87,10 @@ const CloudsBlurShader = {
     // Initialize the output color
     gl_FragColor = vec4(0.0);
 
-    // Define a function-like macro for repeated calculations (optional)
+    
     #define APPLY_SAMPLE(sampleColor) { \
         float diff = 1.0 - abs(center.a - sampleColor.a); \
-        float w = diff * diff * diff * diff; \
+        float w = pow(diff,4.0); \
         gl_FragColor += 0.25 * mix(center, sampleColor, w); \
     }
 
@@ -101,7 +101,8 @@ const CloudsBlurShader = {
     APPLY_SAMPLE(d);
 
     // Preserve the alpha channel
-    gl_FragColor.a = center.a;
+	gl_FragColor.a = mix(gl_FragColor.a, center.a, pow(length(center.xyz)/1.73205,0.25));
+	//gl_FragColor.a = center.a;
 }`;
 
 
