@@ -270,9 +270,9 @@ function setupMap(globalElevationMap) {
 
     let map = new Map({
         divID: 'screen',
-        clock: false,
+        clock: true,
         shadows: true,
-        debug: false,
+        debug: true,
         detailMultiplier: 1.0,
         ocean: true,
         atmosphere: true,

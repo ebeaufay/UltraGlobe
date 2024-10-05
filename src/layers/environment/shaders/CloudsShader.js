@@ -107,7 +107,7 @@ function common(densityFunction) {
     		float thetaRadians = radians(fov / 2.0);
     		float tanTheta = tan(thetaRadians);
     		float N = (1.0 / (2.0 * tanTheta)) * log(farPlane / nearPlane);
-    		return N * resolutionHeight;
+    		return N * resolutionHeight*2.0;
 		}
 
 		// returns Sample distance along ray from near plane
@@ -658,9 +658,8 @@ const CloudsShader = {
 			float length1 = far1-near1;
 			float biScatteringKappa = 0.75;
 			
-			float numSamples = max(25.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
+			float numSamples = max(50.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
 			numSamples+= (random.r-0.5)*40.0;
-			numSamples = max(25.0,min(250.0, numSamples));
 			
 
 			vec3 surfacePosition = vec3(0,0,0);
@@ -746,7 +745,6 @@ const CloudsShader = {
 
 				float numSamples = max(5.0,min(50.0, calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples));
 				numSamples+= (random.r-0.5)*10.0;
-				numSamples = max(5.0,min(50.0, numSamples));
 				for(float i = 0.0; i< numSamples; i++){
 
 					if(density1+density2>=1.0) {
@@ -947,6 +945,8 @@ const CloudsShader = {
 		
 			float computeTerrainShadow(vec3 impact, float trueEndRadius, float startRadius, vec4 random){
 					vec3 impactNormalized = normalize(impact);
+					float dotSurfaceSun = dot(impactNormalized, sunLocation);
+					if(dotSurfaceSun<0.0)return 0.0;
 					vec3 lightEnter = impact;
 					float innerRadiusIntersectionDistance = rayEllipsoidIntersection(planetPosition, impact, sunLocation, a+startRadius, a+startRadius, b+startRadius).y;
 					if(innerRadiusIntersectionDistance > 0.0){
@@ -958,7 +958,7 @@ const CloudsShader = {
 					
 					float densityToLight = 0.0;
 				
-					float numSamplesToLightLocal = 5.0;
+					float numSamplesToLightLocal = 10.0;
 					
 					for(float j = 0.0; j<numSamplesToLightLocal; j++){
 						float indexLightSample = j+random.b;
@@ -974,7 +974,7 @@ const CloudsShader = {
 							break;
 						}
 					}
-				return densityToLight*0.6;
+				return densityToLight*0.6*dotSurfaceSun;
 			}
 			void main() {
 				gPosition = vec4(1.0,1.0,0.0,0.0);
@@ -1115,9 +1115,8 @@ const CloudsShader = {
 
 				float length1 = far1-near1;
 				float biScatteringKappa = 0.75;
-				float numSamples = max(25.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
+				float numSamples = max(50.0,min(250.0, calculateIdealNumberOfSamples(yfov, resolution, near1, far1 ) * proportionSamples));
 				numSamples+= (random.r-0.5)*40.0;
-				numSamples = max(25.0,min(250.0, numSamples));
 				
 				vec3 surfacePosition = vec3(0,0,0);
 				float weightTotal = 0.0;
@@ -1203,7 +1202,7 @@ const CloudsShader = {
 					float length2 = far2-near2;
 					float numSamples = max(5.0,min(50.0, calculateIdealNumberOfSamples(yfov, resolution, near2, far2 ) * proportionSamples));
 					numSamples+= (random.r-0.5)*10.0;
-					numSamples = max(5.0,min(50.0, numSamples));
+					
 					for(float i = 0.0; i< numSamples; i++){
 
 						if(density1+density2>=1.0) {

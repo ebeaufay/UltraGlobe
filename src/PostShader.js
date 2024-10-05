@@ -949,7 +949,20 @@ const PostShader = {
 						  color.x*=sunlight;
 						  color.y*=sunlight;
 						  color.z*=sunlight;
-						  return color;// Fully opaque interpolated color
+						  return color;// interpolated color
+					  }
+					  float computeRingOpacity(vec3 point, vec3 center, vec3 ringsNormal, float innerRadius, float outerRadius) {
+						  float distance = length(point - center);
+					  
+						  // Check if the point is before the inner radius or outside the outer radius
+						  if (distance > outerRadius || distance < innerRadius) {
+							  return 0.0; // Fully transparent
+						  }
+					  
+						  // Interpolate between color1 and color2 based on the distance
+						  float t = (distance - innerRadius) / (outerRadius - innerRadius);
+						  
+						  return texture2D(ringsPalette, vec2(t+`+ rings.colorMapDisplace.toFixed(2) + `,` + rings.colorMap.toFixed(2) + `)).w;
 					  }
 				  `
 		}
@@ -1708,6 +1721,8 @@ const PostShader = {
 					}
 					
 				}
+
+				
 				
 				
 			`;
