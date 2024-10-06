@@ -865,7 +865,7 @@ const CloudsShader = {
 		return code;
 	},
 
-	fragmentShaderShadows: (ocean, atmosphere, sunColor, densityFunction, extraUniforms) => {
+	fragmentShaderShadows: (ocean, rings, atmosphere, sunColor, densityFunction, extraUniforms) => {
 		
 		let code = /* glsl */`
 		
@@ -882,6 +882,7 @@ const CloudsShader = {
 			uniform sampler2D tDepth;
 			uniform sampler3D perlinWorley;
 			uniform sampler2D noise2D;
+			uniform sampler2D ringsPalette;
 			uniform float cameraNear;
 			uniform float cameraFar;
 			uniform float radius;
@@ -942,7 +943,39 @@ const CloudsShader = {
 		code += common(densityFunction);
 		code += `
 			
-		
+		/**
+					   * Ray plane intersection. Returns the position of the intersection or a null vector(0,0,0) when there is no intersection
+					   **/
+					  vec4 intersectRayPlane(vec3 rayOrigin, vec3 rayDirection, vec3 planeOrigin, vec3 planeNormal) {
+						  float denom = dot(planeNormal, rayDirection);
+					  
+						  // Check if ray is parallel to the plane
+						  if (abs(denom) > 1e-6) {
+							  vec3 p0l0 = planeOrigin - rayOrigin;
+							  float t = dot(p0l0, planeNormal) / denom;
+							  if(t>0.0){
+								  return vec4(rayOrigin + t * rayDirection, 1.0);
+							  }
+						  }
+					  
+						  // Return a 'null' vector if no intersection
+						  return vec4(0.0,0.0,0.0,0.0);
+					  }
+		  
+					  
+					  float computeRingOpacity(vec3 point, vec3 center, vec3 ringsNormal, float innerRadius, float outerRadius) {
+						  float distance = length(point - center);
+					  
+						  // Check if the point is before the inner radius or outside the outer radius
+						  if (distance > outerRadius || distance < innerRadius) {
+							  return 0.0; // Fully transparent
+						  }
+					  
+						  // Interpolate between color1 and color2 based on the distance
+						  float t = (distance - innerRadius) / (outerRadius - innerRadius);
+						  
+						  return texture2D(ringsPalette, vec2(t+`+ rings.colorMapDisplace.toFixed(2) + `,` + rings.colorMap.toFixed(2) + `)).w;
+					  }
 			float computeTerrainShadow(vec3 impact, float trueEndRadius, float startRadius, vec4 random){
 					vec3 impactNormalized = normalize(impact);
 					float dotSurfaceSun = dot(impactNormalized, sunLocation);
@@ -974,7 +1007,24 @@ const CloudsShader = {
 							break;
 						}
 					}
-				return densityToLight*0.6*dotSurfaceSun;
+					float shadowClouds = densityToLight*0.6*dotSurfaceSun;
+					`;
+						if (!!rings) {
+							code += `
+								vec3 ringsOrigin = vec3(`+ rings.origin.x.toFixed(6) + `,` + rings.origin.y.toFixed(6) + `,` + rings.origin.z.toFixed(6) + `);
+								vec3 ringsNormal = vec3(`+ rings.normal.x.toFixed(6) + `,` + rings.normal.y.toFixed(6) + `,` + rings.normal.z.toFixed(6) + `);
+								vec4 ringIntersection = intersectRayPlane(impact, sunLocation, ringsOrigin, ringsNormal);
+								if(ringIntersection.w == 1.0){
+									float innerRadius = `+ rings.innerRadius.toFixed(6) + `;
+									float outerRadius = `+ rings.outerRadius.toFixed(6) + `;
+									float ringOpacity =computeRingOpacity(ringIntersection.xyz, ringsOrigin, ringsNormal, innerRadius,outerRadius);
+									densityToLight+=ringOpacity;
+								}
+
+							`;
+						}
+						code+=`
+				return min(1.0,densityToLight)*0.6*dotSurfaceSun;
 			}
 			void main() {
 				gPosition = vec4(1.0,1.0,0.0,0.0);
@@ -1060,11 +1110,16 @@ const CloudsShader = {
 		
 		if (ocean) {
 			code += `
+			vec2 rayEllipsoid = rayEllipsoidIntersection(planetPosition, nonPostCameraPosition, worldDir, a, a, b);
+					float hasImpact = step(0.0, rayEllipsoid.x); // returns 1 if rayEllipsoid.x >= 0.0, else 0
+					float impactDistance = rayEllipsoid.x>0.0?rayEllipsoid.x:rayEllipsoid.y>0.0?rayEllipsoid.y:-1.0;
+					if(lengthToEarthImpact>impactDistance && impactDistance>0.0){
+						lengthToEarthImpact = impactDistance;
+						impact = nonPostCameraPosition+lengthToEarthImpact*worldDir;
+					}
 				if(depth>0.9999){
 					
-					vec2 rayEllipsoid = rayEllipsoidIntersection(planetPosition, nonPostCameraPosition, worldDir, a, a, b);
-					float hasImpact = step(0.0, rayEllipsoid.x); // returns 1 if rayEllipsoid.x >= 0.0, else 0
-					lengthToEarthImpact = mix(lengthToEarthImpact, rayEllipsoid.x, hasImpact);
+					
 					depth = mix(depth, 0.5, hasImpact);
 				}
 				`;
@@ -1179,13 +1234,29 @@ const CloudsShader = {
 							break;
 						}
 					}
-						densityToLight/=actualNumSamplesToLight;
+					densityToLight/=actualNumSamplesToLight;
 						
-					
+					float sunStrengthMultiplier = 10.0;
+					`;
+					if (!!rings) {
+						code += `
+							vec3 ringsOrigin = vec3(`+ rings.origin.x.toFixed(6) + `,` + rings.origin.y.toFixed(6) + `,` + rings.origin.z.toFixed(6) + `);
+							vec3 ringsNormal = vec3(`+ rings.normal.x.toFixed(6) + `,` + rings.normal.y.toFixed(6) + `,` + rings.normal.z.toFixed(6) + `);
+							vec4 ringIntersection = intersectRayPlane(samplePosition, sunLocation, ringsOrigin, ringsNormal);
+							if(ringIntersection.w == 1.0){
+								float innerRadius = `+ rings.innerRadius.toFixed(6) + `;
+								float outerRadius = `+ rings.outerRadius.toFixed(6) + `;
+								float ringOpacity =computeRingOpacity(ringIntersection.xyz, ringsOrigin, ringsNormal, innerRadius,outerRadius);
+								sunStrengthMultiplier*=1.0-ringOpacity;
+							}
+							
+						`;
+					}
+					code+=`
 					
 					densityToLight*= lengthToLight;
 				
-					float lightToSample = multiOctaveBeer(sunlight*10.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
+					float lightToSample = multiOctaveBeer(sunlight*sunStrengthMultiplier*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
 					lightToSample = multiOctaveBeer(lightToSample*localDensity,density1, 0.01, 0.75, biScatteringKappa, 1.0);
 
 
@@ -1266,11 +1337,27 @@ const CloudsShader = {
 						}
 							densityToLight/=actualNumSamplesToLight;
 							
-						
+						float sunStrengthMultiplier = 10.0;
+						`;
+						if (!!rings) {
+							code += `
+								vec3 ringsOrigin = vec3(`+ rings.origin.x.toFixed(6) + `,` + rings.origin.y.toFixed(6) + `,` + rings.origin.z.toFixed(6) + `);
+								vec3 ringsNormal = vec3(`+ rings.normal.x.toFixed(6) + `,` + rings.normal.y.toFixed(6) + `,` + rings.normal.z.toFixed(6) + `);
+								vec4 ringIntersection = intersectRayPlane(samplePosition, sunLocation, ringsOrigin, ringsNormal);
+								if(ringIntersection.w == 1.0){
+									float innerRadius = `+ rings.innerRadius.toFixed(6) + `;
+									float outerRadius = `+ rings.outerRadius.toFixed(6) + `;
+									float ringOpacity =computeRingOpacity(ringIntersection.xyz, ringsOrigin, ringsNormal, innerRadius,outerRadius);
+									sunStrengthMultiplier*=1.0-ringOpacity;
+								}
+
+							`;
+						}
+						code+=`
 
 						densityToLight*= lengthToLight;
 				
-						float lightToSample = multiOctaveBeer(sunlight*10.0*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
+						float lightToSample = multiOctaveBeer(sunlight*sunStrengthMultiplier*(distAlongRayEnd-distAlongRayStart),densityToLight, 0.01, 0.75, biScatteringKappa, dot(sunLocation, worldDir));
 						lightToSample = multiOctaveBeer(lightToSample*localDensity,density2, 0.01, 0.75, biScatteringKappa, 1.0);
 
 						light2 += vec3(pow(color.x,0.5)*lightToSample*max(dotLight,0.0), pow(color.y,0.5)*lightToSample*pow(max(dotLight,0.0),1.2),pow(color.z,0.5)*lightToSample*pow(max(dotLight,0.0),1.4));

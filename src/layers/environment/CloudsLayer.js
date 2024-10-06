@@ -161,6 +161,7 @@ class CloudsLayer extends EnvironmentLayer {
     }
     updateUniforms(map) {
         const self = this;
+        cloudsMaterial.uniforms.ringsPalette.value = map.postMaterial.uniforms.ringsPalette.value;
         cloudsMaterial.uniforms.tDepth.value = map.target.depthTexture;
         cloudsMaterial.uniforms.cameraNear.value = map.camera.near;
         cloudsMaterial.uniforms.cameraFar.value = map.camera.far;
@@ -269,7 +270,7 @@ class CloudsLayer extends EnvironmentLayer {
 
         cloudsMaterial = new THREE.ShaderMaterial({
             vertexShader: CloudsShader.vertexShader(),
-            fragmentShader: map.shadows ? CloudsShader.fragmentShaderShadows(!!map.ocean, map.atmosphere, map.sunColor, self.sampleDensityFunction, self.extraUniforms) : CloudsShader.fragmentShader(!!map.ocean, map.atmosphere, map.sunColor, self.sampleDensityFunction, self.extraUniforms),
+            fragmentShader: map.shadows ? CloudsShader.fragmentShaderShadows(!!map.ocean, map.rings,map.atmosphere, map.sunColor, self.sampleDensityFunction, self.extraUniforms) : CloudsShader.fragmentShader(!!map.ocean, map.atmosphere, map.sunColor, self.sampleDensityFunction, self.extraUniforms),
             uniforms: {
                 cameraNear: { value: map.camera.near },
                 cameraFar: { value: map.camera.far },
@@ -297,7 +298,8 @@ class CloudsLayer extends EnvironmentLayer {
                 endRadius: { value: self.endRadius },
                 windSpeed: { value: self.windspeed },
                 windDirection: { value: new THREE.Vector3(1.0, 0.0) },
-                quality: {value: self.quality}
+                quality: {value: self.quality},
+                ringsPalette: { value: null },
             },
             depthTest: false,
             depthWrite: false
