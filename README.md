@@ -124,6 +124,12 @@ Other demos:
 
 
 ## Latest development
+VectorLayers to display data draped on terrain or in 3D
+
+https://github.com/user-attachments/assets/3c3a935e-3193-4cf4-b296-76328c3f24cb
+
+
+
 Projected layers allow projecting a texture onto other data from a given view point. Can be used for video projection, line of sight and anything you can imagine. 
 
 https://github.com/user-attachments/assets/e9401d9b-1ee9-42f8-84bf-f445ed05c597
