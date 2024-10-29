@@ -124,14 +124,21 @@ Other demos:
 
 
 ## Latest development
+VectorLayers to display data draped on terrain or in 3D
+
+https://github.com/user-attachments/assets/3c3a935e-3193-4cf4-b296-76328c3f24cb
+
+
+
 Projected layers allow projecting a texture onto other data from a given view point. Can be used for video projection, line of sight and anything you can imagine. 
 
 https://github.com/user-attachments/assets/e9401d9b-1ee9-42f8-84bf-f445ed05c597
 
 
-Cloud shadows give a bit more realism. works on all data like google tiles of course
+Cloud and planetary ring shadows give a bit more realism. works on all data like google 3D tiles and here, on some procedural data
 
-https://github.com/user-attachments/assets/351a84db-3f0b-4f9e-879e-b758d303b2ca
+https://github.com/user-attachments/assets/cf2f12ea-218f-42c2-b861-1316e34345e2
+
 
 
 ObjectLayer simplifies geolocating any three.js object
