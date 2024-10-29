@@ -1,18 +1,17 @@
 import * as THREE from 'three';
 import { RasterLayer } from './RasterLayer.js';
 import { TerrainMeshGenerator } from '../planet/TerrainMeshGenerator';
-import {ElevationMesherWorker} from './workers/ElevationMesher.worker.js';
+import {ElevationMesherWorker} from './workers/ElevationMesherWorker.js';
 
 const terrainMeshGenerator = new TerrainMeshGenerator();
 let id = 0;
 let nextWorker = 0;
 function getConcurency() {
-    /* if ('hardwareConcurrency' in navigator) {
-        return navigator.hardwareConcurrency;
+    if ('hardwareConcurrency' in navigator) {
+        return Math.min(8,navigator.hardwareConcurrency);
     } else {
         return 4;
-    } */
-    return 1;
+    }
 }
 const meshGeneratorWorkers = [];
 const workerCallbacks = new Map();
@@ -61,11 +60,13 @@ class ElevationLayer extends RasterLayer {
      * @param {String|Number} properties.id layer id should be unique
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {Number[]} properties.bounds min longitude, min latitude, max longitude, max latitude in degrees
+     * @param {number} [properties.maxResolution = 30] Maximum resolution in meters at the equator
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      */
     constructor(properties) {
         super(properties);
         this.isElevationLayer = true;
+        this.maxResolution = !properties.maxResolution?30:properties.maxResolution;
     }
 
     /**
@@ -84,6 +85,55 @@ class ElevationLayer extends RasterLayer {
         throw "not implemented, should be implemented by children of ElevationLayer"
         // to be implemented by children
     }
+
+
+    _getElevationFromParent(parentBounds, parentExtendedElevation,bounds, width, height, geometry, skirtGeometry){
+        const self = this;
+        const extendedBounds = bounds.clone();
+        extendedBounds.min.x -= (bounds.max.x - bounds.min.x) / (width - 1);
+        extendedBounds.max.x += (bounds.max.x - bounds.min.x) / (width - 1);
+        extendedBounds.min.y -= (bounds.max.y - bounds.min.y) / (height - 1);
+        extendedBounds.max.y += (bounds.max.y - bounds.min.y) / (height - 1);
+
+        const extendedParentBounds = parentBounds.clone();
+        extendedParentBounds.min.x -= (parentBounds.max.x - parentBounds.min.x) / (width - 1);
+        extendedParentBounds.max.x += (parentBounds.max.x - parentBounds.min.x) / (width - 1);
+        extendedParentBounds.min.y -= (parentBounds.max.y - parentBounds.min.y) / (height - 1);
+        extendedParentBounds.max.y += (parentBounds.max.y - parentBounds.min.y) / (height - 1);
+
+
+        const extendedWidth = width + 2;
+        const extendedHeight = height + 2;
+
+        
+        return new Promise((resolve, reject) => {
+            const elevationArray = _interpolateElevation(extendedParentBounds, parentExtendedElevation, extendedWidth, extendedHeight, extendedBounds, extendedWidth, extendedHeight);
+
+            
+            if (geometry && skirtGeometry) {
+
+                self._simpleMeshFromElevationAsync(bounds, width, height, elevationArray, geometry, skirtGeometry).then(shift => {
+                    resolve({
+                        extendedElevationArray: elevationArray,
+                        elevationArray: self._trimEdges(elevationArray, extendedWidth, extendedHeight),
+                        shift: shift,
+                    });
+                }, error => {
+                    reject(error);
+                })
+
+            } else {
+                resolve({
+                    extendedElevationArray: elevationArray,
+                    elevationArray: self._trimEdges(elevationArray, extendedWidth, extendedHeight),
+                    shift: undefined,
+                });
+            }
+        });
+    }
+
+    
+
 
     /**
      * A default mesh generation function given some elevation.
@@ -168,3 +218,59 @@ class ElevationLayer extends RasterLayer {
 }
 
 export { ElevationLayer }
+
+function _interpolateElevation(parentBounds, parentElevations, numParentColumns, numParentRows, childBounds, childColumns, childRows) {
+    if(!parentBounds.containsBox(childBounds)){
+        throw new Error("child bounds not contained in parent")
+    }
+    const childElevations = new Float32Array(childRows * childColumns);
+    
+    const parentWidth = parentBounds.max.x - parentBounds.min.x;
+    const parentHeight = parentBounds.max.y - parentBounds.min.y;
+    const childWidth = childBounds.max.x - childBounds.min.x;
+    const childHeight = childBounds.max.y - childBounds.min.y;
+    
+    const childLonStep = childWidth / (childColumns - 1);
+    const childLatStep = childHeight / (childRows - 1);
+    
+    for (let i = 0; i < childRows; i++) {
+        const childLat = childBounds.min.y + i * childLatStep;
+        
+        
+        for (let j = 0; j < childColumns; j++) {
+            const childLon = childBounds.min.x + j * childLonStep;
+            
+                           
+            childElevations[i * childColumns + j] = billinearInterpolationOnElevationArray((childLon-parentBounds.min.x)/parentWidth, (childLat-parentBounds.min.y)/parentHeight, parentElevations, numParentColumns, numParentRows);
+        }
+    }
+    
+    return childElevations;
+}
+
+function billinearInterpolationOnElevationArray(percentageX, percentageY, elevationArray, tileSize) {
+    if (!elevationArray) elevationArray = this.elevationArray;
+    var x = percentageX * (tileSize - 1);
+    var y = percentageY * (tileSize - 1);
+
+
+    var floorX = Math.floor(x);
+    if (floorX == x) floorX -= 1;
+    var floorY = Math.floor(y);
+    if (floorY == y) floorY -= 1;
+    var ceilX = Math.ceil(x);
+    if (ceilX == 0) ceilX += 1;
+    var ceilY = Math.ceil(y);
+    if (ceilY == 0) ceilY += 1;
+    floorX = Math.max(0, floorX);
+    floorY = Math.max(0, floorY);
+
+    ceilX = Math.min((tileSize - 1), ceilX);
+    ceilY = Math.min((tileSize - 1), ceilY);
+
+
+    return ((1 - (x - floorX)) * (1 - (y - floorY)) * elevationArray[(floorY * tileSize) + floorX]) +
+        ((1 - (ceilX - x)) * (1 - (y - floorY)) * elevationArray[(floorY * tileSize) + ceilX]) +
+        ((1 - (x - floorX)) * (1 - (ceilY - y)) * elevationArray[(ceilY * tileSize) + floorX]) +
+        ((1 - (ceilX - x)) * (1 - (ceilY - y)) * elevationArray[(ceilY * tileSize) + ceilX]);
+}

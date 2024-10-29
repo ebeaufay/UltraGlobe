@@ -32,11 +32,13 @@ class MapTile {
      * 
      * @param {Object} properties 
      * @param {Object} properties.reference unused, only EPSG:4326 is supported
-     * @param {THREE.Box2} properties.bounds this tile's bounds
-     * @param {MapTile} properties.parent this tile's direct parent
-     * @param {fetchTileFunction} properties.fetchTileTextureFunction a function that fetches a tile texture through a CancellableTextureLoader and takes this MapTile's bounds and a callback as argument.
-     * @param {maxLOD} properties.maxLOD a maximum recursion depth
-     * @param {lod} properties.lod this tile's lod (optional)
+     * @param {THREE.Box2} properties.bounds this tile's lon lat bounds (radians)
+     * @param {fetchTileFunction} properties.fetchTileTextureFunction a function that fetches a tile texture and takes this MapTile's bounds and a callback as argument.
+     * @param {number} properties.imageSize size of requestedImages
+     * @param {number} [properties.boundsType = 0] 0 if the bounds encompass full pixels, 1 if they only encompass pixel centers
+     * @param {maxLOD} [properties.maxLOD = 20] a maximum recursion depth
+     * @param {lod} [properties.lod = 0] this tile's lod
+     * @param {MapTile} [properties.parent = undefined] this tile's direct parent
      */
     constructor(properties) {
         this.reference = properties.reference; // currently only EPSG:4326 is supported
@@ -50,6 +52,17 @@ class MapTile {
         this.users = new Set();
         this.children = [];
         this.callbacks = [];
+        this.boundsForUV = this.bounds.clone();
+        /* if(!properties.boundsType){
+            this.boundsForUV.expandByVector(new THREE.Vector2(-this.boundsWidth/(properties.imageSize * 2.0), -this.boundsHeight/(properties.imageSize * 2.0)));
+        } */
+        this.imageSize = properties.imageSize;
+        this.boundsType = properties.boundsType?properties.boundsType:0;
+    }
+
+    /** invalidates the tile causing it to be re-fetched */
+    invalidate(){
+        this.valid = false;
     }
 
     /**
@@ -86,14 +99,7 @@ class MapTile {
                 if (self.texture.isReady) {
                     return {
                         texture: self.texture,
-                        uvBounds: new THREE.Box2(
-                            new THREE.Vector2(
-                                (requestBounds.min.x - self.bounds.min.x) / self.boundsWidth,
-                                (requestBounds.min.y - self.bounds.min.y) / self.boundsHeight),
-                            new THREE.Vector2(
-                                (requestBounds.max.x - self.bounds.min.x) / self.boundsWidth,
-                                (requestBounds.max.y - self.bounds.min.y) / self.boundsHeight)
-                        ),
+                        uvBounds: self._getUVBounds(requestBounds),
                         reference: self.reference
                     }
                 } else {
@@ -103,14 +109,7 @@ class MapTile {
 
                         callback({
                             texture: texture,
-                            uvBounds: new THREE.Box2(
-                                new THREE.Vector2(
-                                    (requestBounds.min.x - self.bounds.min.x) / self.boundsWidth,
-                                    (requestBounds.min.y - self.bounds.min.y) / self.boundsHeight),
-                                new THREE.Vector2(
-                                    (requestBounds.max.x - self.bounds.min.x) / self.boundsWidth,
-                                    (requestBounds.max.y - self.bounds.min.y) / self.boundsHeight)
-                            ),
+                            uvBounds: self._getUVBounds(requestBounds),
                             reference: self.reference
                         })
                     });
@@ -129,14 +128,7 @@ class MapTile {
                 self.callbacks.push((texture) => {
                     callback({
                         texture: texture,
-                        uvBounds: new THREE.Box2(
-                            new THREE.Vector2(
-                                (requestBounds.min.x - self.bounds.min.x) / self.boundsWidth,
-                                (requestBounds.min.y - self.bounds.min.y) / self.boundsHeight),
-                            new THREE.Vector2(
-                                (requestBounds.max.x - self.bounds.min.x) / self.boundsWidth,
-                                (requestBounds.max.y - self.bounds.min.y) / self.boundsHeight)
-                        ),
+                        uvBounds: self._getUVBounds(requestBounds),
                         reference: self.reference
                     })
                 });
@@ -187,7 +179,8 @@ class MapTile {
                     parent: self,
                     fetchTileTextureFunction: self.fetchTileTextureFunction,
                     maxLOD: self.maxLOD,
-                    lod: self.lod + 1
+                    lod: self.lod + 1,
+                    imageSize: self.imageSize
                 })
             );
         });
@@ -203,18 +196,11 @@ class MapTile {
     getBestTextureAndUVBounds(requestor, requestBounds) {
 
         const self = this;
-        if (self.texture && self.texture.isReady) {
+        if (self.texture  && self.texture.isReady ) {
             self.users.add(requestor);
             return {
                 texture: self.texture,
-                uvBounds: new THREE.Box2(
-                    new THREE.Vector2(
-                        (requestBounds.min.x - self.bounds.min.x) / self.boundsWidth,
-                        (requestBounds.min.y - self.bounds.min.y) / self.boundsHeight),
-                    new THREE.Vector2(
-                        (requestBounds.max.x - self.bounds.min.x) / self.boundsWidth,
-                        (requestBounds.max.y - self.bounds.min.y) / self.boundsHeight)
-                ),
+                uvBounds: self._getUVBounds(requestBounds),
                 reference: self.reference
             }
         } else if (self.parent) {
@@ -226,6 +212,21 @@ class MapTile {
                 reference: self.reference
             }
         }
+    }
+
+    _getUVBounds(requestBounds){
+        
+        
+
+        const uvBounds = new THREE.Box2(
+            new THREE.Vector2(
+                (requestBounds.min.x - this.boundsForUV.min.x) / (this.boundsForUV.max.x-this.boundsForUV.min.x),
+                (requestBounds.min.y - this.boundsForUV.min.y) / (this.boundsForUV.max.y-this.boundsForUV.min.y)),
+            new THREE.Vector2(
+                (requestBounds.max.x - this.boundsForUV.min.x) / (this.boundsForUV.max.x-this.boundsForUV.min.x),
+                (requestBounds.max.y - this.boundsForUV.min.y) / (this.boundsForUV.max.y-this.boundsForUV.min.y))
+        )
+        return uvBounds;
     }
 
     /**

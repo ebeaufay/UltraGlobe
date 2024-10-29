@@ -5,6 +5,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { PanController } from './controls/PanController.js';
 import { RotateController } from './controls/RotateController.js';
 import { ZoomController } from './controls/ZoomController.js';
+import { SelectController } from './controls/SelectController.js';
 import { LayerManager } from './layers/LayerManager.js';
 import { PostShader } from './PostShader.js';
 import { VideoPostShader } from './VideoPostShader.js';
@@ -23,7 +24,7 @@ import ringsPalette from './images/ringsPalette.png';
 import stars from './images/stars.png';
 import nebula from './images/nebula2.png';
 import nebulaPalette from './images/paletteNebula.png';
-import perlinWorley3D from "./images/perlinWorley3D_128.bin"
+import { cartesianToLlhFastSFCT, llhToCartesianFastSFCT } from "./GeoUtils.js";
 import { ultraClock } from './controls/clock';
 import { PositionBufferShaderMaterial } from "./materials/PositionBufferShaderMaterial.js";
 
@@ -65,6 +66,7 @@ class Map {
     * @param {Number} [properties.tileImagerySize = 256] Resolution of imagery per tile.
     * @param {Boolean} [properties.loadOutsideView = false] loads higher LOD tiles outside view so that they are already loaded when the camera pans and turns
     * @param {Boolean|Object|THREE.Color} [properties.space = true] if undefined, a default space backgound is drawn. Space can also be a single opaque color as a THREE.Vector3
+    * @param {number|boolean} [properties.minHeightAboveGround = 5.0] minimum camera height above ground. set to false to disable feature
     * @param {Boolean} [properties.clock.timezone = false] add time-zone select widget.
     * @param {Boolean} [properties.clock.dateTimePicker = false] add date picker widget.
     * @param {THREE.Vector3} [properties.rings.origin=new THREE.Vector3()] the center point of the rings
@@ -114,6 +116,7 @@ class Map {
             if (!this.rings.colorMapDisplace) this.rings.colorMapDisplace = Math.random();
         }
 
+        this.minHeightAboveGround = properties.minHeightAboveGround != undefined ? properties.minHeightAboveGround : 5;
 
 
         this.globalElevation = properties.globalElevation;
@@ -127,7 +130,7 @@ class Map {
         this.camera = !!properties.camera ? properties.camera : this._initCamera();
         this.camera.layers.enable(31);
         this.renderCamera = this.camera.clone();
-        
+
         this.scene = !!properties.scene ? properties.scene : this._initScene(properties.shadows);
 
         if (properties.space && properties.space.isColor) {
@@ -184,6 +187,8 @@ class Map {
         this.mapNavigator = new MapNavigator(this);
 
         this.raycaster = new THREE.Raycaster();
+        this.raycaster.params.Points.threshold = 10;
+        this.raycaster.params.Line.threshold = 10;
 
         this.selection = {};
 
@@ -240,13 +245,9 @@ class Map {
     }
 
     _prepareLayer(layer) {
-        if (layer.isOGC3DTilesLayer) {
-            layer._setMap(this);
-        }
-        if (layer.isOGC3DTilesLayer || layer.isObjectLayer) {
-            layer._setPlanet(this.planet);
-            layer._addToScene(this.scene);
-        }
+        layer._setMap(this);
+        layer._addToScene(this.scene);
+        
         if (layer.isI3SLayer) {
             layer.addToScene(this.scene, this.camera);
         }
@@ -433,7 +434,7 @@ class Map {
         this.target.depthTexture = new THREE.DepthTexture();
         this.target.depthTexture.format = THREE.DepthFormat;
         this.target.depthTexture.type = THREE.FloatType;
-        this.target.samples = 8;
+        this.target.samples = 2;
 
         // the depth render target is used to render depth to the main texture so that it can read retrieved on the CPU
         if (this.depthTarget) this.depthTarget.dispose();
@@ -461,7 +462,7 @@ class Map {
         this.target2.depthTexture = new THREE.DepthTexture();
         this.target2.depthTexture.format = THREE.DepthFormat;
         this.target2.depthTexture.type = THREE.FloatType;
-        
+        this.target2.samples = 2;
 
 
         if (this.targetWorld) this.targetWorld.dispose();
@@ -708,10 +709,10 @@ class Map {
                 tVideoWorld: { value: null },
                 videoProjectionMatrix: { value: new THREE.Matrix4() },
                 videoViewMatrix: { value: new THREE.Matrix4() },
-                depthTest: {value: true},
-                chromaKeying: {value: false},
-                chromaKey: {value: null},
-                chromaKeyTolerance: {value: 0.2}
+                depthTest: { value: true },
+                chromaKeying: { value: false },
+                chromaKey: { value: null },
+                chromaKeyTolerance: { value: 0.2 }
             },
             depthTest: false,
             depthWrite: false,
@@ -845,6 +846,7 @@ class Map {
         self.controller.append(new PanController(self.camera, self.domContainer, self));
         self.controller.append(new RotateController(self.camera, self.domContainer, self));
         self.controller.append(new ZoomController(self.camera, self.domContainer, self));
+        self.controller.append(new SelectController(self.camera, self.domContainer, self));
 
         self.domContainer.addEventListener('mousedown', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('mousedown', e);
@@ -870,10 +872,10 @@ class Map {
         self.domContainer.addEventListener('touchend', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('touchend', e);
         }, false);
-        self.domContainer.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('keydown', e);
         }, false);
-        self.domContainer.addEventListener('keyup', (e) => {
+        document.addEventListener('keyup', (e) => {
             if (!!self.controller && !self.pause) self.controller.event('keyup', e);
         }, false);
 
@@ -936,7 +938,7 @@ class Map {
                     self.scene.updateMatrix();
                     self.scene.updateMatrixWorld(true);
                     self.layerManager.layers.forEach((layer) => {
-                        
+
                         if (layer.isOGC3DTilesLayer) {
                             layer._updateMatrices();
                         }
@@ -946,7 +948,7 @@ class Map {
                     });
                     self.planet._setOffset(self.scene.position);
                 }
-                
+
                 self.renderCamera.copy(self.camera, true);
                 self.renderCamera.position.add(self.scene.position)
                 self.renderCamera.updateMatrix();
@@ -956,11 +958,11 @@ class Map {
                     self.csm.update(self.renderCamera.matrix);
 
                 }
-                
+
                 let hasVideo = false;
                 self.layerManager.layers.forEach(layer => {
                     if (layer.isOGC3DTilesLayer) {
-                        
+
                         layer.update(self.renderCamera);
                     }
                     if (layer.isTracksLayer) {
@@ -1019,11 +1021,11 @@ class Map {
                     //self.renderer.clearDepth();
                     self.scene.overrideMaterial = self.positionBufferMaterial;
                     self.renderer.render(self.scene, self.renderCamera);
-                    
+
 
                     // copy main camera params to video post shader
-                    
-                    
+
+
 
                     self.layerManager.layers.forEach(layer => {
                         if (layer.isProjectedLayer && layer.visible && layer.isReady()) {
@@ -1131,17 +1133,18 @@ class Map {
      */
     resetCameraNearFar() {
 
+        A.copy(this.camera.position);
+        cartesianToLlhFastSFCT(A);
+        const heightAboveEllipsoid = A.z;
 
-        const heightAboveEllipsoid = Math.max(this.distToGround, this.camera.position.length() - this.planet.radius);
-
-        this.camera.near = 0.0001;
+        this.camera.near = 0.001;
         const distanceToHorizon = Math.sqrt(2 * this.planet.radius * Math.abs(heightAboveEllipsoid) + heightAboveEllipsoid * heightAboveEllipsoid); // estimation
         this.camera.far = Math.max(200000, distanceToHorizon * 2.0);
         //console.log(distanceToHorizon)
         this.camera.updateProjectionMatrix();
         this._resetLogDepthBuffer();
 
-        if(this.csm){
+        if (this.csm) {
             this.csm.maxFar = Math.min(500000, this.camera.far);
             for (let i = 0; i < this.csm.lights.length; i++) {
                 this.csm.lights[i].shadow.bias = 0.00025 * this.csm.csmSplits[i];
@@ -1151,7 +1154,7 @@ class Map {
                 this.csm.lights[i].shadow.camera.far = this.csm.lightMargin + this.csm.maxFar * 2 * this.csm.csmSplits[i];
                 this.csm.lights[i].shadow.needsUpdate = true;
             }
-            
+
             this.csm.updateFrustums()
         }
 
@@ -1166,18 +1169,25 @@ class Map {
      * Moves the camera 1 meter above the ground.
      */
     moveCameraAboveSurface() {
+        let min = this.minHeightAboveGround;
+        let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
+        B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
+
+
+        this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
+        if (min === false) {
+            return;
+        }
+        if (min === true) min = 5;
         try {
-            let geodeticCameraPosition = this.planet.llhToCartesian.inverse(this.camera.position);
-            B.set(geodeticCameraPosition.x * degreeToRadians, geodeticCameraPosition.y * degreeToRadians);
 
-
-            this.distToGround = geodeticCameraPosition.z - this.planet.getTerrainElevation(B);
-            if (this.distToGround < 5) {
-                geodeticCameraPosition.z += (5 - this.distToGround);
+            if (this.distToGround < this.minHeightAboveGround) {
+                geodeticCameraPosition.z += (this.minHeightAboveGround - this.distToGround);
                 geodeticCameraPosition = this.planet.llhToCartesian.forward(geodeticCameraPosition);
                 this.camera.position.set(geodeticCameraPosition.x, geodeticCameraPosition.y, geodeticCameraPosition.z);
             }
         } catch (e) { }
+
 
 
 
@@ -1246,6 +1256,32 @@ class Map {
 
     }
 
+    /**
+     * raycast only on terrain
+     * @param {THREE.Raycaster} mapRaycaster 
+     * @returns {THREE.Vector3} the nearest point along the raycaster ray in lon lat height
+     */
+    raycastTerrain(raycaster){
+        let revert = false;
+        if(!raycaster.layers.isEnabled(0)){
+            raycaster.layers.enable(0);
+            revert = true;
+        }
+        const visibleTiles = [];
+        this.planet.traverse(o=>{
+            if(o.isPlanetTile){
+                visibleTiles.push(o);
+            }
+        });
+        const r = raycaster.intersectObjects(visibleTiles, false);
+        if(r.length>0){
+            r[0].point.sub(this.scene.position);
+            cartesianToLlhFastSFCT(r[0].point)
+            return r[0].point;
+        }
+        
+    }
+
     _viewZToPerspectiveDepth(viewZ, near, far) {
         return ((near + viewZ) * far) / ((far - near) * viewZ);
     }
@@ -1256,7 +1292,7 @@ class Map {
      * @param {THREE.Vector3} llh
      */
     llhToCartesianFastSFCT(llh) {
-        this.planet.llhToCartesianFastSFCT(llh);
+        llhToCartesianFastSFCT(llh);
     }
 
     /**
@@ -1265,7 +1301,7 @@ class Map {
      * @param {THREE.Vector3} llh
      */
     cartesianToLlhFastSFCT(xyz) {
-        this.planet.cartesianToLlhFastSFCT(xyz);
+        cartesianToLlhFastSFCT(xyz);
     }
 
     /**
@@ -1290,61 +1326,64 @@ class Map {
      */
     select(screenLocation, type) {
 
-        this.raycaster.setFromCamera(screenLocation, this.camera);
-        const selectableObjects = [];
+        this.raycaster.setFromCamera(screenLocation, this.renderCamera);
+        const selectedObjects = [];
         const layers = this.layerManager.getLayers();
         for (let i = layers.length - 1; i >= 0; i--) {
-            const l = layers[i];
-            if (l) {
-                const selectable = l.getSelectableObjects();
-                while (selectable.length) selectableObjects.push(selectable.shift());
+            const layer = layers[i];
+            if (layer) {
+                const selection = layer.raycast(this.raycaster);
+                if(selection!=undefined) selectedObjects.push(...selection);
+
             }
         }
 
-        const select = this.raycaster.intersectObjects(selectableObjects, false);
+        const uniqueSelectedObjects = [];
+        const seenUuids = new Set();
+
+        selectedObjects.forEach(obj => {
+            if (!seenUuids.has(obj.uuid)) {
+                uniqueSelectedObjects.push(obj);
+                seenUuids.add(obj.uuid);
+            }
+        });
 
         const selected = [];
         const unselected = [];
         if (type == 0) {
-            select.forEach(object => {
-                if (!this.selection[object.object.layer.id]) {
-                    this.selection[object.object.layer.id] = [];
+            uniqueSelectedObjects.forEach(object => {
+                if (!this.selection[object.layer.id]) {
+                    this.selection[object.layer.id] = [];
                 }
-                if (!this.selection[object.object.layer.id].includes(object)) {
-                    this.selection[object.object.layer.id].push(object);
-                    selected.push(object.object);
+                
+                if (!this.selection[object.layer.id].some(obj => obj.uuid === object.uuid)) {
+                    this.selection[object.layer.id].push(object);
+                    selected.push(object);
                 }
             });
-            for (const layerID in this.selection) {
-                const selectLayer = this.layerManager.getLayerByID(layerID);
-                selectLayer.select(this.selection[layerID]);
-            }
         } else if (type == 1) {
-            select.forEach(object => {
-                if (this.selection[object.object.layer.id] && this.selection[object.object.layer.id].includes(object.object)) {
-                    this.selection[object.object.layer.id].filter(o => o !== object.object);
-                    if (!this.selection[object.object.layer.id].length) delete this.selection[object.object.layer.id];
-                    unselected.push(object.object);
-                    object.object.layer.unselect([object.object])
+            uniqueSelectedObjects.forEach(object => {
+                if (this.selection[object.layer.id] && this.selection[object.layer.id].some(obj => obj.uuid === object.uuid)) {
+                    this.selection[object.layer.id] = this.selection[object.layer.id].filter(o => o.uuid !== object.uuid);
+                    if (!this.selection[object.layer.id].length) delete this.selection[object.layer.id];
+                    unselected.push(object);
                 }
             });
         } else if (type == 2) {
             // unselect everything
             for (const key in this.selection) {
-                const unselectLayer = this.layerManager.getLayerByID(key);
-                unselectLayer.unselect(this.selection[key])
                 while (this.selection[key].length) unselected.push(this.selection[key].shift());
             }
             this.selection = {};
             // select first object
-            if (select.length > 0) {
-                const object = select[0].object;
+            if (uniqueSelectedObjects.length > 0) {
+                const object = uniqueSelectedObjects[0];
                 if (!this.selection[object.layer.id]) {
                     this.selection[object.layer.id] = [];
                 }
-                if (!unselected.includes(object)) {
+                
+                if (!unselected.some(obj => obj.uuid === object.uuid)) {
                     this.selection[object.layer.id].push(object);
-                    object.layer.select([object]);
                     selected.push(object);
                     unselected.filter(o => o !== object);
                 }

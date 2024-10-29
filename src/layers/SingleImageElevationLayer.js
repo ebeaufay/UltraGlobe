@@ -95,7 +95,8 @@ class SingleImageElevationLayer extends ElevationLayer {
 
                     meshGeneration(bounds, width, height, elevationArray, geometry, skirtGeometry).then(shift => {
                         resolve({
-                            elevationArray: trim(elevationArray, width+2, height+2),
+                            extendedElevationArray: elevationArray,
+                            elevationArray: trim(elevationArray, extendedWidth, extendedHeight),
                             shift: shift,
                         });
                     }, error => {
@@ -104,7 +105,8 @@ class SingleImageElevationLayer extends ElevationLayer {
 
                 } else {
                     resolve({
-                        elevationArray: trim(elevationArray, width, height),
+                        extendedElevationArray: elevationArray,
+                        elevationArray: trim(elevationArray, extendedWidth, extendedHeight),
                         shift: undefined,
                     });
                 }

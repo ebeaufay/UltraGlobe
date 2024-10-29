@@ -27,8 +27,6 @@ class RotateController extends Controller {
 			case "touchmove": self.touchMove(e); break;
 			case "touchend": self.touchEnd(); break;
 			case "touchcancel": self.touchEnd(); break;
-			case "keydown": self.keyDown(); break;
-			case "keyup": self.keyUp(); break;
 		}
 		super._handleEvent(eventName, e)
 

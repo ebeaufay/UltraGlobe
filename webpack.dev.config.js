@@ -15,11 +15,12 @@ module.exports = {
   output: {
     filename: "ultraglobe.js",
     path: path.resolve(__dirname, 'dist'),
-    globalObject: 'this',
+    globalObject: 'self',
     library: {
       name: 'ultraglobe',
       type: 'umd',
     },
+    publicPath: '/',
   },
   plugins: [
     new webpack.ProgressPlugin(),
@@ -101,6 +102,13 @@ module.exports = {
       {
         test: /\.wasm$/,
         type: "webassembly/async",
+      },
+      {
+        test: /\.worker\.js$/,
+        loader: 'worker-loader',
+        options: {
+          inline: 'no-fallback', // You can also set `inline: 'no-fallback'` to inline the worker completely
+        },
       },
     ],
   },

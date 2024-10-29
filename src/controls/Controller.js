@@ -43,7 +43,14 @@ class Controller {
 		}
 	}
 
+    _dispose(){
+        if(!!this.next){
+            this.next._dispose();
+        }
+    }
+
     clear(){
+        this._dispose();
         this.next = null;
     }
 } export { Controller }

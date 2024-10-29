@@ -21,9 +21,9 @@ class WMSLayer extends ImageryLayer {
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {String} properties.url the service url
      * @param {String} properties.layer the wms layer 
-     * @param {String} properties.epsg an EPSG code (only 4326 supported)
      * @param {String} properties.version the version of the service
-     * @param {String} [properties.format="jpg"] the image format (usually jpeg or png)
+     * @param {String} [properties.epsg = "EPSG:4326"] an EPSG code (only 4326 supported)
+     * @param {String} [properties.format="jpeg"] the image format (usually jpeg or png)
      * @param {Number} [properties.maxLOD=20] (optional) a maximum LOD (default : 20) where LOD 0 represents the entire earth and subsequent levels split the parent zone in 4. For EPSG:4326, LOD 0 already has 2 tiles for left and right hemisphere.
      * @param {Number} [properties.imageSize=128] (optional) set a size for image requests. defaults to 128
      * @param {Number} [properties.transparency = 0] the layer's transparency (0 to 1)
@@ -35,7 +35,7 @@ class WMSLayer extends ImageryLayer {
         const self = this;
         self.url = properties.url;
         self.layer = properties.layer;
-        self.epsg = properties.epsg;
+        self.epsg = properties.epsg?properties.epsg:"EPSG:4326";
         self.version = properties.version;
         self.format = properties.format ? properties.format : "jpeg";
         self.textureLoader = new CancellableTextureLoader();
@@ -50,7 +50,6 @@ class WMSLayer extends ImageryLayer {
             const minX = Math.min(179.99999999, Math.max(-180, aBounds.min.x * toDegrees));
             const maxX = Math.min(179.99999999, Math.max(-180, aBounds.max.x * toDegrees));
 
-
             let request = self.url + "?request=GetMap&SERVICE=WMS&BBOX=";
             switch (self.version) {
                 case "1.1.1": request += minX + "," + minY + "," + maxX + "," + maxY + "&SRS=" + self.epsg; break;
@@ -61,6 +60,7 @@ class WMSLayer extends ImageryLayer {
                 "&WIDTH=" + self.imageSize +
                 "&HEIGHT=" + self.imageSize +
                 "&VERSION=" + self.version +
+                "transparent=TRUE"+
                 "&STYLES=" +
                 "&FORMAT=image/" + self.format;
 
@@ -72,13 +72,13 @@ class WMSLayer extends ImageryLayer {
                 reference: self.epsg,
                 bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
                 fetchTileTextureFunction: self.fetchTextureFunction,
-                maxLOD: self.maxLOD
+                maxLOD: self.maxLOD, imageSize: self.imageSize, boundsType: 0
             }),
             new MapTile({
                 reference: self.epsg,
                 bounds: new THREE.Box2(new THREE.Vector2(0, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)),
                 fetchTileTextureFunction: self.fetchTextureFunction,
-                maxLOD: self.maxLOD
+                maxLOD: self.maxLOD, imageSize: self.imageSize, boundsType: 0
             })
         ];
 

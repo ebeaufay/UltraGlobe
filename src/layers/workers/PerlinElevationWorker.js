@@ -1,4 +1,4 @@
-import { common } from "./common.worker.js"
+import { common } from "./commonWorker.js"
 
 const PerlinElevationWorker = {
 
@@ -18,10 +18,10 @@ const PerlinElevationWorker = {
         onmessage = function (e) {
             const id = e.data.id;
             try {
-            const result = generateElevationAndMesh(e.data.input);
-                postMessage({ id: id, result: result }, [result.vertices, result.normals, result.uvs, result.skirtIndices, result.skirts, result.skirtNormals, result.skirtUVs, result.extendedElevationBuffer]);
+                const result = generateElevationAndMesh(e.data.input);
+                postMessage({ id, result }, [result.vertices, result.normals, result.uvs, result.skirtIndices, result.skirts, result.skirtNormals, result.skirtUVs, result.extendedElevationBuffer]);
             } catch (error) {
-                postMessage({ id: id, error: error });
+                postMessage({ id, error: error });
             }
         };
 
@@ -307,12 +307,12 @@ const PerlinElevationWorker = {
        
        }
 
-       const rand = Math.random();
+       
 
        function noise( x, y, z ) {
-           x+=rand;
-           y+=rand;
-           z+=rand;
+           x;
+           y;
+           z;
 
 		const floorX = Math.floor( x ), floorY = Math.floor( y ), floorZ = Math.floor( z );
 

@@ -70,6 +70,7 @@ class LayerManager{
      * @returns {Layer[]} the list of layers
      */
     getLayers(){
+        
         return this.layers;
     }
 

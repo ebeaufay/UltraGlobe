@@ -441,7 +441,7 @@ const PostShader = {
 					
 					//return opticalDepthX;
 					//return opticalDepthX;
-					if(depth<0.99){ // ray touches earth
+					if(depth<0.999){ // ray touches earth
 						float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 						//return impactOpticalDepthY;
 						mieCoefficient = (1.0-exp(-length(impact-rayOrigin)*0.00000025*atmosphereDensity));
@@ -463,7 +463,7 @@ const PostShader = {
 						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
 						float opticalDepthX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/3.1415926535897932384626433832795;
 						
-						if(depth<0.99){ //ray touches earth
+						if(depth<0.999){ //ray touches earth
 							float impactOpticalDepthY = (length(impact - planetPosition)-radius)/(radius*(atmosphereRadius-1.0));
 							mieCoefficient = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.00000025*atmosphereDensity));
 							return (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000007*atmosphereDensity));
@@ -544,7 +544,7 @@ const PostShader = {
 				`;
 		if (space) {
 			code += `
-					if(depth >= 0.9999){
+					if(depth >= 0.999){
 						vec2 lonlat = vec2(atan(worldDir.y, worldDir.x),asin(worldDir.z));
 						//diffuse.rgb = vec3((lonlat.y/3.1416)+0.5);
 						// stars
@@ -609,13 +609,13 @@ const PostShader = {
 								cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.5));
 								
 								`
-								if (!!atmosphere) {
-									code+=`vec3 atmosphereColorCloud = mix(vec3(`+ atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(1.0,1.0,1.0), cloudsMieFactor);`;
-								}else{
-									code+=`vec3 atmosphereColorCloud = vec3(1.0);`;
-								}
-								code+=
-								`
+			if (!!atmosphere) {
+				code += `vec3 atmosphereColorCloud = mix(vec3(` + atmosphere.x.toFixed(3) + `,` + atmosphere.y.toFixed(3) + `,` + atmosphere.z.toFixed(3) + `), vec3(1.0,1.0,1.0), cloudsMieFactor);`;
+			} else {
+				code += `vec3 atmosphereColorCloud = vec3(1.0);`;
+			}
+			code +=
+				`
 								
 								
 								cl.xyz = mix(cl.xyz,atmosphereColorCloud, cloudsMieFactor);
@@ -663,7 +663,7 @@ const PostShader = {
 					
 					float lengthToRingIntersection = length(ringIntersection.xyz-nonPostCameraPosition);
 					float lengthToDepthImpact = length(impact-nonPostCameraPosition);
-					if(depth >= 0.9999 || lengthToRingIntersection<lengthToDepthImpact){ 
+					if(depth >= 0.999 || lengthToRingIntersection<lengthToDepthImpact){ 
 						if(atmosphereImpactDistance>=0.0 && lengthToRingIntersection<atmosphereImpactDistance){
 							diffuse.rgb = mix(diffuse.rgb,ringColor.xyz,ringColor.w);
 						}else{
@@ -763,10 +763,10 @@ const PostShader = {
 			
 			float atmosphereRadius = 1.1;
 			float a = 6378137.0;
-			float e2 = (1.0 / 298.257223563)*2.0;
+			float e2 = 0.00668313865078767255258340984305;
 			float f = 1.0 / 298.257223563; // flattening
-			float b = 6356752.3142451794975639665996337;
-			float e2Prim = 0.00673949674227643495478215895675;
+			float b = 6356752.314245179;
+			float e2Prim = 0.00672810349933054833172219855437;
 			`;
 		if (space) {
 			const cos1 = Math.cos(space.texRotation1).toFixed(5);
@@ -822,14 +822,18 @@ const PostShader = {
 				float z = xyz.z;
 				float p = sqrt(x * x + y * y);
 				float th = atan(a * z, b * p);
-				float lat = atan((z + e2Prim * b * pow(sin(th), 3.0)),
-								(p - e2 * a * pow(cos(th), 3.0)));
+				float sinth = sin(th);
+				float costh = cos(th);
+				float lat = atan((z + 42768.887489850550246426289775082 * sinth*sinth*sinth),
+								(p - 42625.973904718933451516691906121 * costh*costh*costh));
 			
-				float N = a / sqrt(1.0 - e2 * sin(lat) * sin(lat));
+				float sinLat = sin(lat);
+				float N = a / sqrt(1.0 - e2 * sinLat*sinLat);
 				float h = p / cos(lat) - N;
 			
 				return h;
 			}
+
 
 			float readDepth( sampler2D depthSampler, vec2 coord ) {
 				vec4 fragCoord = texture2D( depthSampler, coord );
@@ -899,10 +903,7 @@ const PostShader = {
 					impact/=rescale;
 					tValues.y = length(translatedRayOrigin-impact);
 				}
-    			/* tValues /= length(newRayOrigin);
-				tValues*= length(translatedRayOrigin); */
-				/* tValues.x /= length(rescale);
-    			tValues.y /= length(rescale); */
+    			
     			return tValues;
 			}
 
@@ -1096,7 +1097,7 @@ const PostShader = {
 					atmosphereImpactDistance = 0.0;
 					float opticalX = 1.0-abs(acos(dot(sphereToRayOrigin, rayDirection)))/PI;
 					
-					if(depth<0.99){ // ground
+					if(depth<0.999){ // ground
 						vec2 intersection = raySphereIntersection(sphereOrigin, radius*atmosphereRadius, rayOrigin, rayDirection);
 						vec3 rayOriginOnAtmosphereSurface = rayOrigin+(intersection.x*rayDirection);
 						vec3 rayExitOnAtmosphereSurface = rayOrigin+(intersection.y*rayDirection);
@@ -1136,7 +1137,7 @@ const PostShader = {
 						sphereToRayOrigin = normalize(sphereOrigin - rayOriginOnAtmosphereSurface);
 						
 						
-						if(depth<0.99){ // hit ground
+						if(depth<0.999){ // hit ground
 							shade = min(1.0,max(-1.0,0.5+max(dot(normalize(rayOriginOnAtmosphereSurface), sunVector),dot(normalize(impact), sunVector))));
 							atmosphereThickness = (1.0-exp(-length(impact-rayOriginOnAtmosphereSurface)*0.0000007*atmosphereDensity));
 							float impactRadius = length(impact);
@@ -1175,7 +1176,7 @@ const PostShader = {
 								
 				float lat = asin(surfacePoint.z/radius);
 				float lon = atan(surfacePoint.y, surfacePoint.x);
-				vec2 scale = vec2(waterConfig.w,waterConfig.w);
+				vec2 scale = vec2(waterConfig.w,waterConfig.w)*0.1;
 				
 				vec2 waterUV = vec2(((lon*cos(lat)) + 3.14159265)/(3.14159265), (lat + 3.14159265 / 2.0)/3.14159265);
 				vec2 flow = normalize(vec2(0.7, 0.7))*1.0*cos(lat);
@@ -1219,13 +1220,12 @@ const PostShader = {
 				
 				if(intersection.x <0.0 && intersection.y<0.0){
 					// ray outside ocean
-					
 				}else{
 					vec3 surfaceImpact = nonPostCameraPosition + rayDirection * intersection.x;
 					
 					
 					float depthNonLinearized = texture2D( tDepth, vUv ).x;
-					if(depthNonLinearized<1.0){ // hit on planet surface
+					if(depthNonLinearized<0.999){ // hit on planet surface
 						
 						
 						vec3 surfaceExit = nonPostCameraPosition + rayDirection * intersection.y;
@@ -1235,7 +1235,7 @@ const PostShader = {
 							waterVolume = min(length(impact - nonPostCameraPosition), length(surfaceExit - nonPostCameraPosition));
 							//oceanIlumination = dot(sunVector, normalize(nonPostCameraPosition));
 
-							vec3 normal = computeWaterNormal(impact);
+							vec3 normal = computeWaterNormal(surfaceImpact);
 							vec3 surfaceNormal = normalize(impact);
 							vec4 rotationQuat = fromToRotation(vec3(0.0,1.0,0.0), surfaceNormal);
 							vec3 worldSpaceNormal = rotateVecByQuat(normal, rotationQuat);
@@ -1500,7 +1500,7 @@ const PostShader = {
 
 		if (space) {
 			code += `
-					if(depth >= 0.9999){
+					if(depth >= 0.999){
 
 						vec3 sunReference = vec3(1.0, 0.0, 0.0);
 						
@@ -1598,7 +1598,7 @@ const PostShader = {
 		code += `
 				float s = max(0.0,dot(cameraSun, rayDirection));
 				float atm = pow(1.0-atmosphereThicknessForSun*0.5,4.0)*(1.0/atmosphereDensity);
-				float sunVisibility = (depth>=0.9999?(pow(s,10.0*atm)):0.0)*(1.0-min(1.0,atmosphereCameraHeight));
+				float sunVisibility = (depth>=0.999?(pow(s,10.0*atm)):0.0)*(1.0-min(1.0,atmosphereCameraHeight));
 				float atmosphereOpacity = min(1.0,max(0.0,(atmosphereThickness*atmosphereDensity)*(shade+0.15)+sunVisibility));
 				atmosphereColor.x = mix(atmosphereColor.x,0.6+max(0.0,shade),pow(s,160.0*atm));
 				atmosphereColor.y = mix(atmosphereColor.y,0.5+max(0.0,shade),pow(s,120.0*atm));
@@ -1614,10 +1614,10 @@ const PostShader = {
 					vec4 cl = texture2D(tClouds, vUv);
 					float cloudDepth = texture2D(tCloudsDepth, vUv).x;
 					`;
-					
-					if(!!atmosphere){
-						code+=`
-						if(cl.w > 0.0){
+
+			/* if (!!atmosphere) {
+				code += `
+					if(cl.w > 0.0 && cloudDepth<1.0){
 						float shadeClouds = 0.0;
 						float cloudsMieFactor = cameraToCloudAtmosphereMieFactor(planetPosition, nonPostCameraPosition, rayDirection, cloudDepth, sunVector, shadeClouds);
 						cloudsMieFactor = min(1.0, pow(cloudsMieFactor,0.2));
@@ -1632,22 +1632,38 @@ const PostShader = {
 						);
 						atmosphereColorCloud = mix(atmosphereColorCloud, atmosphereColorShadeCloud, shadeClouds);
 						cl.xyz = mix(cl.xyz,atmosphereColorCloud*shadeClouds, cloudsMieFactor);
-						//cl.xyz = vec3(shadeClouds);
 					}
 						`;
-					}
+					} */
+				if(!ocean){
+					code+=`
+					
+					diffuse = mix(diffuse, cl.xyz, cl.w);
+					`;
+				}else{
 					code+=`
 					
 					if(cameraHeightAboveEllipsoid<0.0){
 						diffuse = mix(diffuse, cl.xyz, cl.w);
 					}
 					`;
+				}
+					
 		}
 		if (!!ocean) {
 			const shallowOcean = new THREE.Vector3(Math.sqrt(ocean.x), Math.sqrt(ocean.y), Math.sqrt(ocean.z));
 			const specularOcean = new THREE.Vector3(Math.sqrt(shallowOcean.x), Math.sqrt(shallowOcean.y), Math.sqrt(shallowOcean.z));
 			code += `
-								float cameraDepth = -cameraHeightAboveEllipsoid;
+							float cameraDepth = -cameraHeightAboveEllipsoid;
+							float impactDepth = 0.0;
+							if(depth <0.999){
+								impactDepth = max(0.0,-heightAboveEllipsoid(impact));
+							}
+							float waterOpacity = 0.0;
+							/* if(cameraDepth>0.0){
+								diffuse.rgb = vec3(1.0,0.0,0.0);
+							} */
+							if(cameraDepth > 0.0 || impactDepth > 0.0){
 								vec4 oceanMeasures = oceanCalc(rayDirection, impact, sunVector, cameraDepth);
 								float waterVolume = oceanMeasures.x;
 								float oceanIlumination = max(0.1,oceanMeasures.y) ;
@@ -1669,15 +1685,17 @@ const PostShader = {
 								waterOpacity = max(waterOpacity,oceanLightReflection);
 								waterOpacity = max(waterOpacity, oceanMeasures.w);
 
-								/* if(waterVolume>0.0){
-								diffuse.rgb = vec3(oceanMeasures.w, 0.0,0.0);
-								} */
 								
-								diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity, showWater));
-								float impactDepth = -heightAboveEllipsoid(impact);
-								diffuse.rgb = mix(diffuse,waterColor,max(0.0,min(1.0,impactDepth*0.0004))*pow(1.0-showWater,0.25));
+								if(waterVolume>0.0){
+									diffuse.rgb = mix(diffuse,waterColor,mix(0.0,waterOpacity, showWater));
+									
+									diffuse.rgb = mix(diffuse,waterColor,max(0.0,min(1.0,impactDepth*0.0004))*pow(1.0-showWater,0.25));
+								}
+							}
+								
+								
 							`;
-		}
+								}
 		if (clouds) {
 			code += `
 			if(cameraHeightAboveEllipsoid>=0.0){
@@ -1702,7 +1720,7 @@ const PostShader = {
 					float lengthToDepthImpact = length(impact-nonPostCameraPosition);
 					float atmosphereOpacityRings = min(1.0,atmosphereThickness*shade+sunVisibility*0.5);
 					
-					if(depth >= 0.9999 || lengthToRingIntersection<lengthToDepthImpact){ 
+					if(depth >= 0.999 || lengthToRingIntersection<lengthToDepthImpact){ 
 						
 						if(atmosphereImpactDistance>=0.0 && lengthToRingIntersection<atmosphereImpactDistance){
 							diffuse.rgb = mix(diffuse.rgb,ringColor.xyz,ringColor.w);

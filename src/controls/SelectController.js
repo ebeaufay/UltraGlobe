@@ -1,9 +1,14 @@
 import * as THREE from 'three';
 import { Controller } from './Controller';
+import plusCursor from '../images/cursors/plus.png'
+import minusCursor from '../images/cursors/minus.png'
 
 class SelectController extends Controller {
     constructor(camera, domElement, map) {
         super(camera, domElement, map);
+
+        this.addOnly = false; 
+        this.removeOnly = false; 
     }
 
     _handleEvent(eventName, e) {
@@ -13,10 +18,44 @@ class SelectController extends Controller {
             case "mouseup": self.mouseUp(e); break;
             case "touchstart": self.touchStart(e); break;
 			case "touchend": self.touchEnd(e); break;
+            case "keydown": self.keydown(e); break;
+            case "keyup": self.keyup(e); break;
         }
         super._handleEvent(eventName, e);
     }
 
+    keydown(e){
+        if(e.key == "Control"){
+            this.addOnly = true;
+        }
+        if(e.key == "Shift"){
+            this.removeOnly = true;
+        }
+        if(this.addOnly){
+            document.body.style.cursor = `url(${plusCursor}), auto`;
+        }else if(this.removeOnly){
+            document.body.style.cursor = `url(${minusCursor}), auto`;
+        }else{
+            document.body.style.cursor = "auto";
+        }
+        
+    }
+    keyup(e){
+        if(e.key == "Control"){
+            this.addOnly = false;
+            
+        }
+        if(e.key == "Shift"){
+            this.removeOnly = false;
+        }
+        if(this.addOnly){
+            document.body.style.cursor = `url(${plusCursor}), auto`;
+        }else if(this.removeOnly){
+            document.body.style.cursor = `url(${minusCursor}), auto`;
+        }else{
+            document.body.style.cursor = "auto";
+        }
+    }
     touchStart(e){
         if(!this.touchId && e.touches.length == 1){
             this.touchId = e.changedTouches[0].identifier; 
@@ -27,6 +66,7 @@ class SelectController extends Controller {
         }
     }
     touchEnd(e){
+        if(!this.downLocation) return;
         if(this.touchId == e.changedTouches[0].identifier && e.touches.length == 1 && Date.now()-this.downTime < 1000){
             delete this.touchId;
             const upLocation = new THREE.Vector2(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -44,6 +84,7 @@ class SelectController extends Controller {
         }
     }
     mouseUp(e){
+        if(!this.downLocation) return;
         if (e.which == 1 || e.which == "all" && Date.now()-this.downTime < 1000) {
             const upLocation = new THREE.Vector2(e.clientX, e.clientY);
             const distance = Math.sqrt(Math.pow(this.downLocation.x - upLocation.x,2)+Math.pow(this.downLocation.y - upLocation.y,2))
@@ -64,8 +105,8 @@ class SelectController extends Controller {
         mouseLocation.y = ((1-mouseLocation.y) * 2)-1;
         
         
-        
-        this.map.select(mouseLocation, 2);
+        const mode = this.addOnly? 0: this.removeOnly? 1:2;
+        this.map.select(mouseLocation, mode);
         
     }
 

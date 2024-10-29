@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PlanetTile } from './PlanetTile.js';
 import { Object3D } from 'three/src/core/Object3D';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js';
+import { RasterLayer } from "../layers/RasterLayer.js"
 import * as TRANSFORM from '../transform/Transformer.js';
 
 const frustum = new THREE.Frustum();
@@ -33,6 +34,7 @@ class Planet extends Object3D {
         this.elevationExageration = 1;
         this.renderer = properties.renderer;
         const self = this;
+        
 
         if (!properties.camera) {
             throw ("A camera is required in order to refine the planet's levels of detail.")
@@ -56,6 +58,15 @@ class Planet extends Object3D {
 
         self.radius = 6378137.0;
         self.layerManager = properties.layerManager;
+        self.programCacheKey = "planetTile0";
+        self.programCacheKeyIndex = 1;
+        self.layerManager.addListener(self.planetTileUid, (eventName, layer) => {
+            if (LAYERS_CHANGED === eventName && layer instanceof RasterLayer) {
+                self.programCacheKey = "planetTile"+(self.programCacheKeyIndex++)
+                //self._setProgramKey(self.programCacheKey)
+            }
+            
+        });
 
         this.add(new PlanetTile({
             bounds: new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(0, Math.PI * 0.5)),
@@ -106,6 +117,11 @@ class Planet extends Object3D {
                     break;
                 }
             }
+            self.layerManager.getLayers().forEach(layer => {
+                if(layer.isVectorLayer){
+                    layer.update();
+                }
+            });
         }
         PlanetTile.planetTileUpdate();
     }
@@ -128,7 +144,7 @@ class Planet extends Object3D {
 
     /**
      * Returns the terrain height at the given longitude and latitude
-     * @param {Vector2} lonlat in radians 
+     * @param {THREE.Vector2} lonlat in radians 
      */
     getTerrainElevation(lonLat) {
         let elevation = 0;
@@ -144,6 +160,22 @@ class Planet extends Object3D {
         }
         return elevation * this.elevationExageration;
     }
+
+    /**
+     * computes the terrain normal at the given lon lat and stores the result in the normal parameter
+     * @param {THREE.Vector2} lonlat in radians
+     * @param {THREE.Vector3} normal side-effect variable to hold the normal
+     */
+    getTerrainNormalSFCT(lonLat, normal){
+        
+        this.children.every(child => {
+            if (child.bounds.containsPoint(lonLat)) {
+                child.getTerrainNormalSFCT(lonLat, normal);
+                return false;
+            }
+            return true;
+        });
+    }
     _pauseRendering() {
         this.pause = true;
     }
@@ -153,6 +185,13 @@ class Planet extends Object3D {
 
     _setOffset(offset){
         this.offset.copy(offset);
+    }
+    _setProgramKey(key){
+        this.traverse(e=>{
+            if(e.isPlanetTile){
+                e._setProgramKey(key)
+            }
+        })
     }
 
     setElevationExageration(elevationExageration) {
@@ -189,12 +228,12 @@ class Planet extends Object3D {
     cartesianToLlhFastSFCT(xyz) {
         const a = 6378137.0;
         const b = 6356752.314245179;
-        const e2 = 0.006694379990141316;
+        const e2 = 0.00668313865078767255258340984305;
         const p = Math.sqrt(xyz.x * xyz.x + xyz.y * xyz.y);
         const th = Math.atan2(a * xyz.z, b * p);
         const sinTh = Math.sin(th);
         const cosTh = Math.cos(th);
-        const lat = Math.atan2(xyz.z + 42841.3115133135658 * sinTh * sinTh * sinTh, p - 42697.672707179 * cosTh * cosTh * cosTh);
+        const lat = Math.atan2(xyz.z + 42768.887489850550246426289775082 * sinTh * sinTh * sinTh, p - 42625.973904718933451516691906121 * cosTh * cosTh * cosTh);
         const sinLat = Math.sin(lat);
         const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
 

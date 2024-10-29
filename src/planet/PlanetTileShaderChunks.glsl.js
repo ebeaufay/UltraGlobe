@@ -28,7 +28,7 @@ const PlanetTileShaderChunks = {
         let code = /* glsl */`
 
 		uniform sampler2D imagery[`+ numImageryLayers + `];
-		uniform float transparency[`+ numImageryLayers + `];
+		uniform float imageryTransparency[`+ numImageryLayers + `];
 		uniform vec4 imageryUVBounds[`+ numImageryLayers + `];
 		uniform int imageryProjections[`+ numImageryLayers + `];
 		uniform float level;
@@ -59,15 +59,27 @@ const PlanetTileShaderChunks = {
     },
     
 
-    fragmentMain: (shaderColorLayerCode, shaderLayerTransparency) => {
+    fragmentMain: (numImageryLayers, shaderColorLayerCode, shaderLayerTransparency) => {
         let code = `
+                vec2 localUV;
+                vec4 imageryColor;
+                diffuseColor = vec4(0.0,0.0,0.0,0.0);
+        `;
+        for(let i = 0; i<numImageryLayers;i++){
+            code+= `
+                localUV = vec2(vUv.x*(imageryUVBounds[${i}].z-imageryUVBounds[${i}].x)+imageryUVBounds[${i}].x,vUv.y*(imageryUVBounds[${i}].w-imageryUVBounds[${i}].y)+imageryUVBounds[${i}].y);
+				imageryColor = texture2D(imagery[${i}], localUV);
+                diffuseColor = mix(diffuseColor, vec4(imageryColor.xyz,1.0), (1.0-imageryTransparency[${i}])*imageryColor.w);
+            `;
+        }
+        /* let code = `
 			if(imagery.length()>0){
 				vec2 localUV = vec2(vUv.x*(imageryUVBounds[0].z-imageryUVBounds[0].x)+imageryUVBounds[0].x,vUv.y*(imageryUVBounds[0].w-imageryUVBounds[0].y)+imageryUVBounds[0].y);
-				diffuseColor = vec4(texture2D(imagery[0], localUV).xyz,1.0);
+				diffuseColor = texture2D(imagery[0], localUV);
 			}else{
 				diffuseColor = vec4(0.0,0.0,0.0,1.0);
 			}
-		`;
+		`; */
         if (shaderColorLayerCode) {
             code += `
 				vec3 shaderLayerColor = getShaderLayerColor(llh, vSurfacePosition, terrainNormal, level);

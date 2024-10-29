@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 const VISIBILITY_CHANGE = "visibility-change";
+
+const toRadians = 0.01745329251994329576923690768489;
 /**
  * Base class implemented by all layers.
  */
@@ -14,6 +16,7 @@ class Layer {
      */
     constructor(properties) {
         this.isLayer = true;
+        this.isSelectable = false;
         this.id = properties.id;
         this.name = properties.name;
         if(properties.bounds){
@@ -100,30 +103,11 @@ class Layer {
     }
 
     /**
-     * selects an object from this layer
-     * @param {Object} objectsToSelect 
-     * @returns {Boolean} true if the object was selected, false otherwise
+     * raycasts through objects from this layer if the layer is selectable and if the objects are raycastable
+     * @param {Object} raycaster a three.js Raycaster 
+     * @returns {Array} an array of selected objects
      */
-    select(objectsToSelect){
-        // to be implemented by children
-        return;
-    }
-
-    /**
-     * un-selects an object from this layer
-     * @param {Object} objectsToUnselect 
-     * @returns {Boolean} true if the object was un-selected, false otherwise
-     */
-    unselect(objectsToUnselect){
-        // to be implemented by children
-        return;
-    }
-
-    /**
-     * Get all the selectable objects of this layer.
-     * @returns an array of ray-castable objects with a property "layer" pointing to this layer.
-     */
-    getSelectableObjects(){
+    raycast(raycaster){
         // to be implemented by children
         return [];
     }
@@ -138,7 +122,14 @@ class Layer {
      * disposes of any resources used by this layer
      */
     dispose(){
-        // to be implemented by children if necessary
+        // to be implemented by children
+    }
+
+    _addToScene(scene){
+        // to be implemented by children
+    }
+    _setMap(map){
+        // to be implemented by children
     }
 }
 

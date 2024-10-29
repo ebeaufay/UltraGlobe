@@ -1,4 +1,4 @@
-import {common} from "./common.worker.js";
+import {common} from "./commonWorker.js";
 const ElevationMesherWorker = {
     getScript : ()=> {
         return `

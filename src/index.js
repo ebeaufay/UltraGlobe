@@ -31,6 +31,13 @@ import { ProjectedLayer } from "./layers/ProjectedLayer.js";
 import { GoProVideoLayer } from "./layers/GoProVideoLayer.js";
 import techno2 from './images/techno2.png';
 import { ObjectLayer } from "./entry.js";
+import { FirstPersonCameraController } from "./controls/FirstPersonCameraController.js";
+import { LookAtController } from "./controls/LookAtController.js";
+import { GeoJsonLayer } from "./layers/GeoJsonLayer.js";
+import { SHPLayer } from "./layers/SHPLayer.js";
+import { buildLonLatPolygonGeometry, buildLonLatPolylineGeometry } from "./shapes/GeoShapeUtils.js";
+import { WMSElevationLayer } from "./layers/WMSElevationLayer.js";
+
 
 const clock = new THREE.Clock();
 const gltfLoader = new GLTFLoader();
@@ -133,18 +140,72 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     visible: true,
     min: 0,
-    max: 8848
+    max: 8000
 });
-var wmsLayer = new WMSLayer({
+var wmsElevation2 = new WMSElevationLayer({
+    id:845,
+    name:"wmsElevation",
+    bounds: [-180, -90, 180, 90],
+    url: "https://worldwind26.arc.nasa.gov/elev",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    layer: "NASA_SRTM30_900m_Tiled",
+    visible: true,
+    transparency: 0.0,
+    maxResolution: 900
+})
+var wmsElevation = new WMSElevationLayer({
+    id:845,
+    name:"wmsElevation",
+    bounds: [-180, -90, 180, 90],
+    url: "https://worldwind26.arc.nasa.gov/elev",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    layer: "aster_v2",
+    visible: true,
+    transparency: 0.0,
+    maxResolution: 30
+})
+var wmsLayer1 = new WMSLayer({
     id: 20,
     name: "BlueMarble",
     bounds: [-180, -90, 180, 90],
-    url: "https://tiles.maps.eox.at/",
-    layer: "bluemarble",
+    url: "https://worldwind25.arc.nasa.gov/wms",
+    format:"png",
+    layer: "BlueMarble-200412",
     epsg: "EPSG:4326",
-    version: "1.1.1",
+    version: "1.3.0",
     visible: true,
     maxLOD: 10,
+    transparency: 0.0,
+    imageSize: 512
+});
+/* var wmsLayer2 = new WMSLayer({
+    id: 2075,
+    name: "faa",
+    bounds: [-160, -90, 180, 90],
+    url: "https://worldwind25.arc.nasa.gov/wms",
+    format:"png",
+    layer: "FAAchart",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    visible: true,
+    maxLOD: 10,
+    transparency: 0.5,
+    imageSize: 512
+}); */
+var wmsLayer3 = new WMSLayer({
+    id: 2546,
+    name: "borders",
+    bounds: [-180, -90, 180, 90],
+    url: "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi",
+    format:"png",
+    layer: "GPW_Population_Density_2020",
+    epsg: "EPSG:4326",
+    version: "1.3.0",
+    visible: true,
+    maxLOD: 5,
+    transparency: 0.0,
     imageSize: 512
 });
 /* var wmsLayer2 = new WMSLayer({
@@ -162,7 +223,7 @@ var wmsLayer = new WMSLayer({
     id: 5,
     name: "imagery",
     bounds: [-180, -90, 180, 90],
-    url: equidistant,
+    url: "http://localhost:8083/worldPurple.jpg",
     visible: true
 }); */
 
@@ -233,12 +294,28 @@ var environmentLayer = new NOAAGFSCloudsLayer({
 var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
-    coverage: 0.35,
-    debug: true,
+    coverage: 0.45,
+    debug: false,
     windSpeed: 0.0,
     minHeight: 20000,
     maxHeight: 40000,
     quality: 0.5
+});
+const geoJsonLayerLayer = new GeoJsonLayer({
+    id: 7322,
+    name: "geo",
+    geoJson: "http://localhost:8081/countries.geojson",
+    selectable: true,
+    maxSegmentLength: 100,
+    transparency:0
+});
+const shpLayer = new SHPLayer({
+    id: 7324,
+    name: "shp",
+    shp: "http://localhost:8081/shapefiles_dresden/gis_osm_runways_07_1.shp",
+    selectable: true,
+    maxSegmentLength: 100,
+    transparency:0
 });
 /* var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
@@ -272,15 +349,17 @@ function setupMap(globalElevationMap) {
         divID: 'screen',
         clock: true,
         shadows: true,
-        debug: false,
+        debug: true,
         detailMultiplier: 1.0,
-        ocean: true,
-        atmosphere: generateAtmosphereColor(),
+        ocean: false,
+        atmosphere: true,
         atmosphereDensity: 1.0,
         sun: true,
-        rings: true,
-        space: true,
-        tileSize: 64
+        rings: false,
+        space: new THREE.Vector3(1.0,0.2,0.5),
+        tileSize: 128,
+        loadOutsideView: false,
+        minHeightAboveGround: 20
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -331,18 +410,49 @@ function setupMap(globalElevationMap) {
     },10); */
     //map.camera.position.set(4019631.932204086,305448.9859209114,4926343.029568041);
     //map.camera.quaternion.copy(new THREE.Quaternion(0.306015242224167,0.6300451739927658,0.6978639828043095,-0.14961153618426734));
-    map.moveAndLookAt({ x: 13.4, y: 52.52, z: 3000 }, { x: 13.4, y: 52.52, z: 0 });
+    map.moveAndLookAt({ x: 0, y: 0, z: 10000000 }, { x: 0, y: 5, z: 0 });
+    /* map.controller.clear();
+    map.controller.append(new LookAtController(map.camera, map.domContainer, map));
+    map.controller.append(new FirstPersonCameraController(map.camera, map.domContainer, map)); */
     //52.50921677914625, 13.405685233710862
-    map.setLayer(perlinElevation, 0);
-    map.setLayer(shaderLayer, 1);
+    //map.setLayer(perlinElevation, 0);
+    //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    //map.setLayer(earthElevation, 5);
-    //map.setLayer(wmsLayer, 4);
+    map.setLayer(wmsElevation, 0);
+    //map.setLayer(wmsLayer1, 5);
+    map.setLayer(wmsLayer3, 6);
+    map.setLayer(shpLayer, 7);
+    
+
+    /* const geoJsonLayerLayer = new DrapedVectorLayer({
+        id: 7322,
+        name: "geo",
+        selectable: true,
+        maxSegmentLength: 100,
+        lineType:0
+    });
+    const poly = [[120, 40], [180, 40], [180, -40], [120, -40], [120, 40]];
+    geoJsonLayerLayer.addPolygons([[poly]],{}, true);
+    map.setLayer(geoJsonLayerLayer, 6);
+    
+    const res = buildLonLatPolylineGeometry(poly, 10, 1);
+    console.log(res) */
+    /* const shpLayer = new SHPLayer({
+        id: 7323,
+        name: "shp",
+        shp: "http://localhost:8082/gis_osm_boundaries_07_1.shp",
+        selectable: true,
+    });
+    map.setLayer(shpLayer, 7); */
+    /* map.domContainer.addEventListener('mouseup', (e) => {
+        
+    }, false); */
+
 
     //map.setLayer(jetElevationShaderLayer, 7);
-    map.setLayer(environmentLayer, 8);
+    //map.setLayer(environmentLayer, 8);
     /* gltfLoader.load("http://localhost:8080/ar6m5g5hhkf-model.glb_/model.glb",object =>{
         object.scene.traverse(o=>{
             if(o.material){
@@ -375,9 +485,9 @@ function setupMap(globalElevationMap) {
         
     }); */
 
-    
 
-    
+
+
 
     /* const video = document.createElement('video');
     const videoTexture = new THREE.VideoTexture(video);
@@ -775,3 +885,6 @@ function hslToRgb(h, s, l) {
 
     return new THREE.Vector3(r, g, b);
 }
+
+
+

@@ -1,7 +1,7 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "5.0.6",
-    "description": "A globe in threejs with support for WMS maps, elevation and OGC 3DTiles",
+    "version": "6.0.0",
+    "description": "Geospatial lib built with threejs",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
     "files": [
@@ -34,7 +34,10 @@
     "license": "MIT",
     "dependencies": {
         "@jdultra/threedtiles": "^11.1.12",
-        "egm96-universal": "^1.1.0",
+        "cdt2d": "^1.0.0",
+        "clean-pslg": "^1.1.2",
+        "earcut": "^3.0.0",
+        "egm96-universal": "^1.1.1",
         "epsg-index": "^1.0.0",
         "fast-simplex-noise": "^4.0.0",
         "gltf-validator": "^2.0.0-dev.3.9",
@@ -46,9 +49,13 @@
         "mp4box": "^0.5.2",
         "noaa-gfs-js": "^1.0.0",
         "path-browserify": "^1.0.1",
+        "point-in-big-polygon": "^2.0.1",
+        "polygon-clipping": "^0.15.7",
         "proj4": "^2.9.0",
         "regenerator-runtime": "^0.13.11",
-        "tooloud": "^2.0.4"
+        "shapefile": "^0.6.6",
+        "tooloud": "^2.0.4",
+        "uuid": "^10.0.0"
     },
     "devDependencies": {
         "@babel/core": "^7.21.3",

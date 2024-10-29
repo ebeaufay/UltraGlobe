@@ -29,6 +29,7 @@ class CancellableTextureLoader extends Loader {
         const image = this.loader.load(url, function(image) {
             if (aborted) return;
             texture.image = image;
+            texture.generateMipmaps = false;
             texture.format = RGBAFormat;
             texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
             texture.magFilter = texture.minFilter = THREE.LinearFilter;
