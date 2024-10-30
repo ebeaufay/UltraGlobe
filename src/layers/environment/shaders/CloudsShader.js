@@ -944,38 +944,39 @@ const CloudsShader = {
 		code += `
 			
 		/**
-					   * Ray plane intersection. Returns the position of the intersection or a null vector(0,0,0) when there is no intersection
-					   **/
-					  vec4 intersectRayPlane(vec3 rayOrigin, vec3 rayDirection, vec3 planeOrigin, vec3 planeNormal) {
-						  float denom = dot(planeNormal, rayDirection);
+		* Ray plane intersection. Returns the position of the intersection or a null vector(0,0,0) when there is no intersection
+		**/
+		vec4 intersectRayPlane(vec3 rayOrigin, vec3 rayDirection, vec3 planeOrigin, vec3 planeNormal) {
+			float denom = dot(planeNormal, rayDirection);
 					  
-						  // Check if ray is parallel to the plane
-						  if (abs(denom) > 1e-6) {
-							  vec3 p0l0 = planeOrigin - rayOrigin;
-							  float t = dot(p0l0, planeNormal) / denom;
-							  if(t>0.0){
-								  return vec4(rayOrigin + t * rayDirection, 1.0);
-							  }
-						  }
+			// Check if ray is parallel to the plane
+			if (abs(denom) > 1e-6) {
+				vec3 p0l0 = planeOrigin - rayOrigin;
+				float t = dot(p0l0, planeNormal) / denom;
+				if(t>0.0){
+					return vec4(rayOrigin + t * rayDirection, 1.0);
+				}
+			}
 					  
-						  // Return a 'null' vector if no intersection
-						  return vec4(0.0,0.0,0.0,0.0);
-					  }
-		  
+			// Return a 'null' vector if no intersection
+			return vec4(0.0,0.0,0.0,0.0);
+		}`
+
+		
+		code+=`			  
+		float computeRingOpacity(vec3 point, vec3 center, vec3 ringsNormal, float innerRadius, float outerRadius) {
+			float distance = length(point - center);
 					  
-					  float computeRingOpacity(vec3 point, vec3 center, vec3 ringsNormal, float innerRadius, float outerRadius) {
-						  float distance = length(point - center);
+			// Check if the point is before the inner radius or outside the outer radius
+			if (distance > outerRadius || distance < innerRadius) {
+				return 0.0; // Fully transparent
+			}
 					  
-						  // Check if the point is before the inner radius or outside the outer radius
-						  if (distance > outerRadius || distance < innerRadius) {
-							  return 0.0; // Fully transparent
-						  }
-					  
-						  // Interpolate between color1 and color2 based on the distance
-						  float t = (distance - innerRadius) / (outerRadius - innerRadius);
+			// Interpolate between color1 and color2 based on the distance
+			float t = (distance - innerRadius) / (outerRadius - innerRadius);
 						  
-						  return texture2D(ringsPalette, vec2(t+`+ rings.colorMapDisplace.toFixed(2) + `,` + rings.colorMap.toFixed(2) + `)).w;
-					  }
+			return texture2D(ringsPalette, vec2(t+`+ (rings.colorMapDisplace|0).toFixed(2) + `,` + (rings.colorMap|0).toFixed(2) + `)).w;
+		}
 			float computeTerrainShadow(vec3 impact, float trueEndRadius, float startRadius, vec4 random){
 					vec3 impactNormalized = normalize(impact);
 					float dotSurfaceSun = dot(impactNormalized, sunLocation);

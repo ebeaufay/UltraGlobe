@@ -53,7 +53,7 @@ class PerlinElevationLayer extends ElevationLayer {
      * Initializes the worker pool with the desired concurrency.
      */
     _initializeWorkerPool() {
-        this.concurrency = 16; // Number of concurrent workers
+        this.concurrency = navigator.hardwareConcurrency*0.5; // Number of concurrent workers
         this.workers = [];
         this.workerQueues = [];
         this.workerBusy = [];
@@ -197,6 +197,7 @@ class PerlinElevationLayer extends ElevationLayer {
     getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 12) {
         const trim = super._trimEdges;
         
+        const start = performance.now();
         return new Promise((resolve, reject) => {
             this._sendWorkerTask({
                 bounds: bounds,
@@ -212,6 +213,7 @@ class PerlinElevationLayer extends ElevationLayer {
                 noiseTypes: this.noiseTypes
             })
                 .then(response => {
+                    
                     geometry.setIndex(new THREE.Uint32BufferAttribute(new Int32Array(response.indices), 1));
                     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(response.vertices), 3));
                     geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(response.normals), 3));
@@ -226,6 +228,7 @@ class PerlinElevationLayer extends ElevationLayer {
                     geometry.computeBoundingBox();
                     skirtGeometry.computeBoundingSphere();
                     const elevationArray = new Float32Array(response.extendedElevationBuffer);
+                    console.log(performance.now()-start)
                     resolve({
                         extendedElevationArray: elevationArray,
                         elevationArray: trim(elevationArray, width + 2, height + 2),

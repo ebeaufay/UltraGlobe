@@ -140,7 +140,7 @@ var earthElevation = new SingleImageElevationLayer({
     url: earthElevationImage,
     visible: true,
     min: 0,
-    max: 8000
+    max: 0
 });
 var wmsElevation2 = new WMSElevationLayer({
     id:845,
@@ -230,25 +230,21 @@ var wmsLayer3 = new WMSLayer({
 
 const progressBar = document.getElementById("progressBar");
 var ogc3dTiles = new OGC3DTilesLayer({
-    id: 2,
+    id: 65988,
     name: "OGC 3DTiles",
     visible: true,
-    url: "http://localhost:8081/tileset.json",
-    longitude: 13.4,
-    latitude: 52.52,
-    height: 200,
-    yaw: 0.72,
+    url: "https://storage.googleapis.com/ogc-3d-tiles/berlinTileset/tileset.json",
+    longitude: 0,
+    latitude: 0,
+    height: 0,
+    yaw: 0,
     pitch: 0,
-    pitch: -90,
     roll: 0,
-    geometricErrorMultiplier: 1,
+    scaleX: 1000,
+    scaleY: 1000,
+    scaleZ: 1000,
+    geometricErrorMultiplier: 0.02,
     loadOutsideView: false,
-    flatShading: false,
-    //loadingStrategy: "IMMEDIATE",
-    updateCallback: (stats) => {
-        progressBar.style.width = stats.percentageLoaded * 100 + '%';
-        progressBar.innerHTML = (stats.percentageLoaded * 100).toFixed(0) + '%';
-    }
 });
 /* var ogc3dTiles = new OGC3DTilesLayer({
     id: 2,
@@ -291,7 +287,7 @@ var environmentLayer = new NOAAGFSCloudsLayer({
     id: 84,
     name: "clouds"
 });
-var environmentLayer = new RandomCloudsLayer({
+/* var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage: 0.45,
@@ -300,7 +296,7 @@ var environmentLayer = new RandomCloudsLayer({
     minHeight: 20000,
     maxHeight: 40000,
     quality: 0.5
-});
+}); */
 const geoJsonLayerLayer = new GeoJsonLayer({
     id: 7322,
     name: "geo",
@@ -357,7 +353,7 @@ function setupMap(globalElevationMap) {
         sun: true,
         rings: false,
         space: new THREE.Vector3(1.0,0.2,0.5),
-        tileSize: 128,
+        tileSize: 64,
         loadOutsideView: false,
         minHeightAboveGround: 20
         /* shadows: true,
@@ -388,7 +384,7 @@ function setupMap(globalElevationMap) {
             d.setSeconds(d.getSeconds() + 1);
             map.setDate(d);
         }, 10) */
-    map.ultraClock.setDate(new Date(2023, 2, 21, 12, 0, 0, 0));
+    map.ultraClock.setDate(new Date());
     let h = 20;
     let m = 0;
     let s = 0;
@@ -415,15 +411,15 @@ function setupMap(globalElevationMap) {
     map.controller.append(new LookAtController(map.camera, map.domContainer, map));
     map.controller.append(new FirstPersonCameraController(map.camera, map.domContainer, map)); */
     //52.50921677914625, 13.405685233710862
-    //map.setLayer(perlinElevation, 0);
-    //map.setLayer(shaderLayer, 1);
-    //map.setLayer(googleMaps3DTiles, 2);
+    map.setLayer(wmsElevation, 0);
+    map.setLayer(shaderLayer, 1);
+    map.setLayer(environmentLayer, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    map.setLayer(wmsElevation, 0);
+    //map.setLayer(wmsElevation, 0);
     //map.setLayer(wmsLayer1, 5);
-    map.setLayer(wmsLayer3, 6);
-    map.setLayer(shpLayer, 7);
+    //map.setLayer(wmsLayer3, 6);
+    //map.setLayer(geoJsonLayerLayer, 7);
     
 
     /* const geoJsonLayerLayer = new DrapedVectorLayer({

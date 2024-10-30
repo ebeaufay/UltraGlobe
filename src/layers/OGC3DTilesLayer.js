@@ -294,10 +294,7 @@ class OGC3DTilesLayer extends Layer {
 
 
     }
-    _setPlanet(planet) {
-        this.planet = planet;
-
-    }
+    
 
     _addToScene(scene) {
         this.scene = scene;
@@ -346,7 +343,7 @@ class OGC3DTilesLayer extends Layer {
         this._scaleX = scaleX;
         this._scaleY = scaleY;
         this._scaleZ = scaleZ;
-        if(!this.planet) return;
+        if(!this.scene) return;
 
         rotation.set(
             pitch*0.0174533, yaw*0.0174533, roll*0.0174533, "ZYX");
@@ -380,28 +377,6 @@ class OGC3DTilesLayer extends Layer {
         this.object3D.updateMatrixWorld(true);
         this.tileset.updateMatrices();
     }
-    /* updateLocation() {
-
-        if (!this.planet) {
-            return;
-        }
-        if (this.llh) {
-            const transform = this.planet.llhToCartesian.forward(this.llh);
-            cartesianLocation.set(transform.x, transform.y, transform.z);
-            //quaternionSelfRotation
-            quaternionToEarthNormalOrientation.setFromUnitVectors(up, orientationHelper.copy(cartesianLocation).normalize());
-            quaternionSelfRotation.setFromEuler(this.rotation);
-            this.object3D.quaternion.copy(quaternionToEarthNormalOrientation).multiply(quaternionSelfRotation);
-            this.object3D.position.copy(cartesianLocation);
-            this.object3D.scale.set(this.scale, this.scale, this.scale);
-
-            
-        }
-        this.object3D.updateMatrix();
-        this.object3D.updateMatrixWorld(true);
-        this.tileset.updateMatrices();
-
-    } */
 
     dispose() {
         this.scene.remove(this.object3D);

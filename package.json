@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "6.0.0",
+    "version": "6.0.2",
     "description": "Geospatial lib built with threejs",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
@@ -76,6 +76,7 @@
         "webpack-cli": "^4.10.0",
         "webpack-dev-server": "^4.12.0",
         "whatwg-fetch": "^3.5.0",
-        "worker-loader": "^3.0.8"
+        "worker-loader": "^3.0.8",
+        "ts-loader": "^9.5.1"
     }
 }
