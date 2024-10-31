@@ -108,7 +108,7 @@ var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3848,
     name: "Google Maps 3D Tiles",
     visible: true,
-    apiKey: "AIzaSyAORZsk6ezheRe8gSqhXt7wppCRNfyZa2s", // replace with your google maps API key
+    apiKey: "", // replace with your google maps API key
     loadOutsideView: false,
     geometricErrorMultiplier:0.75,
     //loadingStrategy: "IMMEDIATE", // uncomment to use immediate loading (faster with gaps)
