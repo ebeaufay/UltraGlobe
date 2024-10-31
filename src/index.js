@@ -17,7 +17,6 @@ import { ThirdPersonCameraController } from "./controls/ThirdPersonCameraControl
 import { VerletSystem } from "./physics/VerletSystem.js";
 import { realtimeweather } from "./layers/environment/NOAA/RealtimeWeather.js";
 import earthElevationImage from "./images/earth_elevation.jpg"
-import equidistant from "./images/equidistant.jpg"
 import { Vector3 } from "three";
 import { SimpleElevationLayer } from "./layers/SimpleElevationLayer.js";
 import { EnvironmentLayer } from "./layers/environment/EnvironmentLayer.js";

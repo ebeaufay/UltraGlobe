@@ -1,10 +1,10 @@
 const path = require("path");
 const webpack = require("webpack");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require('terser-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-//const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 
 const sourceDir = path.resolve(__dirname);
 const DEFAULT_WEBPACK_PORT = 3001;
@@ -22,7 +22,14 @@ module.exports = {
       type: 'umd',
     },
   },
-  externals: {
+  externals: [
+    /^three($|\/)/,        // Externalize 'three' and all its subpaths
+    /^proj4($|\/)/,        // Externalize 'proj4' and all its subpaths
+    /^epsg-index($|\/)/,   // Externalize 'epsg-index' and all its subpaths
+    // Add other dependencies similarly if needed
+  ],
+  /* externals: {
+    
     three: {
       commonjs: "three",
       commonjs2: "three",
@@ -44,14 +51,10 @@ module.exports = {
       root: "epsg-index",
       import: "epsg-index"
     },
-  },
+  }, */
   plugins: [
     //new BundleAnalyzerPlugin(),
     new webpack.ProgressPlugin(),
-    new HtmlWebpackPlugin({
-      template: "index.html",
-      filename: "index.html",
-    }),
     new MiniCssExtractPlugin({
       filename: "[name].bundle.[hash].css"
     }),
@@ -110,13 +113,24 @@ module.exports = {
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif|ktx2|bin)$/i,
-        type: 'asset/inline',
+        type: 'asset', // Use 'asset' which automatically chooses between 'inline' and 'resource'
+        
       },
       {
         test: /\.js$/,
         exclude: /node_modules/,
         use: {
           loader: "babel-loader",
+          options: {
+            presets: [
+              ["@babel/preset-env", { 
+                modules: false, // Preserve ES6 modules for tree shaking
+                targets: "> 0.25%, not dead" // Adjust based on your support matrix
+              }],
+              "@babel/preset-react",
+              "@babel/preset-typescript"
+            ],
+          },
         },
       },
 
@@ -134,12 +148,16 @@ module.exports = {
     ],
   },
   optimization: {
+    minimize: true,
     minimizer: [new TerserPlugin({
       parallel: true,
       terserOptions: {
         ecma: undefined,
         parse: {},
         compress: {},
+        format: {
+          comments: false, // Remove comments
+        },
         mangle: true, // Note `mangle.properties` is `false` by default.
         module: false,
         // Deprecated
@@ -153,7 +171,45 @@ module.exports = {
         safari10: false,
       },
       exclude: []
-    })]
+    }),
+    new ImageMinimizerPlugin({
+      minimizer: {
+        implementation: ImageMinimizerPlugin.imageminMinify,
+        options: {
+          // Lossless optimization with custom option
+          // Feel free to experiment with options for better result for you
+          plugins: [
+            ["gifsicle", { interlaced: true }],
+            ["jpegtran", { progressive: true }],
+            ["optipng", { optimizationLevel: 5 }],
+            // Svgo configuration here https://github.com/svg/svgo#configuration
+            [
+              "svgo",
+              {
+                plugins: [
+                  {
+                    name: "preset-default",
+                    params: {
+                      overrides: {
+                        removeViewBox: false,
+                        addAttributesToSVGElement: {
+                          params: {
+                            attributes: [
+                              { xmlns: "http://www.w3.org/2000/svg" },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          ],
+        },
+      },
+    })
+  ]
   },
   devServer: {
     hot: true,
