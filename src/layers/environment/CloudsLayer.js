@@ -185,6 +185,7 @@ class CloudsLayer extends EnvironmentLayer {
         map.camera.getWorldDirection(cloudsMaterial.uniforms.viewCenterFar.value).normalize();
         cloudsMaterial.uniforms.viewCenterNear.value.copy(cloudsMaterial.uniforms.viewCenterFar.value);
         cloudsMaterial.uniforms.up.value = map.camera.up.normalize();
+        
         cloudsMaterial.uniforms.right.value.crossVectors(map.camera.up, cloudsMaterial.uniforms.viewCenterFar.value);
         cloudsMaterial.uniforms.viewCenterFar.value.multiplyScalar(map.camera.far).add(map.camera.position);
         cloudsMaterial.uniforms.viewCenterNear.value.multiplyScalar(map.camera.near).add(map.camera.position);

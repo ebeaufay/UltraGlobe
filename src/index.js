@@ -104,7 +104,7 @@ var perlinElevation = new PerlinElevationLayer({
     bounds: [-180, -90, 180, 90]
 });
 
-var googleMaps3DTiles = new GoogleMap3DTileLayer({
+/* var googleMaps3DTiles = new GoogleMap3DTileLayer({
     id: 3848,
     name: "Google Maps 3D Tiles",
     visible: true,
@@ -113,7 +113,7 @@ var googleMaps3DTiles = new GoogleMap3DTileLayer({
     geometricErrorMultiplier:0.75,
     //loadingStrategy: "IMMEDIATE", // uncomment to use immediate loading (faster with gaps)
     displayCopyright: true,
-}); 
+});  */
 var shaderLayer = new PerlinTerrainColorShader({
     id: 22,
     name: "randomGroundColor",
@@ -281,11 +281,11 @@ var ogc3dTiles = new OGC3DTilesLayer({
         progressBar.innerHTML = (stats.percentageLoaded*100).toFixed(0) + '%';
     }
 }); */
-var environmentLayer = new NOAAGFSCloudsLayer({
+/* var environmentLayer = new NOAAGFSCloudsLayer({
     id: 84,
     name: "clouds"
-});
-/* var environmentLayer = new RandomCloudsLayer({
+}); */
+var environmentLayer = new RandomCloudsLayer({
     id: 84,
     name: "clouds",
     coverage: 0.45,
@@ -294,7 +294,7 @@ var environmentLayer = new NOAAGFSCloudsLayer({
     minHeight: 20000,
     maxHeight: 40000,
     quality: 0.5
-}); */
+});
 const geoJsonLayerLayer = new GeoJsonLayer({
     id: 7322,
     name: "geo",
@@ -410,11 +410,11 @@ function setupMap(globalElevationMap) {
     map.controller.append(new FirstPersonCameraController(map.camera, map.domContainer, map)); */
     //52.50921677914625, 13.405685233710862
     //map.setLayer(wmsElevation, 0);
-    //map.setLayer(shaderLayer, 1);
-    //map.setLayer(environmentLayer, 2);
-    map.setLayer(googleMaps3DTiles, 2);
+    map.setLayer(shaderLayer, 1);
+    map.setLayer(environmentLayer, 2);
+    //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    //map.setLayer(wmsElevation, 0);
+    map.setLayer(wmsElevation, 0);
     //map.setLayer(wmsLayer1, 5);
     //map.setLayer(wmsLayer3, 6);
     //map.setLayer(geoJsonLayerLayer, 7);

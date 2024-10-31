@@ -616,7 +616,7 @@ const CloudsShader = {
 
 		code += `
 
-			float near1 = max(5000.0,length(traverse1Entry-nonPostCameraPosition));
+			float near1 = max(5.0,length(traverse1Entry-nonPostCameraPosition));
 			float far1 = length(traverse1Exit-nonPostCameraPosition);
 			float near2 = max(1000.0,length(traverse2Entry-nonPostCameraPosition));
 			float far2 = length(traverse2Exit-nonPostCameraPosition);
@@ -1128,7 +1128,7 @@ const CloudsShader = {
 
 		code += `
 
-			float near1 = max(5000.0,length(traverse1Entry-nonPostCameraPosition));
+			float near1 = max(5.0,length(traverse1Entry-nonPostCameraPosition));
 			float far1 = length(traverse1Exit-nonPostCameraPosition);
 			float near2 = max(1000.0,length(traverse2Entry-nonPostCameraPosition));
 			float far2 = length(traverse2Exit-nonPostCameraPosition);

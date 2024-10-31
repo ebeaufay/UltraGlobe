@@ -917,6 +917,8 @@ class Map {
         let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
+            //console.log("up : " +self.camera.up.x+" "+self.camera.up.y+" "+self.camera.up.z)
+            //console.log(new THREE.Vector3(0,1,0).applyQuaternion(self.camera.quaternion).normalize())
             const delta = performance.now() - lastTime;
 
             //console.log(delta);
