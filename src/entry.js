@@ -27,6 +27,7 @@ export { GeoJsonLayer } from "./layers/GeoJsonLayer";
 export { SHPLayer } from "./layers/SHPLayer";
 export { UserControlledTrack } from "./layers/tracks/UserControlledTrack";
 export { MapNavigator } from "./MapNavigator";
+export { Controller } from "./controls/Controller";
 export { PanController } from "./controls/PanController";
 export { RotateController } from "./controls/RotateController";
 export { SelectController } from "./controls/SelectController";
