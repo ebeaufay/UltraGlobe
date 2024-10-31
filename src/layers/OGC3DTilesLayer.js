@@ -41,9 +41,9 @@ class OGC3DTilesLayer extends Layer {
      * @param {number} [properties.pitch = 0] - Pitch angle in degrees (0 means the x-z plane alligns with the horizon )
      * @param {number} [properties.roll = 0] - Roll angle in degrees. (ccw rotation about the local z axis)
      * @param {number} [properties.geometricErrorMultiplier = 1] (optional) between 0 and infinity, defaults to 1. controls the level of detail.
-     * @param {number} [properties.longitude = 0] (optional) longitude of the model's center point in degrees.
-     * @param {number} [properties.latitude = 0] (optional) latitude of the model's center point in degrees.
-     * @param {number} [properties.height = 0] (optional) height in meters above sea level.
+     * @param {number} [properties.longitude = undefined] (optional) longitude of the model's center point in degrees.
+     * @param {number} [properties.latitude = undefined] (optional) latitude of the model's center point in degrees.
+     * @param {number} [properties.height = undefined] (optional) height in meters above sea level.
      * @param {boolean} [properties.loadOutsideView = false] (optional) if true, will load tiles outside the view at the lowest possible LOD.
      * @param {boolean} [properties.selectable = false] (optional) if true, the tileset can be selected.
      * @param {number[]} [properties.bounds=[-180, -90, 180, 90]]  min longitude, min latitude, max longitude, max latitude in degrees
@@ -65,6 +65,7 @@ class OGC3DTilesLayer extends Layer {
         self.displayErrors = properties.displayErrors;
         self.proxy = properties.proxy;
         self.queryParams = properties.queryParams;
+        
         this.move(properties.longitude, properties.latitude, properties.height, properties.yaw, properties.pitch, properties.roll, properties.scaleX, properties.scaleY, properties.scaleZ);
         
 
@@ -228,39 +229,7 @@ class OGC3DTilesLayer extends Layer {
 
                 mesh.material.flatShading = self.properties.flatShading;
 
-                /* const previousOnAfterRender = mesh.onAfterRender; 
-                mesh.onAfterRender = () => {
-                    if(previousOnAfterRender) previousOnAfterRender();
-                    if(mesh.geometry && mesh.geometry.attributes){
-
-                        if (mesh.geometry.attributes.position) {
-                            mesh.geometry.attributes.position.array = undefined;
-                            if (mesh.geometry.attributes.position.data) {
-                                mesh.geometry.attributes.position.data.array = undefined;
-                            }
-                        }
-                        if (mesh.geometry.attributes.uv){
-                            mesh.geometry.attributes.uv.array = undefined;  
-                            if (mesh.geometry.attributes.uv.data) {
-                                mesh.geometry.attributes.uv.data.array = undefined;
-                            }
-                        } 
-                        if (mesh.geometry.attributes.normal) {
-                            mesh.geometry.attributes.normal.array = undefined;
-                            if (mesh.geometry.attributes.normal.data) {
-                                mesh.geometry.attributes.normal.data.array = undefined;
-                            }
-                        }
-                    }
-                    if (mesh.material && mesh.material.map) {
-                        mesh.material.map.mipmaps = undefined;
-                        if (mesh.material.map.source) {
-                            mesh.material.map.source.data = undefined;
-                        }
-                    }
-
-                    mesh.onAfterRender = previousOnAfterRender;
-                } */
+                
             },
             pointsCallback: (points, geometricError) => {
                 points.material.size = 1 * Math.max(1.0, 0.1 * Math.sqrt(geometricError));
@@ -276,7 +245,7 @@ class OGC3DTilesLayer extends Layer {
             tileLoader: tileLoader,
             renderer: map.renderer,
             proxy: self.proxy,
-            static: true,
+            static: false,
             queryParams: self.queryParams,
             displayErrors: self.displayErrors,
             displayCopyright: self.displayCopyright,
@@ -321,9 +290,10 @@ class OGC3DTilesLayer extends Layer {
 
     /**
     * Sets the object position and orientation based on Longitude, Latitude, Height, Yaw, Pitch, Roll
+    * Does nothing if longitude latitude are undefined
     *
-    * @param {number} [longitude = 0] - a longitude in degrees
-    * @param {number} [latitude = 0] - a latitude in degrees
+    * @param {number} [longitude = undefined] - a longitude in degrees
+    * @param {number} [latitude = undefined] - a latitude in degrees
     * @param {number} [height = 0] - a height in meters above WGS 84 sea level
     * @param {number} [yaw = 0] - Yaw angle in degrees. (0 points north ccw rotation)
     * @param {number} [pitch = 0] - Pitch angle in degrees (-90 to 90)
@@ -332,8 +302,9 @@ class OGC3DTilesLayer extends Layer {
     * @param {number} [scaleY = 1] - scale on Y axes. defaults to the scaleX property if defined.
     * @param {number} [scaleZ = 1] - scale on Z axes. defaults to the scaleX property if defined.
     */
-    move(longitude = 0, latitude = 0, height = 0, yaw = 0, pitch = 0, roll = 0, scaleX = 1, scaleY = 1, scaleZ = 1 ) {
+    move(longitude, latitude, height = 0, yaw = 0, pitch = 0, roll = 0, scaleX = 1, scaleY = 1, scaleZ = 1 ) {
         
+        if(!longitude || !latitude) return;
         this._longitude = longitude;
         this._latitude = latitude;
         this._height = height;

@@ -1,6 +1,6 @@
 {
     "name": "@jdultra/ultra-globe",
-    "version": "6.0.3",
+    "version": "6.0.4",
     "description": "Geospatial lib built with threejs",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
