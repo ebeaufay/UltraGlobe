@@ -26,32 +26,7 @@ module.exports = {
     /^three($|\/)/,        // Externalize 'three' and all its subpaths
     /^proj4($|\/)/,        // Externalize 'proj4' and all its subpaths
     /^epsg-index($|\/)/,   // Externalize 'epsg-index' and all its subpaths
-    // Add other dependencies similarly if needed
   ],
-  /* externals: {
-    
-    three: {
-      commonjs: "three",
-      commonjs2: "three",
-      amd: "three",
-      root: "THREE",
-      import: "three",
-    },
-    'proj4': {
-      commonjs: "proj4",
-      commonjs2: "proj4",
-      amd: "proj4",
-      root: "proj4",
-      import: "proj4"
-    },
-    'epsg-index': {
-      commonjs: "epsg-index",
-      commonjs2: "epsg-index",
-      amd: "epsg-index",
-      root: "epsg-index",
-      import: "epsg-index"
-    },
-  }, */
   plugins: [
     //new BundleAnalyzerPlugin(),
     new webpack.ProgressPlugin(),
@@ -114,7 +89,14 @@ module.exports = {
       {
         test: /\.(png|svg|jpg|jpeg|gif|ktx2|bin)$/i,
         type: 'asset', // Use 'asset' which automatically chooses between 'inline' and 'resource'
-        
+        parser: {
+          dataUrlCondition: {
+            maxSize: 8 * 1024, // 8 KB
+          },
+        },
+        generator: {
+          filename: 'assets/[hash][ext][query]',
+        },
       },
       {
         test: /\.js$/,
