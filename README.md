@@ -33,8 +33,8 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/6552990b-80ed-419c-9165-69b0c9fd8415" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Getting started JS</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/ultraglobeGettingStarted">code</a></div>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStartedTS">Getting started TS</a>   <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/ultraglobeGettingStartedTS">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted.html">Getting started JS</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStarted">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStartedTS.html">Getting started TS</a>   <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStartedTS">code</a></div>
     </td>
   </tr>
 </table>
@@ -45,7 +45,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/8e232c42-9a05-4eef-baea-056c1fd9cd81" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/googleTiles">Google 3D Tiles</a>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/ultraglobeGoogleTiles">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/googleTiles.html">Google 3D Tiles</a>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGoogleTiles">code</a></div>
     </td>
   </tr>
 </table>
@@ -56,7 +56,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/864538b3-eeb7-445d-8476-44c3bc67e136" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/customData">Custom data through three.js</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/addCustomDataToScene">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/customData.html">Custom data through three.js</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/addCustomDataToScene">code</a></div>
     </td>
   </tr>
 </table>
@@ -67,7 +67,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/d9198a74-8024-4daf-aec7-51456c7b8f80" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/noaa">Volumetric clouds NOAA forecast connector</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/cloudsNOAA">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/noaa.html">Volumetric clouds NOAA forecast connector</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/cloudsNOAA">code</a></div>
     </td>
   </tr>
 </table>
@@ -78,7 +78,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/e16e7779-b6d6-4e04-abee-adf6383e9ff8" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/shaderLayer">programmable shader layers</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/shaderLayer">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/shaderLayer.html">programmable shader layers</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/shaderLayer">code</a></div>
     </td>
   </tr>
 </table>
@@ -89,7 +89,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/785a7c5e-47e5-455e-83d2-b541a037abbb" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/videoProjection/index.html">Video projection</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/videoProjection">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/videoProjection.html">Video projection</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/videoProjection">code</a></div>
     </td>
   </tr>
 </table>
@@ -100,7 +100,18 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/359c959b-96da-49ba-9439-0d058e82d876" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/procedural">procedurally generated data</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/procedural">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/procedural.html">procedurally generated data</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/procedural">code</a></div>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/43916c0a-2032-4fd6-92ef-a0d249d89884" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/customController.html">custom controls</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/customController">code</a></div>
     </td>
   </tr>
 </table>
