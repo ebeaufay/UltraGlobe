@@ -105,7 +105,7 @@ module.exports = {
           loader: "babel-loader",
           options: {
             presets: [
-              ["@babel/preset-env", { 
+              ["@babel/preset-env", {
                 modules: false, // Preserve ES6 modules for tree shaking
                 targets: "> 0.25%, not dead" // Adjust based on your support matrix
               }],
@@ -158,13 +158,11 @@ module.exports = {
       minimizer: {
         implementation: ImageMinimizerPlugin.imageminMinify,
         options: {
-          // Lossless optimization with custom option
-          // Feel free to experiment with options for better result for you
+
           plugins: [
             ["gifsicle", { interlaced: true }],
             ["jpegtran", { progressive: true }],
             ["optipng", { optimizationLevel: 5 }],
-            // Svgo configuration here https://github.com/svg/svgo#configuration
             [
               "svgo",
               {
@@ -191,7 +189,7 @@ module.exports = {
         },
       },
     })
-  ]
+    ]
   },
   devServer: {
     hot: true,
@@ -199,7 +197,10 @@ module.exports = {
     port: DEFAULT_WEBPACK_PORT
   },
   resolve: {
-
+    alias: {
+      three: path.resolve('./node_modules/three'),
+      "three/tsl": path.resolve("./node_modules/three/build/three.webgpu.js"),
+    },
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {
       "fs": false,

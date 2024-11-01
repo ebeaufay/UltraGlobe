@@ -1,6 +1,6 @@
 'use strict'
 
-import * as epsg from 'epsg-index/all.json';
+import * as epsg from './refs.json';
 import * as proj4 from 'proj4';
 
 const leadingEPSG = /^epsg:/i

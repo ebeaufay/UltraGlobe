@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ElevationLayer } from './ElevationLayer.js';
-import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import { ImprovedNoise } from 'three/examples/jsm/math/ImprovedNoise.js';
 import { PerlinElevationWorker } from './workers/PerlinElevationWorker.js';
 
 /**
@@ -197,7 +197,6 @@ class PerlinElevationLayer extends ElevationLayer {
     getElevation(bounds, width, height, geometry, skirtGeometry, maxOctaves = 12) {
         const trim = super._trimEdges;
         
-        const start = performance.now();
         return new Promise((resolve, reject) => {
             this._sendWorkerTask({
                 bounds: bounds,
@@ -228,7 +227,6 @@ class PerlinElevationLayer extends ElevationLayer {
                     geometry.computeBoundingBox();
                     skirtGeometry.computeBoundingSphere();
                     const elevationArray = new Float32Array(response.extendedElevationBuffer);
-                    console.log(performance.now()-start)
                     resolve({
                         extendedElevationArray: elevationArray,
                         elevationArray: trim(elevationArray, width + 2, height + 2),

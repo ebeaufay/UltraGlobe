@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ImageryLayer } from "./ImageryLayer.js"
 import { buildPolygon, buildPolyline, buildPoints, buildLonLatPolygon, buildLonLatPolyline, buildLonLatPoints } from "../shapes/GeoShapeGeometryBuilder";
 import { v4 as uuidv4 } from 'uuid';
-import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { DrapedVectorLayerTile } from './DrapedVectorLayerTile.js';
 
 const toRadians = 0.01745329251994329576923690768489;

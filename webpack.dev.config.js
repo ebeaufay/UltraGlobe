@@ -135,7 +135,7 @@ module.exports = {
     })]
   }, */
   devServer: {
-    
+
     hot: true,
     open: true,
     port: DEFAULT_WEBPACK_PORT,
@@ -145,7 +145,9 @@ module.exports = {
     }, */
   },
   resolve: {
-
+    alias: {
+      three: path.resolve('./node_modules/three')
+    },
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {
       "fs": false,

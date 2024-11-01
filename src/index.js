@@ -5,8 +5,8 @@ import { Map } from './Map.js';
 import { PerlinElevationLayer } from "./layers/PerlinElevationLayer.js";
 import { JetElevation } from "./layers/JetElevation.js";
 import { SingleImageElevationLayer } from "./layers/SingleImageElevationLayer.js";
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { OGC3DTilesLayer } from './layers/OGC3DTilesLayer.js';
 import { WMSLayer } from './layers/WMSLayer';
 import { SingleImageImageryLayer } from './layers/SingleImageImageryLayer';
@@ -410,10 +410,9 @@ function setupMap(globalElevationMap) {
     //52.50921677914625, 13.405685233710862
     //map.setLayer(wmsElevation, 0);
     map.setLayer(shaderLayer, 1);
-    map.setLayer(environmentLayer, 2);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    map.setLayer(wmsElevation, 0);
+    map.setLayer(perlinElevation, 0);
     //map.setLayer(wmsLayer1, 5);
     //map.setLayer(wmsLayer3, 6);
     //map.setLayer(geoJsonLayerLayer, 7);

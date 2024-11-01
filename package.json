@@ -1,7 +1,7 @@
 {
     "name": "@jdultra/ultra-globe",
     "sideEffects": false,
-    "version": "6.0.8",
+    "version": "6.0.10",
     "description": "Geospatial lib built with threejs",
     "main": "dist/ultraglobe.min.js",
     "types": "dist/entry.d.ts",
@@ -42,7 +42,6 @@
         "clean-pslg": "^1.1.2",
         "earcut": "^3.0.0",
         "egm96-universal": "^1.1.1",
-        "epsg-index": "^1.0.0",
         "fast-simplex-noise": "^4.0.0",
         "gltf-validator": "^2.0.0-dev.3.9",
         "gopro-telemetry": "^1.2.8",
