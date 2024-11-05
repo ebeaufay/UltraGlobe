@@ -110,6 +110,7 @@ module.exports = {
         options: {
           publicPath: "./",
           filename: "[name].js",
+          inline: "no-fallback"
         },
       },
     ],

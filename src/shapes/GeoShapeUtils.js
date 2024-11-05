@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { llhToCartesianFastSFCT, haversineDistance, rhumbDistance, interpolateGreatCircle, interpolateRhumbLine } from "../GeoUtils";
 import * as proj4 from 'proj4';
 import * as cdt2d from 'cdt2d';
@@ -10,7 +9,7 @@ import * as polygonClipping from 'polygon-clipping';
 export function buildPointsGeometry(points) {
     const vertices = []
     points.forEach(point => {
-        const cart = new THREE.Vector3(point[0], point[1], point[2] || 0)
+        const cart = {x:point[0], y:point[1], z: point[2] || 0};
         llhToCartesianFastSFCT(cart)
         vertices.push(cart)
     })
@@ -22,9 +21,11 @@ export function buildPolylineGeometry(coordinates, maxSegmentLength = 10, height
     coordinates = segmentPolyLine(coordinates, maxSegmentLength, lineType);
     
     const positions = []
-    const temp = new THREE.Vector3()
+    const temp = {x:0, y:0, z: 0};
     for (let i = 0; i < coordinates.length; i++) {
-        temp.set(coordinates[i][0], coordinates[i][1], (height === undefined) ? (coordinates[i][2] || 0) : height)
+        temp.x = coordinates[i][0];
+        temp.y = coordinates[i][1];
+        temp.z = coordinates[i][2] || 0;
         llhToCartesianFastSFCT(temp)
         positions.push(temp.x, temp.y, temp.z);
         if (i > 0 && i < coordinates.length - 1) positions.push(temp.x, temp.y, temp.z);
