@@ -1,3 +1,4 @@
+
 const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
@@ -103,13 +104,15 @@ module.exports = {
         test: /\.wasm$/,
         type: "webassembly/async",
       },
-      /* {
+      {
         test: /\.worker\.js$/,
-        loader: 'worker-loader',
+        loader: "worker-loader",
         options: {
-          inline: 'no-fallback', // You can also set `inline: 'no-fallback'` to inline the worker completely
+          publicPath: "./",
+          filename: "[name].[contenthash].worker.js",
+          inline: "no-fallback",
         },
-      }, */
+      },
     ],
   },
   /* optimization: {

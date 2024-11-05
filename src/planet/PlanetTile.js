@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { PlanetTileShaderChunks } from './PlanetTileShaderChunks.glsl.js';
-import { Mesh } from 'three/src/objects/Mesh';
 import { MeshStandardMaterial, Vector4 } from 'three';
 import { RasterLayer } from '../layers/RasterLayer.js';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js'
@@ -112,7 +111,7 @@ function now() {
 }
 let planetTileIndexCounter = 0;
 
-class PlanetTile extends Mesh {
+class PlanetTile extends THREE.Mesh {
 
 
     constructor(properties) {

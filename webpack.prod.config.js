@@ -122,7 +122,12 @@ module.exports = {
       },
       {
         test: /\.worker\.js$/,
-        type: 'asset/inline',
+        loader: "worker-loader",
+        options: {
+          //publicPath: "./",
+          filename: "[name].[contenthash].worker.js",
+          inline: "no-fallback",
+        },
       },
     ],
   },

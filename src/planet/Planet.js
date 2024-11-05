@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { PlanetTile } from './PlanetTile.js';
-import { Object3D } from 'three/src/core/Object3D';
 import { LAYERS_CHANGED } from '../layers/LayerManager.js';
 import { RasterLayer } from "../layers/RasterLayer.js"
 import * as TRANSFORM from '../transform/Transformer.js';
@@ -11,7 +10,7 @@ const mat = new THREE.Matrix4();
 /**
  * @private
  */
-class Planet extends Object3D {
+class Planet extends THREE.Object3D {
 
 
     /**
