@@ -120,13 +120,10 @@ module.exports = {
         test: /\.wasm$/,
         type: "webassembly/async",
       },
-      /* {
+      {
         test: /\.worker\.js$/,
-        loader: 'worker-loader',
-        options: {
-          inline: 'no-fallback', // You can also set `inline: 'no-fallback'` to inline the worker completely
-        },
-      }, */
+        type: 'asset/inline',
+      },
     ],
   },
   optimization: {
