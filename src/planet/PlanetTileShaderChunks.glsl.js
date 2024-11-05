@@ -68,8 +68,12 @@ const PlanetTileShaderChunks = {
         for(let i = 0; i<numImageryLayers;i++){
             code+= `
                 localUV = vec2(vUv.x*(imageryUVBounds[${i}].z-imageryUVBounds[${i}].x)+imageryUVBounds[${i}].x,vUv.y*(imageryUVBounds[${i}].w-imageryUVBounds[${i}].y)+imageryUVBounds[${i}].y);
-				imageryColor = texture2D(imagery[${i}], localUV);
-                diffuseColor = mix(diffuseColor, vec4(imageryColor.xyz,1.0), (1.0-imageryTransparency[${i}])*imageryColor.w);
+                
+                if(localUV.x>=-0.01 && localUV.x<=1.01 && localUV.y>=-0.01 && localUV.y <= 1.01){
+                    imageryColor = texture(imagery[${i}], localUV,0.0);
+                    diffuseColor = mix(diffuseColor, vec4(imageryColor.xyz,1.0), (1.0-imageryTransparency[${i}])*imageryColor.w);
+                }
+				
             `;
         }
         /* let code = `

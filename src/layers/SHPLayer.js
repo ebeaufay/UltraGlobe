@@ -11,12 +11,13 @@ class SHPLayer extends VectorLayer {
      * @param {String} [properties.shp] a url to an shp file
      * @param {Boolean} [properties.visible = true] layer will be rendered if true (true by default)
      * @param {Number} [properties.maxSegmentLength = 10] the maximum segment length in kilometers before lines and polygons are subdivided to follow the earth curvature
-     * @param {THREE.PointMaterial} [properties.pointMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.LineBasicMaterial|THREE.LineDashedMaterial} [properties.lineMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.Material} [properties.polygonMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.PointMaterial} [properties.selectedPointMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.LineBasicMaterial|THREE.LineDashedMaterial} [properties.selectedLineMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.Material} [properties.selectedPolygonMaterial] A three.js material for selected points. defaults to a basic red material
+     * @param {Number} [properties.polygonOpacity = 0.7] polygon opacity
+     * @param {THREE.Color} [properties.polygonColor = new THREE.Color(0.0, 1.0, 0.0)] polygon color
+     * @param {THREE.Color} [properties.selectedPolygonColor = new THREE.Color(1.0, 1.0, 0.0)] selected polygon color
+     * @param {THREE.Color} [properties.polylineColor = new THREE.Color(1.0, 1.0, 1.0)] polyline color
+     * @param {THREE.Color} [properties.selectedPolylineColor = new THREE.Color(0.5, 1.0, 0.0)] selected polyline color
+     * @param {THREE.Color} [properties.pointColor = new THREE.Color(0.0, 0.0, 1.0)] point color
+     * @param {THREE.Color} [properties.selectedPointColor = new THREE.Color(1.0, 0.0, 0.0)] selected point color
      * @param {boolean} [properties.draped = false] force draping onto terrain
      */
     constructor(properties) {

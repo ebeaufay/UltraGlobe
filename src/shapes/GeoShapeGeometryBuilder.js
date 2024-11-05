@@ -3,7 +3,7 @@ import WorkerPool from '../utils/WorkerPool.js'
 import Worker from './GeoShape.worker.js';
 
 let pool;
-let parallelism;
+let parallelism = 32;
 
 /**
  * Sets the parallelism (number of workers) for creating geo shapes.

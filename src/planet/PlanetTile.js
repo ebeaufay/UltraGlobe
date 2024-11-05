@@ -498,6 +498,7 @@ class PlanetTile extends Mesh {
 
         const obc = self.material.onBeforeCompile;
         self.material.onBeforeCompile = (shader) => {
+            self.fillShaderUniforms(self, shader);
             let shaderColorLayerCode;
             let shaderColorLayerTransparency = 0;
             let shaderColorLayerTextures;
@@ -521,7 +522,7 @@ class PlanetTile extends Mesh {
             numLayers = Math.max(numLayers, 1);
             if (obc) obc(shader);
             self.material.userData.shader = shader;
-            self.fillShaderUniforms(self, shader);
+            
             shader.vertexShader = shader.vertexShader.replace(
                 '#include <uv_pars_vertex>',
                 PlanetTileShaderChunks.vertexPreMain() +
@@ -621,6 +622,7 @@ class PlanetTile extends Mesh {
         shader.uniforms.bounds = { type: "v4", value: new Vector4(self.bounds.min.x, self.bounds.min.y, self.bounds.max.x, self.bounds.max.y) };
         shader.uniforms.level = { type: "f", value: self.level };
         shader.uniforms.offset = { type: "v3", value: self.planet.offset };
+
 
     }
 

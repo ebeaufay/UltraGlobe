@@ -2,28 +2,18 @@ import { ImageryLayer } from "./ImageryLayer.js"
 import * as THREE from 'three';
 const toDegrees = 57.295779513082320876798154814105;
 const defaultTexture = generateDefaultTexture();
-const uvBounds = new THREE.Box2(new THREE.Vector2(0, 0), new THREE.Vector2(1, 1));
+
 function generateDefaultTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1;
-    canvas.height = 1;
+    const width = 1;
+    const height = 1;
+    const data = new Uint8Array(4);
 
-    // Get the context of the canvas
-    const context = canvas.getContext('2d');
-
-    context.fillStyle = 'rgb(8,23,54)';
-    context.fillRect(0, 0, 1, 1);
-
-    // Create a Three.js texture from the canvas
-    const texture = new THREE.Texture(canvas);
-
-    // Set texture parameters if needed
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.minFilter = THREE.NearestFilter;
-    texture.magFilter = THREE.NearestFilter;
-    texture.needsUpdate = true;
-    return texture;
+    const transparentTexture = new THREE.DataTexture(data, width, height);
+    transparentTexture.minFilter = THREE.NearestFilter;
+    transparentTexture.magFilter = THREE.NearestFilter;
+    transparentTexture.generateMipmaps = false;
+    transparentTexture.needsUpdate = true;
+    return transparentTexture;
 }
 
 /**
@@ -54,18 +44,24 @@ class SingleImageImageryLayer extends ImageryLayer {
         self.pendingRequests = [];
         self.reference = properties.epsg;
 
-        self.img = new Image();
+        const loader = new THREE.TextureLoader();
 
-        self.img.onload = function () {
-            self.loaded = true;
-            self.pendingRequests.forEach(f => f());
-        };
-        self.img.src = properties.url;
-        if(properties.bounds){
-            self.bounds = new THREE.Box2(new THREE.Vector2(properties.bounds[0]/toDegrees, properties.bounds[1]/toDegrees), new THREE.Vector2(properties.bounds[2]/toDegrees, properties.bounds[3]/toDegrees));
-        }
-        
-        self.userTextureMap = {};
+        // load a resource
+        loader.load(
+            properties.url,
+            // onLoad callback
+            function (texture) {
+                self.texture = texture;
+                self.loaded = true;
+                self.pendingRequests.forEach(f => f());
+            },
+            // onProgress callback currently not supported
+            undefined,
+            // onError callback
+            function (err) {
+                console.error('Could not load texture from url: '+properties.url);
+            }
+        );
     }
 
     getMap(tile, callbackSuccess, callbackFailure, width = 128, height = 128) {
@@ -74,33 +70,19 @@ class SingleImageImageryLayer extends ImageryLayer {
         }
         const self = this;
 
-        const ctx = document.createElement('canvas').getContext('2d');
-        ctx.canvas.width = width;
-        ctx.canvas.height = height;
-        const texture = new THREE.CanvasTexture(ctx.canvas);
-
-        const loadFunction = () => {
-            if (!!tile.disposed) {
-                return;
-            }
-            const sx = (tile.bounds.min.x - self.bounds.min.x) * self.img.width / (self.bounds.max.x - self.bounds.min.x); let sy = (tile.bounds.min.y - self.bounds.min.y) * self.img.height / (self.bounds.max.y - self.bounds.min.y);
-            const sw = ((tile.bounds.max.x - tile.bounds.min.x) / (self.bounds.max.x - self.bounds.min.x)) * self.img.width;
-            const sh = ((tile.bounds.max.y - tile.bounds.min.y) / (self.bounds.max.y - self.bounds.min.y)) * self.img.height;
-            sy = self.img.height - (sy + sh)
-            ctx.drawImage(self.img, sx, sy, sw, sh, 0, 0, width, height);
-            texture.wrapS = THREE.ClampToEdgeWrapping;
-            texture.wrapT = THREE.ClampToEdgeWrapping;
-            texture.magFilter = THREE.LinearFilter;
-            texture.minFilter = THREE.LinearFilter;
-            texture.needsUpdate = true;
-            return texture;
-        }
+        const minX = (tile.bounds.min.x*toDegrees - self.bounds.min.x)/(self.bounds.max.x-self.bounds.min.x);
+        const maxX = (tile.bounds.max.x*toDegrees - self.bounds.min.x)/(self.bounds.max.x-self.bounds.min.x);
+        const minY = (tile.bounds.min.y*toDegrees - self.bounds.min.y)/(self.bounds.max.y-self.bounds.min.y);
+        const maxY = (tile.bounds.max.y*toDegrees - self.bounds.min.y)/(self.bounds.max.y-self.bounds.min.y);
+        const uvBounds = new THREE.Box2(new THREE.Vector2(minX, minY), new THREE.Vector2(maxX, maxY));
 
         if (!self.loaded) {
             self.pendingRequests.push(() => {
-                const tex = loadFunction();
-                self.userTextureMap[tile] = tex;
-                callbackSuccess(tex);
+                callbackSuccess({
+                    texture: self.texture,
+                    uvBounds: uvBounds,
+                    reference: self.reference
+                })
             });
             return {
                 texture: defaultTexture,
@@ -108,10 +90,9 @@ class SingleImageImageryLayer extends ImageryLayer {
                 reference: self.reference
             };
         } else {
-            const tex = loadFunction();
-            self.userTextureMap[tile] = tex;
+            
             return {
-                texture: tex,
+                texture: self.texture,
                 uvBounds: uvBounds,
                 reference: self.reference
             }
@@ -119,11 +100,7 @@ class SingleImageImageryLayer extends ImageryLayer {
     };
 
     detach(user, texture) {
-        if (texture == defaultTexture) return;
-        if(this.userTextureMap[user]){
-            this.userTextureMap[user].dispose();
-            delete this.userTextureMap[user];
-        }
+        
     }
 }
 

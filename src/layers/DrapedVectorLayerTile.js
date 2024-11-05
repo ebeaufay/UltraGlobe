@@ -5,15 +5,7 @@ const defaultUVBounds = new THREE.Box2(new THREE.Vector2(0, 0), new THREE.Vector
 const defaultTexture = generateDefaultTexture();
 const target = new THREE.Vector3();
 const toDegrees = 57.295779513082320876798154814105;
-function generateDefaultTexture() {
-    const width = 1;
-    const height = 1;
-    const data = new Uint8Array([0, 0, 0, 0]); // RGBA format, fully transparent
 
-    const transparentTexture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
-    transparentTexture.needsUpdate = true;
-    return transparentTexture;
-}
 
 /**
  * Map Tile handles level of detail for maps separately from the terrain level of detail.
@@ -57,8 +49,13 @@ class DrapedVectorLayerTile {
             generateMipmaps: false,
             minFilter: THREE.LinearFilter,
             magFilter: THREE.LinearFilter,
+            wrapS: THREE.ClampToEdgeWrapping,
+            wrapT: THREE.ClampToEdgeWrapping,
             samples: 4
         });
+        this.renderTarget.texture.minFilter = THREE.LinearFilter;
+        this.renderTarget.texture.magFilter = THREE.LinearFilter;
+        this.renderTarget.texture.generateMipmaps = false;
         this.camera = new THREE.OrthographicCamera((-this.boundsWidth / 2) * toDegrees, (this.boundsWidth / 2) * toDegrees, (this.boundsHeight / 2) * toDegrees, (-this.boundsHeight / 2) * toDegrees, 0, 2);
         this.bounds.getCenter(this.camera.position);
         this.camera.position.x *= toDegrees;
@@ -121,6 +118,7 @@ class DrapedVectorLayerTile {
 
             self.users.add(requestor);
             if (self.isValid) {
+                
                 return {
                     texture: self.renderTarget.texture,
                     uvBounds: new THREE.Box2(
@@ -328,3 +326,16 @@ class DrapedVectorLayerTile {
     }
 
 } export { DrapedVectorLayerTile }
+
+function generateDefaultTexture() {
+    const width = 2;
+    const height = 2;
+    const data = new Uint8Array(16); // RGBA format, fully transparent
+
+    const transparentTexture = new THREE.DataTexture(data, width, height);
+    transparentTexture.minFilter = THREE.NearestFilter;
+    transparentTexture.magFilter = THREE.NearestFilter;
+    transparentTexture.generateMipmaps = false;
+    transparentTexture.needsUpdate = true;
+    return transparentTexture;
+}

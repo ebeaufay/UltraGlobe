@@ -123,9 +123,9 @@ module.exports = {
       {
         test: /\.worker\.js$/,
         loader: 'worker-loader',
-        options: {
+        /* options: {
           inline: 'no-fallback', // You can also set `inline: 'no-fallback'` to inline the worker completely
-        },
+        }, */
       },
     ],
   },
@@ -199,7 +199,6 @@ module.exports = {
   resolve: {
     alias: {
       three: path.resolve('./node_modules/three'),
-      "three/tsl": path.resolve("./node_modules/three/build/three.webgpu.js"),
     },
     extensions: [".js", ".jsx", ".json", ".ts", ".tsx"],// other stuff
     fallback: {

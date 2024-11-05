@@ -216,13 +216,13 @@ var wmsLayer3 = new WMSLayer({
     visible: true,
     imageSize: 256
 }); */
-/* var imagery = new SingleImageImageryLayer({
-    id: 5,
+var singleImage = new SingleImageImageryLayer({
+    id: 56445,
     name: "imagery",
     bounds: [-180, -90, 180, 90],
-    url: "http://localhost:8083/worldPurple.jpg",
+    url: "http://localhost:8080/worldPurple2.jpg",
     visible: true
-}); */
+});
 
 
 const progressBar = document.getElementById("progressBar");
@@ -297,19 +297,24 @@ var environmentLayer = new RandomCloudsLayer({
 const geoJsonLayerLayer = new GeoJsonLayer({
     id: 7322,
     name: "geo",
-    geoJson: "http://localhost:8081/countries.geojson",
+    geoJson: "http://localhost:8080/countries.geojson",
     selectable: true,
     maxSegmentLength: 100,
-    transparency:0
+    transparency:0,
+    polygonColor: new THREE.Color(0.0, 0.0, 0.0),
+    selectedPolygonColor: new THREE.Color(0.4, 0.15, 0.7),
+    polylineColor: new THREE.Color(1.0,1.0,1.0),
+    selectedPolylineColor: new THREE.Color(0.7,0.5,0.9),
+    polygonOpacity: 1.0
 });
-const shpLayer = new SHPLayer({
+/* const shpLayer = new SHPLayer({
     id: 7324,
     name: "shp",
     shp: "http://localhost:8081/shapefiles_dresden/gis_osm_runways_07_1.shp",
     selectable: true,
     maxSegmentLength: 100,
     transparency:0
-});
+}); */
 /* var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
@@ -352,7 +357,8 @@ function setupMap(globalElevationMap) {
         space: new THREE.Vector3(1.0,0.2,0.5),
         tileSize: 64,
         loadOutsideView: false,
-        minHeightAboveGround: 20
+        minHeightAboveGround: 20,
+        //targetFPS:5000
         /* shadows: true,
         debug: false,
         detailMultiplier: 0.5,
@@ -409,13 +415,27 @@ function setupMap(globalElevationMap) {
     map.controller.append(new FirstPersonCameraController(map.camera, map.domContainer, map)); */
     //52.50921677914625, 13.405685233710862
     //map.setLayer(wmsElevation, 0);
-    map.setLayer(shaderLayer, 1);
+    //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);
-    map.setLayer(perlinElevation, 0);
-    //map.setLayer(wmsLayer1, 5);
+    map.setLayer(earthElevation, 0);
+    map.setLayer(singleImage, 5);
     //map.setLayer(wmsLayer3, 6);
-    //map.setLayer(geoJsonLayerLayer, 7);
+    map.setLayer(geoJsonLayerLayer, 7);
+    map.addSelectionListener(e=>{
+        //console.log(e)
+        const selection = [];
+        Object.keys(e.selection).forEach(layerID => {
+            const selectedLayer = map.getLayerByID(layerID);
+            if(selectedLayer.isVectorLayer){
+                e.selection[layerID].forEach(selectedObject=>{
+                    selection.push(selectedLayer.objects[selectedObject.uuid].properties);
+                })
+            }
+            
+          });
+          displayObjects(selection);
+    })
     
 
     /* const geoJsonLayerLayer = new DrapedVectorLayer({
@@ -880,3 +900,94 @@ function hslToRgb(h, s, l) {
 
 
 
+function displayObjects(objectsArray) {
+    // Check if the container already exists
+    let container = document.getElementById('object-display-container');
+    
+    if (!container) {
+        // Create the container div
+        container = document.createElement('div');
+        container.id = 'object-display-container';
+        
+        // Apply styles to position it at the top-right corner
+        Object.assign(container.style, {
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: '#fff',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            zIndex: '10000', // Ensures it's on top of other elements
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px'
+        });
+        
+        document.body.appendChild(container);
+    } else {
+        // Clear previous content
+        container.innerHTML = '';
+    }
+    
+    // Iterate over each object in the array
+    objectsArray.forEach((obj, index) => {
+        // Create a wrapper for each object
+        const objWrapper = document.createElement('div');
+        Object.assign(objWrapper.style, {
+            marginBottom: '15px',
+            paddingBottom: '10px',
+            borderBottom: '1px solid #444'
+        });
+        
+        // Optional: Add a title for each object
+        const title = document.createElement('h3');
+        title.textContent = `Object ${index + 1}`;
+        Object.assign(title.style, {
+            margin: '0 0 10px 0',
+            fontSize: '16px',
+            borderBottom: '1px solid #555',
+            paddingBottom: '5px'
+        });
+        objWrapper.appendChild(title);
+        
+        // Create a table to display key-value pairs
+        const table = document.createElement('table');
+        Object.assign(table.style, {
+            width: '100%',
+            borderCollapse: 'collapse'
+        });
+        
+        // Populate the table with key-value pairs
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const row = document.createElement('tr');
+                
+                const keyCell = document.createElement('td');
+                keyCell.textContent = key;
+                Object.assign(keyCell.style, {
+                    padding: '4px 8px',
+                    fontWeight: 'bold',
+                    backgroundColor: '#333',
+                    border: '1px solid #555'
+                });
+                
+                const valueCell = document.createElement('td');
+                valueCell.textContent = obj[key];
+                Object.assign(valueCell.style, {
+                    padding: '4px 8px',
+                    border: '1px solid #555'
+                });
+                
+                row.appendChild(keyCell);
+                row.appendChild(valueCell);
+                table.appendChild(row);
+            }
+        }
+        
+        objWrapper.appendChild(table);
+        container.appendChild(objWrapper);
+    });
+}

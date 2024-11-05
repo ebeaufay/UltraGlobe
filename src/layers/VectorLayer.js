@@ -31,12 +31,13 @@ class VectorLayer extends ImageryLayer {
      * @param {String} properties.name the name can be anything you want and is intended for labeling
      * @param {boolean} [properties.visible = true] layer will be rendered if true (true by default)
      * @param {Number} [properties.maxSegmentLength = 50] the maximum segment length in kilometers before lines and polygons are subdivided to follow the earth curvature
-     * @param {THREE.PointMaterial} [properties.pointMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.LineBasicMaterial|THREE.LineDashedMaterial} [properties.lineMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.Material} [properties.polygonMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.PointMaterial} [properties.selectedPointMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.LineBasicMaterial|THREE.LineDashedMaterial} [properties.selectedLineMaterial] A three.js material for points. defaults to a basic red material
-     * @param {THREE.Material} [properties.selectedPolygonMaterial] A three.js material for selected points. defaults to a basic red material
+     * @param {Number} [properties.polygonOpacity = 0.7] polygon opacity
+     * @param {THREE.Color} [properties.polygonColor = new THREE.Color(0.0, 1.0, 0.0)] polygon color
+     * @param {THREE.Color} [properties.selectedPolygonColor = new THREE.Color(1.0, 1.0, 0.0)] selected polygon color
+     * @param {THREE.Color} [properties.polylineColor = new THREE.Color(1.0, 1.0, 1.0)] polyline color
+     * @param {THREE.Color} [properties.selectedPolylineColor = new THREE.Color(0.5, 1.0, 0.0)] selected polyline color
+     * @param {THREE.Color} [properties.pointColor = new THREE.Color(0.0, 0.0, 1.0)] point color
+     * @param {THREE.Color} [properties.selectedPointColor = new THREE.Color(1.0, 0.0, 0.0)] selected point color
      * @param {number} [properties.lineType = 0] 0 for geodesic lines, 1 for rhumb lines.
      * @param {boolean} [properties.selectable = false] if truthy the layer will be selectable.
      * @param {number} [properties.imageSize = 512] image resolution for draped tiles.
@@ -53,17 +54,26 @@ class VectorLayer extends ImageryLayer {
         }
 
         this.maxSegmentLength = properties.maxSegmentLength ? properties.maxSegmentLength : 50;
-        this.polygonMaterial = properties.polygonMaterial ? properties.polygonMaterial : new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5, wireframe: false });
-        this.lineMaterial = properties.lineMaterial ? properties.lineMaterial : new THREE.LineBasicMaterial({ color: 0xffffff });
-        this.pointMaterial = properties.pointMaterial ? properties.pointMaterial : new THREE.PointsMaterial({ color: 0x0000ff, size: 5, sizeAttenuation: false });
 
-        this.selectedPolygonMaterial = properties.selectedPolygonMaterial ? properties.selectedPolygonMaterial : new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
-        this.selectedLineMaterial = properties.selectedLineMaterial ? properties.selectedLineMaterial : new THREE.LineBasicMaterial({ color: 0xff00 });
+        this.polygonOpacity = properties.polygonOpacity?properties.polygonOpacity:0.7;
+        this.polygonColor = properties.polygonColor?properties.polygonColor:new THREE.Color(0.0, 1.0, 0.0,0.75)
+        this.polygonSelectColor = properties.selectedPolygonColor?properties.selectedPolygonColor:new THREE.Color(1.0, 1.0, 0.0,0.75)
         
-        this.selectedPointMaterial = properties.selectedPointMaterial ? properties.selectedPointMaterial : new THREE.PointsMaterial({ color: 0xff00ff, size: 5, sizeAttenuation: false });
-        this.objects = {};
+        this.lineMaterial = new THREE.LineBasicMaterial({ color: properties.polylineColor?properties.polylineColor:new THREE.Color(1.0,1.0,1.0) });
+        this.pointMaterial = new THREE.PointsMaterial({ color: properties.pointColor?properties.pointColor:new THREE.Color(0.0,0.0,1.0), size: 5, sizeAttenuation: false });
+
+        this.selectedLineMaterial = new THREE.LineBasicMaterial({ color: properties.selectedPolylineColor?properties.selectedPolylineColor:new THREE.Color(0.5,1.0,0.0) });
+        this.selectedPointMaterial = new THREE.PointsMaterial({ color: properties.selectedPointColor?properties.selectedPointColor:new THREE.Color(1.0,0.0,0.0), size: 5, sizeAttenuation: false });
+
+
+
 
         const self = this;
+
+
+
+
+
 
         self.imageSize = properties.imageSize ? properties.imageSize : 512;
         self.maxLOD = properties.maxLOD ? properties.maxLOD : 20;
@@ -105,11 +115,13 @@ class VectorLayer extends ImageryLayer {
      * @param {number} [height = undefined] the height of the polygon (a polygon can only have a single height). if undefined, the polygon is draped on terrain
      * @param {boolean} [outline = true] draws an outline using the layer's lineMaterial if true
      * @param {boolean} [draped = false] dismisses the height parameter of the coordinates and drapes the vectors on terrain
+     * @param {boolean} [updateLater = false] if true, polygon meshes aren't added until the next call to #updateBatchedMeshes. Use this when adding many polygons itteratively.
      * @returns {Promise} a promise for the uuid of the added polygons
      */
-    addPolygons(coordinates, properties, height = 0, outline = true, draped = false) {
+    addPolygons(coordinates, properties, height = 0, outline = true, draped = false, updateLater = false) {
+        const self = this;
         if (draped) {
-            return this.addDrapedPolygons(coordinates, properties, outline);
+            return this.addDrapedPolygons(coordinates, properties, outline, updateLater);
         }
         coordinates.forEach(polygon => {
             for (let i = 0; i < polygon.length; i++) {
@@ -119,9 +131,23 @@ class VectorLayer extends ImageryLayer {
             }
         })
 
-        if (!this.object3D) {
-            this.object3D = new THREE.Object3D();
-            if (this.scene) this.scene.add(this.object3D);
+        if (!self.object3D) {
+            self.object3D = new THREE.Object3D();
+            if (self.scene) self.scene.add(self.object3D);
+
+
+        }
+        if (!self.batchedPolygon) {
+            self.polygonMaxVertexCount = 0;
+            self.polygonMaxIndexCount = 0;
+
+            self.batchedPolygon = new THREE.BatchedMesh(0, 0, 0);
+            self.batchedPolygon.material.transparent = self.polygonOpacity<1.0?true:false;
+            self.batchedPolygon.material.opacity = self.polygonOpacity;
+            self.batchedPolygon.material.side = THREE.DoubleSide;
+            self.batchedPolygon.uuids = [];
+            self.object3D.add(self.batchedPolygon);
+            
         }
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
@@ -157,15 +183,37 @@ class VectorLayer extends ImageryLayer {
             }
         });
         return Promise.all(polygonPromisses).then(() => {
-            const mesh = new THREE.Mesh(BufferGeometryUtils.mergeGeometries(polygonGeometries, false), this.polygonMaterial);
+
+            const polygonGeometry = BufferGeometryUtils.mergeGeometries(polygonGeometries, false);
+            polygonGeometry.computeBoundingBox();
+            self.batchedPolygon.setInstanceCount(self.batchedPolygon.maxInstanceCount + 1);
+            self.polygonMaxVertexCount += polygonGeometry.attributes.position.array.length
+            self.polygonMaxIndexCount += polygonGeometry.index.array.length
+            self.batchedPolygon.setGeometrySize(self.polygonMaxVertexCount, self.polygonMaxIndexCount);
+            self.batchedPolygon.uuids.push(properties.uuid);
+            const geometryID = self.batchedPolygon.addGeometry(polygonGeometry);
+            const instanceID = self.batchedPolygon.addInstance(geometryID);
+            self.batchedPolygon.setColorAt(instanceID, self.polygonColor)
+            self.objects[properties.uuid].polygonGeometryID = geometryID;
+            self.objects[properties.uuid].polygonInstanceID = instanceID;
+            //self.batchedPolygon.frustumCulled = false;
+            if (!updateLater) {
+                self.batchedPolygon.computeBoundingBox();
+                self.batchedPolygon.computeBoundingSphere();
+            }
+
+            /* const mesh = new THREE.Mesh(BufferGeometryUtils.mergeGeometries(polygonGeometries, false), this.polygonMaterial);
             mesh.userData = properties;
             this.object3D.add(mesh);
-            this.objects[properties.uuid].meshes.push(mesh);
+            this.objects[properties.uuid].meshes.push(mesh); */
 
-            const line = new THREE.LineSegments(BufferGeometryUtils.mergeGeometries(lineGeometries, false), this.lineMaterial);
-            line.userData = properties;
-            this.object3D.add(line);
-            this.objects[properties.uuid].lines.push(line);
+            if (lineGeometries.length > 0) {
+                const line = new THREE.LineSegments(BufferGeometryUtils.mergeGeometries(lineGeometries, false), self.lineMaterial);
+                line.userData = properties;
+                line.renderOrder = 1;
+                self.object3D.add(line);
+                self.objects[properties.uuid].lines.push(line);
+            }
 
             return properties.uuid;
         })
@@ -262,14 +310,32 @@ class VectorLayer extends ImageryLayer {
     }
 
     /**
+     * Updates batched meshes.
+     * Call this after adding shapes with the "updateLater" flag set to true.
+     */
+    updateBatchedMeshes() {
+
+        if (this.drapedBatchedPolygon) {
+            this.drapedBatchedPolygon.optimize();
+            this.drapedBatchedPolygon.computeBoundingBox();
+            this.drapedBatchedPolygon.computeBoundingSphere();
+        }
+        if (this.batchedPolygon) {
+            this.batchedPolygon.optimize();
+            this.batchedPolygon.computeBoundingBox();
+            this.batchedPolygon.computeBoundingSphere();
+        }
+    }
+    /**
      * Adds polygons draped on terrain to the layer
      * The input coordinates array is a multi-polygon with holes. Each polygon in the multi-polygon is defined by a base polygon and holes.
      * @param {Array<Array<Array<Array<number>>>>} coordinates an array containing the polygons coordinates in lon lat e.g. (single polygon with hole): [[[[40.5,20.2], [40.5,25.2], [46.5,25.2], [46.5,20.2]],[[43.5,22.2], [43.5,24.2], [44,24.2], [44,22.2]]]]
      * @param {Object} properties any js object
      * @param {boolean} [outline = true] draws an outline using the layer's lineMaterial if true
+     * @param {boolean} [updateLater = false] if true, polygon meshes aren't added until the next call to #updateBatchedMeshes. Use this when adding many polygons itteratively.
      * @returns {Promise} a promise for the uuid of the added polygons
      */
-    addDrapedPolygons(coordinates, properties, outline = true) {
+    addDrapedPolygons(coordinates, properties, outline = true, updateLater = false) {
         const self = this;
         coordinates.forEach(polygon => {
             for (let i = 0; i < polygon.length; i++) {
@@ -289,6 +355,18 @@ class VectorLayer extends ImageryLayer {
         if (!self.drapedScene) {
             self.drapedScene = new THREE.Scene();
         }
+        if (!self.drapedBatchedPolygon) {
+            self.drapedPolygonMaxVertexCount = 0;
+            self.drapedPolygonMaxIndexCount = 0;
+
+            self.drapedBatchedPolygon = new THREE.BatchedMesh(0, 0, 0);
+            self.drapedBatchedPolygon.material.transparent = self.polygonOpacity<1.0?true:false;
+            self.drapedBatchedPolygon.material.opacity = self.polygonOpacity;
+            self.drapedBatchedPolygon.sortObjects = false;
+            self.drapedBatchedPolygon.uuids = [];
+            self.drapedScene.add(self.drapedBatchedPolygon);
+        }
+
 
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
@@ -326,20 +404,34 @@ class VectorLayer extends ImageryLayer {
         return Promise.all(polygonPromisses).then(() => {
             const polygonGeometry = BufferGeometryUtils.mergeGeometries(polygonGeometries, false);
             polygonGeometry.computeBoundingBox();
-            
-            
+            self.drapedBatchedPolygon.setInstanceCount(self.drapedBatchedPolygon.maxInstanceCount + 1);
+            self.drapedPolygonMaxVertexCount += polygonGeometry.attributes.position.array.length
+            self.drapedPolygonMaxIndexCount += polygonGeometry.index.array.length
+            self.drapedBatchedPolygon.setGeometrySize(self.drapedPolygonMaxVertexCount, self.drapedPolygonMaxIndexCount);
+            self.drapedBatchedPolygon.uuids.push(properties.uuid);
+            const geometryID = self.drapedBatchedPolygon.addGeometry(polygonGeometry);
+            const instanceID = self.drapedBatchedPolygon.addInstance(geometryID);
+            self.drapedBatchedPolygon.setColorAt(instanceID, self.polygonColor)
+            self.objects[properties.uuid].polygonGeometryID = geometryID;
+            self.objects[properties.uuid].polygonInstanceID = instanceID;
+            self.objects[properties.uuid].polygonbbox = polygonGeometry.boundingBox;
 
-            const mesh = new THREE.Mesh(polygonGeometry, self.polygonMaterial);
-            mesh.frustumCulled = false;
-            mesh.userData = properties;
-            self.drapedScene.add(mesh);
-            self.objects[properties.uuid].meshes.push(mesh);
+            if (!updateLater) {
+                self.drapedBatchedPolygon.computeBoundingBox();
+                self.drapedBatchedPolygon.computeBoundingSphere();
+            }
 
-            const line = new THREE.LineSegments(BufferGeometryUtils.mergeGeometries(lineGeometries, false), self.lineMaterial);
+            if (lineGeometries.length > 0) {
 
-            line.userData = properties;
-            self.drapedScene.add(line);
-            self.objects[properties.uuid].lines.push(line);
+                const line = new THREE.LineSegments(BufferGeometryUtils.mergeGeometries(lineGeometries, false), self.lineMaterial);
+                line.renderOrder = 60;
+                line.userData = properties;
+                self.drapedScene.add(line);
+                self.objects[properties.uuid].lines.push(line);
+
+            }
+
+
 
             invalidationBox.copy(polygonGeometry.boundingBox);
             invalidationBox.min.multiplyScalar(toRadians);
@@ -359,9 +451,7 @@ class VectorLayer extends ImageryLayer {
      */
     addDrapedPolylines(coordinates, properties) {
         const self = this;
-        if (!self.drapedScene) {
-            self.drapedScene = new THREE.Scene();
-        }
+
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
         self.objects[properties.uuid] = {
@@ -391,7 +481,7 @@ class VectorLayer extends ImageryLayer {
             const polylineGeometry = BufferGeometryUtils.mergeGeometries(polylineGeometries, false)
             polylineGeometry.computeBoundingBox();
 
-            
+
             const line = new THREE.LineSegments(polylineGeometry, self.lineMaterial);
 
             line.userData = properties;
@@ -413,9 +503,7 @@ class VectorLayer extends ImageryLayer {
      */
     addDrapedPoints(coordinates, properties) {
         const self = this;
-        if (!self.drapedScene) {
-            self.drapedScene = new THREE.Scene();
-        }
+
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
         self.objects[properties.uuid] = {
@@ -426,14 +514,14 @@ class VectorLayer extends ImageryLayer {
             points: []
         }
 
-        coordinates.forEach(coordinate=>coordinate.length = 2);
-        
+        coordinates.forEach(coordinate => coordinate.length = 2);
+
 
         return buildLonLatPoints(coordinates).then(geometry => {
             if (geometry != undefined) {
                 geometry.computeBoundingBox();
 
-                
+
                 const points = new THREE.Points(geometry, self.pointMaterial);
                 points.userData = properties;
                 self.drapedScene.add(points);
@@ -445,7 +533,7 @@ class VectorLayer extends ImageryLayer {
                 return properties.uuid;
             }
             throw Error("invalid point coordinates")
-            
+
         });
 
 
@@ -493,7 +581,7 @@ class VectorLayer extends ImageryLayer {
     _setMap(map) {
         this.map = map;
         const self = this;
-        self.invalidate(new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI*0.5), new THREE.Vector2(Math.PI, Math.PI*0.5)))
+        self.invalidate(new THREE.Box2(new THREE.Vector2(-Math.PI, -Math.PI * 0.5), new THREE.Vector2(Math.PI, Math.PI * 0.5)))
         map.addSelectionListener(selections => {
             selections.selected.forEach(selectedObject => {
                 if (selectedObject.layer.id == this.id) {
@@ -513,9 +601,8 @@ class VectorLayer extends ImageryLayer {
                             selectedElement.lines.forEach(l => {
                                 l.material = this.selectedLineMaterial;
                             });
-                            selectedElement.meshes.forEach(m => {
-                                m.material = this.selectedPolygonMaterial;
-                            });
+                            self.batchedPolygon.setColorAt(selectedElement.polygonInstanceID, self.polygonSelectColor)
+
                             break;
                         case "drapedPoints":
                             selectedElement.points.forEach(p => {
@@ -539,13 +626,12 @@ class VectorLayer extends ImageryLayer {
                             selectedElement.lines.forEach(l => {
                                 l.material = this.selectedLineMaterial;
                             });
-                            selectedElement.meshes.forEach(m => {
-                                m.material = this.selectedPolygonMaterial;
-                                invalidationBox.copy(m.geometry.boundingBox);
-                                invalidationBox.min.multiplyScalar(toRadians);
-                                invalidationBox.max.multiplyScalar(toRadians);
-                                self.invalidate(invalidationBox);
-                            });
+                            self.drapedBatchedPolygon.setColorAt(selectedElement.polygonInstanceID, self.polygonSelectColor)
+                            invalidationBox.copy(selectedElement.polygonbbox);
+                            invalidationBox.min.multiplyScalar(toRadians);
+                            invalidationBox.max.multiplyScalar(toRadians);
+                            self.invalidate(invalidationBox);
+
                             break;
                     }
                 }
@@ -568,9 +654,7 @@ class VectorLayer extends ImageryLayer {
                             selectedElement.lines.forEach(l => {
                                 l.material = this.lineMaterial;
                             });
-                            selectedElement.meshes.forEach(m => {
-                                m.material = this.polygonMaterial;
-                            });
+                            self.batchedPolygon.setColorAt(selectedElement.polygonInstanceID, self.polygonColor)
                             break;
                         case "drapedPoints":
                             selectedElement.points.forEach(p => {
@@ -594,13 +678,11 @@ class VectorLayer extends ImageryLayer {
                             selectedElement.lines.forEach(l => {
                                 l.material = this.lineMaterial;
                             });
-                            selectedElement.meshes.forEach(m => {
-                                m.material = this.polygonMaterial;
-                                invalidationBox.copy(m.geometry.boundingBox);
-                                invalidationBox.min.multiplyScalar(toRadians);
-                                invalidationBox.max.multiplyScalar(toRadians);
-                                self.invalidate(invalidationBox);
-                            });
+                            self.drapedBatchedPolygon.setColorAt(selectedElement.polygonInstanceID, self.polygonColor)
+                            invalidationBox.copy(selectedElement.polygonbbox);
+                            invalidationBox.min.multiplyScalar(toRadians);
+                            invalidationBox.max.multiplyScalar(toRadians);
+                            self.invalidate(invalidationBox);
                             break;
                     }
                 }
@@ -642,7 +724,8 @@ class VectorLayer extends ImageryLayer {
     getMap(tile, callbackSuccess, callbackFailure) {
         for (let i = 0; i < this.mapTiles.length; i++) {
             if (this.mapTiles[i].bounds.containsBox(tile.bounds)) {
-                return this.mapTiles[i].getTextureAndUVBounds(tile, tile.bounds, callbackSuccess)
+                const tex = this.mapTiles[i].getTextureAndUVBounds(tile, tile.bounds, callbackSuccess);
+                return tex
             }
         }
         callbackFailure("bounds don't intersect with layer");
@@ -655,38 +738,20 @@ class VectorLayer extends ImageryLayer {
 
 
 
-    raycast(mapRaycaster) {
 
-        if (!this.isSelectable || !this.map || !this.drapedScene) return [];
-
-        const tileIntersections = this.map.raycastTerrain(mapRaycaster);
-        if (tileIntersections != undefined) {
-            raycastOrigin.copy(tileIntersections);
-            raycastOrigin.z = 1;
-
-            raycaster.set(raycastOrigin, raycastDirection);
-
-            const selected = raycaster.intersectObjects(this.drapedScene.children, false).map(selectedObject => {
-                return {
-                    uuid: selectedObject.object.userData.uuid,
-                    distance: selectedObject.distance,
-                    faceIndex: selectedObject.faceIndex,
-                    index: selectedObject.index,
-                    selectionPosition: selectedObject.point,
-                    layer: this
-                }
-            });
-            return selected;
-        }
-
-    }
     raycast(mapRaycaster) {
 
         if (!this.isSelectable || !this.map) return [];
 
-        const selectedNonDraped = !this.object3D?[]:mapRaycaster.intersectObjects(this.object3D.children, false).map(selectedObject => {
+        const selectedNonDraped = !this.object3D ? [] : mapRaycaster.intersectObjects(this.object3D.children, false).map(selectedObject => {
+            let uuid;
+            if (selectedObject.object.isBatchedMesh) {
+                uuid = selectedObject.object.uuids[selectedObject.batchId];
+            } else if (selectedObject.object.userData.uuid != undefined) {
+                uuid = selectedObject.object.userData.uuid
+            }
             return {
-                uuid: selectedObject.object.userData.uuid,
+                uuid: uuid,
                 distance: selectedObject.distance,
                 faceIndex: selectedObject.faceIndex,
                 index: selectedObject.index,
@@ -694,17 +759,23 @@ class VectorLayer extends ImageryLayer {
                 layer: this
             }
         });
-        if(this.drapedScene){
+        if (this.drapedScene) {
             const tileIntersections = this.map.raycastTerrain(mapRaycaster);
             if (tileIntersections != undefined) {
                 raycastOrigin.copy(tileIntersections);
                 raycastOrigin.z = 1;
-    
+
                 raycaster.set(raycastOrigin, raycastDirection);
-    
+
                 const selectedDraped = raycaster.intersectObjects(this.drapedScene.children, false).map(selectedObject => {
+                    let uuid;
+                    if (selectedObject.object.isBatchedMesh) {
+                        uuid = selectedObject.object.uuids[selectedObject.batchId];
+                    } else if (selectedObject.object.userData.uuid != undefined) {
+                        uuid = selectedObject.object.userData.uuid
+                    }
                     return {
-                        uuid: selectedObject.object.userData.uuid,
+                        uuid: uuid,
                         distance: selectedObject.distance,
                         faceIndex: selectedObject.faceIndex,
                         index: selectedObject.index,
@@ -715,7 +786,7 @@ class VectorLayer extends ImageryLayer {
                 return selectedNonDraped.concat(selectedDraped);
             }
         }
-         else {
+        else {
             return selectedNonDraped;
         }
     }
