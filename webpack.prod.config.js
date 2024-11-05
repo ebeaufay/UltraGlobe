@@ -125,8 +125,7 @@ module.exports = {
         loader: "worker-loader",
         options: {
           //publicPath: "./",
-          filename: "[name].[contenthash].worker.js",
-          inline: "no-fallback",
+          filename: "[name].js",
         },
       },
     ],

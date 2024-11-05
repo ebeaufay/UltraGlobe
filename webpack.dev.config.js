@@ -16,7 +16,7 @@ module.exports = {
   output: {
     filename: "ultraglobe.js",
     path: path.resolve(__dirname, 'dist'),
-    globalObject: 'self',
+    globalObject: 'this',
     library: {
       name: 'ultraglobe',
       type: 'umd',
@@ -109,8 +109,7 @@ module.exports = {
         loader: "worker-loader",
         options: {
           publicPath: "./",
-          filename: "[name].[contenthash].worker.js",
-          inline: "no-fallback",
+          filename: "[name].js",
         },
       },
     ],
