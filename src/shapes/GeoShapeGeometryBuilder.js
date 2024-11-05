@@ -1,9 +1,8 @@
 import * as THREE from "three";
 import WorkerPool from '../utils/WorkerPool.js'
-import WorkerModule from './GeoShape.worker.js';
 
 let pool;
-let parallelism = 32;
+let parallelism = navigator.hardwareConcurrency;
 
 /**
  * Sets the parallelism (number of workers) for creating geo shapes.
@@ -26,7 +25,7 @@ export function setParallelism(aParallelism){
  */
 export async function buildPolygon(coordinates, maxSegmentLength = 10, height, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(WorkerModule,parallelism)
+        pool = buildWorkerPool();
     }
     return pool.runTask({
         method: "polygon",
@@ -55,7 +54,7 @@ export async function buildPolygon(coordinates, maxSegmentLength = 10, height, l
 */
 export async function buildLonLatPolygon(coordinates, maxSegmentLength = 10, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(WorkerModule,parallelism)
+        pool = buildWorkerPool();
     }
     return pool.runTask({
         method: "lonLatPolygon",
@@ -80,7 +79,7 @@ export async function buildLonLatPolygon(coordinates, maxSegmentLength = 10, lin
  */
 export async function buildPolyline(coordinates, maxSegmentLength = 10, height, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(WorkerModule,parallelism)
+        pool = buildWorkerPool();
     }
     return pool.runTask({
         method: "polyline",
@@ -104,7 +103,7 @@ export async function buildPolyline(coordinates, maxSegmentLength = 10, height, 
  */
 export async function buildLonLatPolyline(coordinates, maxSegmentLength = 10, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(WorkerModule,parallelism)
+        pool = buildWorkerPool();
     }
     return pool.runTask({
         method: "lonLatPolyline",
@@ -122,7 +121,7 @@ export async function buildLonLatPolyline(coordinates, maxSegmentLength = 10, li
 
 export async function buildPoints(points) {
     if (!pool) {
-        pool = new WorkerPool(WorkerModule,parallelism)
+        pool = buildWorkerPool();
     }
     return pool.runTask({
         method: "point",
@@ -147,3 +146,10 @@ export async function buildLonLatPoints(points) {
 
 
 
+function buildWorkerPool(){
+    const workers = [];
+    for(let i = 0; i<parallelism;i++){
+        workers.push(new Worker(new URL('./GeoShape.worker.js', import.meta.url)))
+    }
+    return new WorkerPool(workers);
+}

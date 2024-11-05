@@ -1,19 +1,24 @@
 // WorkerPool.js
 
 export default class WorkerPool {
-    constructor(WorkerConstructor, poolSize = navigator.hardwareConcurrency) {
-      this.poolSize = poolSize;
+    constructor(workers) {
+      this.poolSize = workers.length;
       this.workers = [];
       this.taskQueue = [];
       this.idleWorkers = [];
   
       // Initialize the pool with workers
-      for (let i = 0; i < poolSize; i++) {
+      workers.forEach(worker=>{
+        worker.onmessage = (e) => this._onWorkerMessage(worker, e);
+        this.workers.push(worker);
+        this.idleWorkers.push(worker);
+      })
+      /* for (let i = 0; i < poolSize; i++) {
         const worker = new WorkerConstructor();
         worker.onmessage = (e) => this._onWorkerMessage(worker, e);
         this.workers.push(worker);
         this.idleWorkers.push(worker);
-      }
+      } */
     }
   
     _onWorkerMessage(worker, e) {
