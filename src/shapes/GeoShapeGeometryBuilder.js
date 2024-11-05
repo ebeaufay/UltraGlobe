@@ -149,7 +149,10 @@ export async function buildLonLatPoints(points) {
 function buildWorkerPool(){
     const workers = [];
     for(let i = 0; i<parallelism;i++){
-        workers.push(new Worker(new URL('./GeoShape.worker.js', import.meta.url)))
+        workers.push(new Worker(new URL('./GeoShape.worker.js', import.meta.url),{
+            name: "geo-shape-worker",
+            type: "module"
+          }))
     }
     return new WorkerPool(workers);
 }
