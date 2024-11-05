@@ -123,9 +123,9 @@ module.exports = {
       {
         test: /\.worker\.js$/,
         loader: 'worker-loader',
-        /* options: {
+        options: {
           inline: 'no-fallback', // You can also set `inline: 'no-fallback'` to inline the worker completely
-        }, */
+        },
       },
     ],
   },
