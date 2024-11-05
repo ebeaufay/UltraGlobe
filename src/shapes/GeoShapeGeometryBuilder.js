@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import WorkerPool from '../utils/WorkerPool.js'
-import Worker from './GeoShape.worker.js';
+import WorkerModule from './GeoShape.worker.js';
 
 let pool;
 let parallelism = 32;
@@ -26,7 +26,7 @@ export function setParallelism(aParallelism){
  */
 export async function buildPolygon(coordinates, maxSegmentLength = 10, height, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(Worker,parallelism)
+        pool = new WorkerPool(WorkerModule,parallelism)
     }
     return pool.runTask({
         method: "polygon",
@@ -55,7 +55,7 @@ export async function buildPolygon(coordinates, maxSegmentLength = 10, height, l
 */
 export async function buildLonLatPolygon(coordinates, maxSegmentLength = 10, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(Worker,parallelism)
+        pool = new WorkerPool(WorkerModule,parallelism)
     }
     return pool.runTask({
         method: "lonLatPolygon",
@@ -80,7 +80,7 @@ export async function buildLonLatPolygon(coordinates, maxSegmentLength = 10, lin
  */
 export async function buildPolyline(coordinates, maxSegmentLength = 10, height, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(Worker,parallelism)
+        pool = new WorkerPool(WorkerModule,parallelism)
     }
     return pool.runTask({
         method: "polyline",
@@ -104,7 +104,7 @@ export async function buildPolyline(coordinates, maxSegmentLength = 10, height, 
  */
 export async function buildLonLatPolyline(coordinates, maxSegmentLength = 10, lineType = 0) {
     if (!pool) {
-        pool = new WorkerPool(Worker,parallelism)
+        pool = new WorkerPool(WorkerModule,parallelism)
     }
     return pool.runTask({
         method: "lonLatPolyline",
@@ -122,7 +122,7 @@ export async function buildLonLatPolyline(coordinates, maxSegmentLength = 10, li
 
 export async function buildPoints(points) {
     if (!pool) {
-        pool = new WorkerPool(Worker,parallelism)
+        pool = new WorkerPool(WorkerModule,parallelism)
     }
     return pool.runTask({
         method: "point",

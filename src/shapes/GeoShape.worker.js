@@ -37,4 +37,3 @@ self.onmessage = function (e) {
         postMessage({ error: error.message })
     }
 }
-
