@@ -9,6 +9,7 @@ import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfil
 import inject from '@rollup/plugin-inject';
 
 export default defineConfig({
+  base: './',
   define: {
     global: 'globalThis',
     'process.env': '{}',
@@ -85,17 +86,5 @@ export default defineConfig({
     terser({
       maxWorkers: 4,
     }),
-  ],
-  assetsInclude: [
-    '**/*.gltf',
-    '**/*.glb',
-    '**/*.hdr',
-    '**/*.bin',
-    '**/*.png',
-    '**/*.jpg',
-    '**/*.jpeg',
-    '**/*.svg',
-    '**/*.gif',
-    '**/*.ktx2',
-  ],
+  ]
 });
