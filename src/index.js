@@ -1,5 +1,5 @@
 // @ts-nocheck
-import "regenerator-runtime/runtime.js";
+
 import * as THREE from 'three';
 import { Map } from './Map.js';
 import { PerlinElevationLayer } from "./layers/PerlinElevationLayer.js";
@@ -15,7 +15,7 @@ import { PerlinTerrainColorShader } from './layers/PerlinTerrainColorShader.js';
 import { HoveringVehicle } from "./vehicles/HoveringVehicle.js";
 import { ThirdPersonCameraController } from "./controls/ThirdPersonCameraController.js";
 import { VerletSystem } from "./physics/VerletSystem.js";
-import { realtimeweather } from "./layers/environment/NOAA/RealtimeWeather.js";
+import { realtimeWeather } from "./layers/environment/NOAA/RealtimeWeather.js";
 import earthElevationImage from "./images/earth_elevation.jpg"
 import { Vector3 } from "three";
 import { SimpleElevationLayer } from "./layers/SimpleElevationLayer.js";
@@ -25,9 +25,7 @@ import Worley from "./layers/environment/shaders/Worley"
 import Perlin from "./layers/environment/shaders/Perlin2"
 import { RandomCloudsLayer } from "./layers/environment/RandomCloudsLayer.js";
 import { UserControlledTrack } from "./layers/tracks/UserControlledTrack.js";
-import { transformWGS84ToCartesian } from "./GeoUtils.js";
 import { ProjectedLayer } from "./layers/ProjectedLayer.js";
-import { GoProVideoLayer } from "./layers/GoProVideoLayer.js";
 import techno2 from './images/techno2.png';
 import { ObjectLayer } from "./entry.js";
 import { FirstPersonCameraController } from "./controls/FirstPersonCameraController.js";
@@ -307,14 +305,14 @@ const geoJsonLayerLayer = new GeoJsonLayer({
     selectedPolylineColor: new THREE.Color(0.7,0.5,0.9),
     polygonOpacity: 1.0
 });
-/* const shpLayer = new SHPLayer({
+const shpLayer = new SHPLayer({
     id: 7324,
     name: "shp",
-    shp: "http://localhost:8081/shapefiles_dresden/gis_osm_runways_07_1.shp",
+    shp: "http://localhost:8080/shapefiles_dresden/gis_osm_runways_07_1.shp",
     selectable: true,
     maxSegmentLength: 100,
     transparency:0
-}); */
+});
 /* var simpleElevationLayer = new SimpleElevationLayer({
     id: 978,
     name: "simpleElevationLayer",
@@ -414,7 +412,7 @@ function setupMap(globalElevationMap) {
     map.controller.append(new LookAtController(map.camera, map.domContainer, map));
     map.controller.append(new FirstPersonCameraController(map.camera, map.domContainer, map)); */
     //52.50921677914625, 13.405685233710862
-    //map.setLayer(wmsElevation, 0);
+    //map.setLayer(perlinElevation, 0);
     //map.setLayer(shaderLayer, 1);
     //map.setLayer(googleMaps3DTiles, 2);
     //map.setLayer(ogc3dTiles, 3);

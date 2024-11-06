@@ -16,7 +16,9 @@ export function llhToCartesianFastSFCT(llh, radians = false) {
     const sinLon = Math.sin(lon);
     const nPh = (N + llh.z);
 
-    llh.set(nPh * cosLat * cosLon, nPh * cosLat * sinLon, (0.993305620009858684 * N + llh.z) * sinLat);
+    llh.x = nPh * cosLat * cosLon;
+    llh.y = nPh * cosLat * sinLon;
+    llh.z = (0.993305620009858684 * N + llh.z) * sinLat;
 }
 
 /**

@@ -452,6 +452,10 @@ class VectorLayer extends ImageryLayer {
     addDrapedPolylines(coordinates, properties) {
         const self = this;
 
+        if (!self.drapedScene) {
+            self.drapedScene = new THREE.Scene();
+        }
+
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
         self.objects[properties.uuid] = {
@@ -504,6 +508,10 @@ class VectorLayer extends ImageryLayer {
     addDrapedPoints(coordinates, properties) {
         const self = this;
 
+        if (!self.drapedScene) {
+            self.drapedScene = new THREE.Scene();
+        }
+        
         if (!properties) properties = {};
         if (!properties.uuid) properties.uuid = uuidv4();
         self.objects[properties.uuid] = {

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { ProjectedLayer } from "./ProjectedLayer.js";
-const gpmfExtract = require('gpmf-extract');
-const goproTelemetry = require('gopro-telemetry');
+import gpmfExtract  from 'gpmf-extract';
+import goproTelemetry from 'gopro-telemetry';
 
 let id = 0;
 class GoProVideoLayer extends ProjectedLayer {

@@ -1,10 +1,10 @@
 import { llhToCartesianFastSFCT, haversineDistance, rhumbDistance, interpolateGreatCircle, interpolateRhumbLine } from "../GeoUtils";
 import * as proj4 from 'proj4';
-import * as cdt2d from 'cdt2d';
-import * as  cleanPSLG from 'clean-pslg';
-import * as preprocessPolygon from 'point-in-big-polygon';
+import cdt2d from 'cdt2d';
+import cleanPSLG from 'clean-pslg';
+import preprocessPolygon from 'point-in-big-polygon';
 import * as earcut from 'earcut';
-import * as polygonClipping from 'polygon-clipping';
+import polygonClipping from 'polygon-clipping';
 
 export function buildPointsGeometry(points) {
     const vertices = []

@@ -1,6 +1,6 @@
 
 import { VectorLayer } from "./VectorLayer";
-var shapefile = require("shapefile");
+import * as shapefile from "shapefile";
 
 class SHPLayer extends VectorLayer {
     /**

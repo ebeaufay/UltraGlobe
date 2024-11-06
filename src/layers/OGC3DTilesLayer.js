@@ -1,8 +1,6 @@
 import { Layer } from "./Layer";
-import { OGC3DTile } from "@jdultra/threedtiles/dist/threedtiles.min.js";
+import { OGC3DTile, TileLoader } from "@jdultra/threedtiles";
 import * as THREE from 'three';
-import { TileLoader } from '@jdultra/threedtiles/dist/threedtiles.min.js';
-import { OBB } from '@jdultra/threedtiles/dist/threedtiles.min.js';
 import { llhToCartesianFastSFCT } from '../GeoUtils.js';
 
 
@@ -94,9 +92,9 @@ class OGC3DTilesLayer extends Layer {
     getBaseHeight() {
         const bounds = this.tileset.boundingVolume;
         if (bounds) {
-            if (bounds instanceof OBB) {
+            if (bounds.halfDepth != undefined) {
                 return - bounds.halfDepth;
-            } else if (bounds instanceof THREE.Sphere) {
+            } else if (bounds.isSphere) {
                 return - bounds.radius;
             }
         }
@@ -110,7 +108,7 @@ class OGC3DTilesLayer extends Layer {
         } else if (tileset.json.boundingVolume.sphere) {
 
         }
-        if (tileset.boundingVolume instanceof OBB) {
+        if (tileset.boundingVolume.halfWidth != undefined) {
             // box
 
             // TODO curved edges

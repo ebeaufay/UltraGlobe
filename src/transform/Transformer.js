@@ -1,7 +1,7 @@
 'use strict'
 
-import * as epsg from './refs.json';
-import * as proj4 from 'proj4';
+import epsg from './refs.json';
+import proj4 from 'proj4';
 
 const leadingEPSG = /^epsg:/i
 
@@ -16,7 +16,7 @@ const transform = (from, to) => {
 	const toEPSG = epsg[to]
 	if (!toEPSG) throw new Error(to + ' is not a valid EPSG coordinate system')
 
-	return proj4.default(fromEPSG.proj4, toEPSG.proj4)
+	return proj4(fromEPSG.proj4, toEPSG.proj4)
 }
 
 export {transform}
