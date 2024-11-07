@@ -6,16 +6,14 @@
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/d26e3484-3a7d-4aef-8e91-8e679d3d6473)
 
 
-The goal of this library is to provide a way to display geospatial data on a globe in threeJS without having a full fledged framework. Instead, the library is intended as a thin layer to allow threeJS developers to work with a geospatial environment while keeping access to lower level threeJS context.
+This lib helps to handle geospatial data in three.js. 
+While the three.js context is kept available as much as possible, the project is evolving into a framework. A lot of things come for free but there is a learning curve.
 
-The existing layer system can be used and extended to import data sources without implementing everything from scratch.
+The layer system can import standard geospatial formats: WMS, OGC3DTiles, Google 3D Tiles, GeoJson, SHP, GoPro, NOAA, I3S.
+It can also be used for custom imagery/terrain, vector data, video draping, line of sight, georeferencing meshes and more.
+Out of the box controls can be overriden with custom ones.
 
-The earth model is wgs 84. and uses a modified UV-sphere for terrain tiles.
-
-There's support for WMS and OGC 3DTiles and partial I3S support. 
-There are also a few custom layers allowing fancy visualizations (Google earth 3DTiles, volumetric clouds, Video projection, Line of sight, Moving tracks..).
-
-Vector Layers and physics are in the works.
+The project is currently released under GPL-3.0 which is mildly permissive. The idea there is to allow open-source projects to use the code while for closed-source projects, I would like to be kept in the loop and specific licenses can be editted based on the need.
 
 ## Documentation
 
