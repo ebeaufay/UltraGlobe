@@ -43,7 +43,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/8e232c42-9a05-4eef-baea-056c1fd9cd81" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGoogleTiles">OGC 3D Tiles</a>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGoogleTiles">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGoogleTiles">OGC 3D Tiles</a> <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGoogleTiles">code</a></div>
     </td>
   </tr>
 </table>
@@ -54,7 +54,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/864538b3-eeb7-445d-8476-44c3bc67e136" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/addCustomDataToScene">Custom data through three.js</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/addCustomDataToScene">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/addCustomDataToScene">georeferencing</a><br>  <br>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/addCustomDataToScene">code</a></div>
     </td>
   </tr>
 </table>
@@ -64,7 +64,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/497fe297-2827-437e-8b92-54dde9ba5ab0" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/drapedVectors">geojson</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/drapedVectors">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/drapedVectors">geojson</a>   <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/drapedVectors">code</a></div>
     </td>
   </tr>
 </table>
@@ -74,7 +74,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/d9198a74-8024-4daf-aec7-51456c7b8f80" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/cloudsNOAA">Volumetric clouds NOAA forecast connector</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/cloudsNOAA">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/cloudsNOAA">Volumetric clouds NOAA forecast connector</a>   <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/cloudsNOAA">code</a></div>
     </td>
   </tr>
 </table>
@@ -85,7 +85,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/e16e7779-b6d6-4e04-abee-adf6383e9ff8" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/shaderLayer">programmable shader layers</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/shaderLayer">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/shaderLayer">programmable shader layers</a>   <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/shaderLayer">code</a></div>
     </td>
   </tr>
 </table>
@@ -96,7 +96,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/785a7c5e-47e5-455e-83d2-b541a037abbb" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/videoProjection">Video projection</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/videoProjection">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/videoProjection">Video projection</a> <br>  <br><a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/videoProjection">code</a></div>
     </td>
   </tr>
 </table>
@@ -107,7 +107,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/359c959b-96da-49ba-9439-0d058e82d876" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/procedural">procedurally generated data</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/procedural">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/procedural">procedurally generated data</a>   <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/procedural">code</a></div>
     </td>
   </tr>
 </table>
@@ -118,7 +118,7 @@ The project is currently released under GPL-3.0 which is mildly permissive. The 
       <img src="https://github.com/user-attachments/assets/43916c0a-2032-4fd6-92ef-a0d249d89884" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/customController">custom controls</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/customController">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/customController">custom controls</a>   <br>  <br> <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/customController">code</a></div>
     </td>
   </tr>
 </table>
