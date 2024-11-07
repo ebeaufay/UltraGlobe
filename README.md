@@ -45,7 +45,7 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/8e232c42-9a05-4eef-baea-056c1fd9cd81" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGoogleTiles">Google 3D Tiles</a>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGoogleTiles">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGoogleTiles">OGC 3D Tiles</a>  <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGoogleTiles">code</a></div>
     </td>
   </tr>
 </table>
