@@ -33,8 +33,8 @@ Vector Layers and physics are in the works.
       <img src="https://github.com/user-attachments/assets/6552990b-80ed-419c-9165-69b0c9fd8415" width="200" />
     </td>
     <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStarted">Getting started JS</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStarted">code</a></div>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/gettingStartedTS">Getting started TS</a>   <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStartedTS">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGettingStarted">Getting started JS</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStarted">code</a></div>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/ultraglobeGettingStartedTS">Getting started TS</a>   <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/ultraglobeGettingStartedTS">code</a></div>
     </td>
   </tr>
 </table>
