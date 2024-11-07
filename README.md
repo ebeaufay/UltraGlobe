@@ -60,7 +60,16 @@ Vector Layers and physics are in the works.
     </td>
   </tr>
 </table>
-
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/497fe297-2827-437e-8b92-54dde9ba5ab0" width="200" />
+    </td>
+    <td>
+      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/drapedVectors">geojson</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/drapedVectors">code</a></div>
+    </td>
+  </tr>
+</table>
 <table>
   <tr>
     <td>
@@ -116,16 +125,7 @@ Vector Layers and physics are in the works.
   </tr>
 </table>
 
-<table>
-  <tr>
-    <td>
-      <img src="https://github.com/user-attachments/assets/497fe297-2827-437e-8b92-54dde9ba5ab0" width="200" />
-    </td>
-    <td>
-      <div style="display: flex;"><a href="https://www.jdultra.com/ultraglobe/demos/drapedVectors">geojson</a>    <a href="https://github.com/ebeaufay/ultraglobedemos/tree/main/demos/drapedVectors">code</a></div>
-    </td>
-  </tr>
-</table>
+
 
 
 Other demos:
