@@ -6,8 +6,7 @@
 ![image](https://github.com/ebeaufay/UltraGlobe/assets/16924300/d26e3484-3a7d-4aef-8e91-8e679d3d6473)
 
 
-This lib helps to handle geospatial data in three.js. 
-While the three.js context is kept available as much as possible, the project is evolving into a framework. A lot of things come for free but there is a learning curve.
+This lib helps to handle geospatial data in three.js.
 
 The layer system can import standard geospatial formats: WMS, OGC3DTiles, Google 3D Tiles, GeoJson, SHP, GoPro, NOAA, I3S.
 It can also be used for custom imagery/terrain, vector data, video draping, line of sight, georeferencing meshes and more.
